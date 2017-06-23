@@ -2283,5 +2283,10 @@ string OPolygonRegister::toString()
 {
     return "POLYGONR";
 }
+
+string OChangeFFCScript::toString()
+{
+    return "CHANGEFFSCRIPTR " + getArgument()->toString();
+}
 //////////////////////////////////////////////////////////////////////////////////////
 

@@ -3555,6 +3555,14 @@ void set_register(const long arg, const long value)
         ffcScriptData[ri->ffcref].Clear();
         tmpscr->initialized[ri->ffcref] = false;
         break;
+	
+    case CHANGEFFSCRIPTR:
+        FFScript::do_changeffcscript(false);
+        break;
+    
+    case CHANGEFFSCRIPTV:
+        FFScript::do_changeffcscript(true);
+        break;
         
     case FCSET:
         tmpscr->ffcset[ri->ffcref] = (value/10000)&15;
@@ -10188,4 +10196,27 @@ void FFScript::do_triggersecret(const bool v)
 		}
 	}
 	
+}
+
+void FFScript::do_changeffcscript(const bool v){
+	long ID = vbound((SH::get_arg(sarg1, v) / 10000), 0, 255);
+	for(long i = 1; i < MAX_ZCARRAY_SIZE; i++)
+	{
+	    if(arrayOwner[i]==ri->ffcref)
+		FFScript::deallocateZScriptArray(i);
+	}
+	
+	tmpscr->ffscript[ri->ffcref] = vbound(ID/10000, 0, scripts.ffscripts.size()-1);
+	
+	for(int i=0; i<16; i++)
+	    ffmisc[ri->ffcref][i] = 0;
+	    
+	for(int i=0; i<2; i++)
+	    tmpscr->inita[ri->ffcref][i] = 0;
+	    
+	for(int i=0; i<8; i++)
+	    tmpscr->initd[ri->ffcref][i] = 0;
+	    
+	ffcScriptData[ri->ffcref].Clear();
+	tmpscr->initialized[ri->ffcref] = true;
 }
