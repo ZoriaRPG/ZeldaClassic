@@ -9727,6 +9727,97 @@ int run_script(const byte type, const word script, const byte i)
 		break;
 	
 	
+	//case NPCData
+	
+	case 	GETNPCDATAFLAGS: FFScript::getNPCData_flags(); break;
+	case	GETNPCDATAFLAGS2: FFScript::getNPCData_flags2(); break;
+	case	GETNPCDATAWIDTH: FFScript::getNPCData_flags2(); break;
+	case	GETNPCDATAHEIGHT: FFScript::getNPCData_flags2(); break;
+	case	GETNPCDATASTILE: FFScript::getNPCData_s_tile(); break;
+	case	GETNPCDATASWIDTH: FFScript::getNPCData_s_width(); break;
+	case	GETNPCDATASHEIGHT: FFScript::getNPCData_s_height(); break;
+	case	GETNPCDATAETILE: FFScript::getNPCData_e_tile(); break;
+	case	GETNPCDATAEWIDTH: FFScript::getNPCData_e_width(); break;
+	case	GETNPCDATAHP: FFScript::getNPCData_hp(); break;
+	case	GETNPCDATAFAMILY: FFScript::getNPCData_family(); break;
+	case	GETNPCDATACSET: FFScript::getNPCData_cset(); break;
+	case	GETNPCDATAANIM: FFScript::getNPCData_anim(); break;
+	case	GETNPCDATAEANIM: FFScript::getNPCData_e_anim(); break;
+	case	GETNPCDATAFRAMERATE: FFScript::getNPCData_frate(); break;
+	case	GETNPCDATAEFRAMERATE: FFScript::getNPCData_e_frate(); break;
+	case	GETNPCDATATOUCHDMG: FFScript::getNPCData_dp(); break;
+	case	GETNPCDATAWPNDAMAGE: FFScript::getNPCData_wdp(); break;
+	case	GETNPCDATAWEAPON: FFScript::getNPCData_wdp(); break;
+	case	GETNPCDATARANDOM: FFScript::getNPCData_rate(); break;
+	case	GETNPCDATAHALT: FFScript::getNPCData_hrate(); break;
+	case	GETNPCDATASTEP: FFScript::getNPCData_step(); break;
+	case	GETNPCDATAHOMING: FFScript::getNPCData_homing(); break;
+	case	GETNPCDATAHUNGER: FFScript::getNPCData_grumble(); break;
+	case	GETNPCDATADROPSET: FFScript::getNPCData_item_set(); break;
+	case	GETNPCDATABGSFX: FFScript::getNPCData_bgsfx(); break;
+	case	GETNPCDATADEATHSFX: FFScript::getNPCData_deadsfx(); break; 
+	case	GETNPCDATAXOFS: FFScript::getNPCData_xofs(); break;
+	case	GETNPCDATAYOFS: FFScript::getNPCData_yofs(); break;
+	case	GETNPCDATAZOFS: FFScript::getNPCData_zofs(); break;
+	case	GETNPCDATAHXOFS: FFScript::getNPCData_hxofs(); break;
+	case	GETNPCDATAHYOFS: FFScript::getNPCData_hyofs(); break;
+	case	GETNPCDATAHITWIDTH: FFScript::getNPCData_hxsz(); break;
+	case	GETNPCDATAHITHEIGHT: FFScript::getNPCData_hysz(); break;
+	case	GETNPCDATAHITZ: FFScript::getNPCData_hzsz(); break;
+	case	GETNPCDATATILEWIDTH: FFScript::getNPCData_txsz(); break;
+	case	GETNPCDATATILEHEIGHT: FFScript::getNPCData_tysz(); break;
+	case	GETNPCDATAWPNSPRITE: FFScript::getNPCData_wpnsprite(); break;
+	//case	GETNPCDATASCRIPTDEF: FFScript::getNPCData_scriptdefence(); break; //2.future cross-compat. 
+	case	GETNPCDATADEFENSE: FFScript::getNPCData_defense(); break; 
+	case	GETNPCDATASIZEFLAG: FFScript::getNPCData_SIZEflags(); break;
+	case	GETNPCDATAATTRIBUTE: FFScript::getNPCData_misc(); break;
+	case	GETNPCDATAHITSFX: FFScript::getNPCData_hitsfx(); break;
+		
+	case	SETNPCDATAFLAGS: FFScript::setNPCData_flags(); break;
+	case	SETNPCDATAFLAGS2: FFScript::setNPCData_flags2(); break;
+	case	SETNPCDATAWIDTH: FFScript::setNPCData_width(); break;
+	case	SETNPCDATAHEIGHT: FFScript::setNPCData_height(); break;
+	case	SETNPCDATASTILE: FFScript::setNPCData_s_tile(); break;
+	case	SETNPCDATASWIDTH: FFScript::setNPCData_s_width(); break;
+	case	SETNPCDATASHEIGHT: FFScript::setNPCData_s_height(); break;
+	case	SETNPCDATAETILE: FFScript::setNPCData_e_tile(); break;
+	case	SETNPCDATAEWIDTH: FFScript::setNPCData_e_width(); break;
+	case	SETNPCDATAHP: FFScript::setNPCData_hp(); break;
+	case	SETNPCDATAFAMILY: FFScript::setNPCData_family(); break;
+	case	SETNPCDATACSET: FFScript::setNPCData_cset(); break;
+	case	SETNPCDATAANIM: FFScript::setNPCData_anim(); break;
+	case	SETNPCDATAEANIM: FFScript::setNPCData_e_anim(); break;
+	case	SETNPCDATAFRAMERATE: FFScript::setNPCData_frate(); break;
+	case	SETNPCDATAEFRAMERATE: FFScript::setNPCData_e_frate(); break;
+	case	SETNPCDATATOUCHDMG: FFScript::setNPCData_dp(); break;
+	case	SETNPCDATAWPNDAMAGE: FFScript::setNPCData_wdp(); break;
+	case	SETNPCDATAWEAPON: FFScript::setNPCData_weapon(); break;
+	case	SETNPCDATARANDOM: FFScript::setNPCData_rate(); break;
+	case	SETNPCDATAHALT: FFScript::setNPCData_hrate(); break;
+	case	SETNPCDATASTEP: FFScript::setNPCData_step(); break;
+	case	SETNPCDATAHOMING: FFScript::setNPCData_homing(); break;
+	case	SETNPCDATAHUNGER: FFScript::setNPCData_grumble(); break;
+	case	SETNPCDATADROPSET: FFScript::setNPCData_item_set(); break;
+	case	SETNPCDATABGSFX: FFScript::setNPCData_bgsfx(); break;
+	case	SETNPCDATADEATHSFX: FFScript::setNPCData_hitsfx(); break;
+	case	SETNPCDATAXOFS: FFScript::setNPCData_xofs(); break;
+	case	SETNPCDATAYOFS: FFScript::setNPCData_yofs(); break;
+	case	SETNPCDATAZOFS: FFScript::setNPCData_zofs(); break;
+	case	SETNPCDATAHXOFS: FFScript::setNPCData_hxofs(); break;
+	case	SETNPCDATAHYOFS: FFScript::setNPCData_hyofs(); break;
+	case	SETNPCDATAHITWIDTH: FFScript::setNPCData_hxsz(); break;
+	case	SETNPCDATAHITHEIGHT: FFScript::setNPCData_hysz(); break;
+	case	SETNPCDATAHITZ: FFScript::setNPCData_hzsz(); break;
+	case	SETNPCDATATILEWIDTH: FFScript::setNPCData_txsz(); break;
+	case	SETNPCDATATILEHEIGHT: FFScript::setNPCData_tysz(); break;
+	case	SETNPCDATAWPNSPRITE: FFScript::setNPCData_wpnsprite(); break;
+	case	SETNPCDATAHITSFX: FFScript::setNPCData_hitsfx(); break;
+
+		
+	case	SETNPCDATASCRIPTDEF  : FFScript::setNPCData_scriptdefence(); break;
+	case 	SETNPCDATADEFENSE : FFScript::setNPCData_defense(ri->d[2]); break;
+	case 	SETNPCDATASIZEFLAG : FFScript::setNPCData_SIZEflags(ri->d[2]); break;
+	case 	SETNPCDATAATTRIBUTE : FFScript::setNPCData_misc(ri->d[2]); break;
 	
         default:
             Z_scripterrlog("Invalid ZASM command %ld reached\n", scommand);

@@ -129,7 +129,7 @@ static void setLinkBigHitbox(bool v);
 
 
 
-	static void getNPCData_scriptdefence();
+	//static void getNPCData_scriptdefence();
 	static void getNPCData_misc();//switch-case
 	static void getNPCData_defense(); //extra arg
 	static void getNPCData_SIZEflags();
@@ -178,7 +178,7 @@ static void setLinkBigHitbox(bool v);
 	static void setNPCData_wpnsprite();
 
 	//NPCData Setters, three inputs, no return.
-	static void setNPCData_scriptdefence();
+	//static void setNPCData_scriptdefence();
 	static void setNPCData_defense(int v); //extra arg
 	static void setNPCData_SIZEflags(int v);
 	static void setNPCData_misc(int val);
