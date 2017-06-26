@@ -1163,6 +1163,14 @@ string VarArgument::toString()
     case LINKBIGHITBOX: return "LINKBIGHITBOX";
     case LINKDIAG: return "LINKDIAG";
     
+    //NPCData
+    
+	//three inputs no return (function-only)
+	case SETNPCDATASCRIPTDEF: return "SETNPCDATASCRIPTDEF";
+	case SETNPCDATADEFENSE: return "SETNPCDATADEFENSE";
+	case SETNPCDATASIZEFLAG: return "SETNPCDATASIZEFLAG";
+	case SETNPCDATAATTRIBUTE: return "SETNPCDATAATTRIBUTE";
+    
     default:
     {
         sprintf(temp, "d%d", ID);
@@ -2289,6 +2297,342 @@ string OPolygonRegister::toString()
 string OChangeFFCScriptRegister::toString()
 {
     return "CHANGEFFSCRIPTR " + getArgument()->toString();
+}
+
+
+//NPCData
+string ONDataFlags::toString()
+{
+    return "GETNPCDATAFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataFlags2::toString()
+{
+    return "GETNPCDATAFLAGS2 " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataWidth::toString()
+{
+    return "GETNPCDATAWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHeight::toString()
+{
+    return "GETNPCDATAHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataTile::toString()
+{
+    return "GETNPCDATASTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSWidth::toString()
+{
+    return "GETNPCDATASWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSHeight::toString()
+{
+    return "GETNPCDATASHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataETile::toString()
+{
+    return "GETNPCDATAETILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataEWidth::toString()
+{
+    return "GETNPCDATAEWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHP::toString()
+{
+    return "GETNPCDATAHP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataFamily::toString()
+{
+    return "GETNPCDATAFAMILY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataCSet::toString()
+{
+    return "GETNPCDATACSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataAnim::toString()
+{
+    return "GETNPCDATAANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataEAnim::toString()
+{
+    return "GETNPCDATAEANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataFramerate::toString()
+{
+    return "GETNPCDATAFRAMERATE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataEFramerate::toString()
+{
+    return "GETNPCDATAEFRAMERATE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataTouchDamage::toString()
+{
+    return "GETNPCDATATOUCHDMG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataWeaponDamage::toString()
+{
+    return "GETNPCDATAWPNDAMAGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataWeapon::toString()
+{
+    return "GETNPCDATAWEAPON " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataRandom::toString()
+{
+    return "GETNPCDATARANDOM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHalt::toString()
+{
+    return "GETNPCDATAHALT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataStep::toString()
+{
+    return "GETNPCDATASTEP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHoming::toString()
+{
+    return "GETNPCDATAHOMING " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHunger::toString()
+{
+    return "GETNPCDATAHUNGER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataropset::toString()
+{
+    return "GETNPCDATADROPSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataBGSound::toString()
+{
+    return "GETNPCDATABGSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHitSound::toString()
+{
+    return "GETNPCDATAHITSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataDeathSound::toString()
+{
+    return "GETNPCDATADEATHSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataXofs::toString()
+{
+    return "GETNPCDATAXOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataYofs::toString()
+{
+    return "GETNPCDATAYOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataZofs::toString()
+{
+    return "GETNPCDATAZOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHitXOfs::toString()
+{
+    return "GETNPCDATAHXOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHYOfs::toString()
+{
+    return "GETNPCDATAHYOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHitWidth::toString()
+{
+    return "GETNPCDATAHITWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHitHeight::toString()
+{
+    return "GETNPCDATAHITHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataHitZ::toString()
+{
+    return "GETNPCDATAHITZ " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataTileWidth::toString()
+{
+    return "GETNPCDATATILEWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataTileHeight::toString()
+{
+    return "GETNPCDATATILEHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataWeapSprite::toString()
+{
+    return "GETNPCDATAWPNSPRITE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+//two inputs, one return
+string ONDataScriptDef::toString()
+{
+    return "GETNPCDATASCRIPTDEF " + getArgument()->toString();
+}
+//two inputs, one return
+string ONDataDefense::toString()
+{
+    return "GETNPCDATADEFENSE " + getArgument()->toString();
+}
+//two inputs, one return
+string ONDataSizeFlag::toString()
+{
+    return "GETNPCDATASIZEFLAG " + getArgument()->toString();
+}
+//two inputs, one return
+string ONDatattributes::toString()
+{
+    return "GETNPCDATAATTRIBUTE " + getArgument()->toString();
+}
+string ONDataSetFlags::toString()
+{
+    return "SETNPCDATAFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetFlags2::toString()
+{
+    return "SETNPCDATAFLAGS2 " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetWidth::toString()
+{
+    return "SETNPCDATAWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHeight::toString()
+{
+    return "SETNPCDATAHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetTile::toString()
+{
+    return "SETNPCDATASTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetSWidth::toString()
+{
+    return "SETNPCDATASWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetSHeight::toString()
+{
+    return "SETNPCDATASHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetETile::toString()
+{
+    return "SETNPCDATAETILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetEWidth::toString()
+{
+    return "SETNPCDATAEWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHP::toString()
+{
+    return "SETNPCDATAHP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetFamily::toString()
+{
+    return "SETNPCDATAFAMILY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetCSet::toString()
+{
+    return "SETNPCDATACSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetAnim::toString()
+{
+    return "SETNPCDATAANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetEAnim::toString()
+{
+    return "SETNPCDATAEANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetFramerate::toString()
+{
+    return "SETNPCDATAFRAMERATE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetEFramerate::toString()
+{
+    return "SETNPCDATAEFRAMERATE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetTouchDamage::toString()
+{
+    return "SETNPCDATATOUCHDMG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetWeaponDamage::toString()
+{
+    return "SETNPCDATAWPNDAMAGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetWeapon::toString()
+{
+    return "SETNPCDATAWEAPON " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetRandom::toString()
+{
+    return "SETNPCDATARANDOM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHalt::toString()
+{
+    return "SETNPCDATAHALT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSettep::toString()
+{
+    return "SETNPCDATASTEP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHoming::toString()
+{
+    return "SETNPCDATAHOMING " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHunger::toString()
+{
+    return "SETNPCDATAHUNGER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetropset::toString()
+{
+    return "SETNPCDATADROPSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetBGSound::toString()
+{
+    return "SETNPCDATABGSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHitSound::toString()
+{
+    return "SETNPCDATAHITSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetDeathSound::toString()
+{
+    return "SETNPCDATADEATHSFX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetXofs::toString()
+{
+    return "SETNPCDATAXOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetYofs::toString()
+{
+    return "SETNPCDATAYOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetZofs::toString()
+{
+    return "SETNPCDATAZOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHitXOfs::toString()
+{
+    return "SETNPCDATAHXOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHYOfs::toString()
+{
+    return "SETNPCDATAHYOFS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHitWidth::toString()
+{
+    return "SETNPCDATAHITWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHitHeight::toString()
+{
+    return "SETNPCDATAHITHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetHitZ::toString()
+{
+    return "SETNPCDATAHITZ " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetTileWidth::toString()
+{
+    return "SETNPCDATATILEWIDTH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetTileHeight::toString()
+{
+    return "SETNPCDATATILEHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetWeapSprite::toString()
+{
+    return "SETNPCDATAWPNSPRITE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
 //////////////////////////////////////////////////////////////////////////////////////
 

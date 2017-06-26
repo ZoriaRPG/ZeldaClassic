@@ -595,6 +595,12 @@
 #define GAMESUBSCHEIGHT 557
 #define GAMEPLAYFIELDOFS 558
 #define PASSSUBOFS 559
+//NPCData
+//three inputs, no return
+#define SETNPCDATASCRIPTDEF 560
+#define SETNPCDATADEFENSE 561
+#define SETNPCDATASIZEFLAG 562
+#define SETNPCDATAATTRIBUTE 563
 
 //END OF BYTECODE
 
@@ -3148,6 +3154,906 @@ public:
         return new OChangeFFCScriptRegister(a->clone());
     }
 };
+
+//one input, no return
+class ONDataFlags : public BinaryOpcode
+{
+public:
+    ONDataFlags(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataFlags(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataFlags2 : public BinaryOpcode
+{
+public:
+    ONDataFlags2(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataFlags2(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataWidth : public BinaryOpcode
+{
+public:
+    ONDataWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHeight : public BinaryOpcode
+{
+public:
+    ONDataHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataTile : public BinaryOpcode
+{
+public:
+    ONDataTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataTile(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSWidth : public BinaryOpcode
+{
+public:
+    ONDataSWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSHeight : public BinaryOpcode
+{
+public:
+    ONDataSHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataETile : public BinaryOpcode
+{
+public:
+    ONDataETile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataETile(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataEWidth : public BinaryOpcode
+{
+public:
+    ONDataEWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataEWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHP : public BinaryOpcode
+{
+public:
+    ONDataHP(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHP(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataFamily : public BinaryOpcode
+{
+public:
+    ONDataFamily(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataFamily(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataCSet : public BinaryOpcode
+{
+public:
+    ONDataCSet(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataCSet(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataAnim : public BinaryOpcode
+{
+public:
+    ONDataAnim(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataAnim(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataEAnim : public BinaryOpcode
+{
+public:
+    ONDataEAnim(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataEAnim(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataFramerate : public BinaryOpcode
+{
+public:
+    ONDataFramerate(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataFramerate(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataEFramerate : public BinaryOpcode
+{
+public:
+    ONDataEFramerate(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataEFramerate(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataTouchDamage : public BinaryOpcode
+{
+public:
+    ONDataTouchDamage(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataTouchDamage(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataWeaponDamage : public BinaryOpcode
+{
+public:
+    ONDataWeaponDamage(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataWeaponDamage(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataWeapon : public BinaryOpcode
+{
+public:
+    ONDataWeapon(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataWeapon(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataRandom : public BinaryOpcode
+{
+public:
+    ONDataRandom(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataRandom(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHalt : public BinaryOpcode
+{
+public:
+    ONDataHalt(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHalt(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataStep : public BinaryOpcode
+{
+public:
+    ONDataStep(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataStep(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHoming : public BinaryOpcode
+{
+public:
+    ONDataHoming(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHoming(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHunger : public BinaryOpcode
+{
+public:
+    ONDataHunger(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHunger(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataropset : public BinaryOpcode
+{
+public:
+    ONDataropset(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataropset(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataBGSound : public BinaryOpcode
+{
+public:
+    ONDataBGSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataBGSound(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHitSound : public BinaryOpcode
+{
+public:
+    ONDataHitSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHitSound(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataDeathSound : public BinaryOpcode
+{
+public:
+    ONDataDeathSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataDeathSound(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataXofs : public BinaryOpcode
+{
+public:
+    ONDataXofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataXofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataYofs : public BinaryOpcode
+{
+public:
+    ONDataYofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataYofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataZofs : public BinaryOpcode
+{
+public:
+    ONDataZofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataZofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHitXOfs : public BinaryOpcode
+{
+public:
+    ONDataHitXOfs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHitXOfs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHYOfs : public BinaryOpcode
+{
+public:
+    ONDataHYOfs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHYOfs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHitWidth : public BinaryOpcode
+{
+public:
+    ONDataHitWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHitWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHitHeight : public BinaryOpcode
+{
+public:
+    ONDataHitHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHitHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataHitZ : public BinaryOpcode
+{
+public:
+    ONDataHitZ(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataHitZ(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataTileWidth : public BinaryOpcode
+{
+public:
+    ONDataTileWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataTileWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataTileHeight : public BinaryOpcode
+{
+public:
+    ONDataTileHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataTileHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataWeapSprite : public BinaryOpcode
+{
+public:
+    ONDataWeapSprite(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataWeapSprite(a->clone(), b->clone());
+    }
+};
+
+//two inputs, two returns
+
+class ONDataScriptDef : public UnaryOpcode
+{
+public:
+    ONDataScriptDef(Argument *A) : UnaryOpcode(A) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataScriptDef(a->clone());
+    }
+};
+//two inputs, two returns
+
+class ONDataDefense : public UnaryOpcode
+{
+public:
+    ONDataDefense(Argument *A) : UnaryOpcode(A) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataDefense(a->clone());
+    }
+};
+//two inputs, two returns
+
+class ONDataSizeFlag : public UnaryOpcode
+{
+public:
+    ONDataSizeFlag(Argument *A) : UnaryOpcode(A) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSizeFlag(a->clone());
+    }
+};
+//two inputs, two returns
+
+class ONDatattributes : public UnaryOpcode
+{
+public:
+    ONDatattributes(Argument *A) : UnaryOpcode(A) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDatattributes(a->clone());
+    }
+};
+
+, no return
+class ONDataSetFlags : public BinaryOpcode
+{
+public:
+    ONDataSetFlags(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetFlags(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetFlags2 : public BinaryOpcode
+{
+public:
+    ONDataSetFlags2(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetFlags2(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetWidth : public BinaryOpcode
+{
+public:
+    ONDataSetWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHeight : public BinaryOpcode
+{
+public:
+    ONDataSetHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetTile : public BinaryOpcode
+{
+public:
+    ONDataSetTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetTile(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetSWidth : public BinaryOpcode
+{
+public:
+    ONDataSetSWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetSWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetSHeight : public BinaryOpcode
+{
+public:
+    ONDataSetSHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetSHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetETile : public BinaryOpcode
+{
+public:
+    ONDataSetETile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetETile(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetEWidth : public BinaryOpcode
+{
+public:
+    ONDataSetEWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetEWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHP : public BinaryOpcode
+{
+public:
+    ONDataSetHP(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHP(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetFamily : public BinaryOpcode
+{
+public:
+    ONDataSetFamily(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetFamily(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetCSet : public BinaryOpcode
+{
+public:
+    ONDataSetCSet(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetCSet(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetAnim : public BinaryOpcode
+{
+public:
+    ONDataSetAnim(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetAnim(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetEAnim : public BinaryOpcode
+{
+public:
+    ONDataSetEAnim(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetEAnim(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetFramerate : public BinaryOpcode
+{
+public:
+    ONDataSetFramerate(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetFramerate(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetEFramerate : public BinaryOpcode
+{
+public:
+    ONDataSetEFramerate(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetEFramerate(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetTouchDamage : public BinaryOpcode
+{
+public:
+    ONDataSetTouchDamage(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetTouchDamage(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetWeaponDamage : public BinaryOpcode
+{
+public:
+    ONDataSetWeaponDamage(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetWeaponDamage(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetWeapon : public BinaryOpcode
+{
+public:
+    ONDataSetWeapon(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetWeapon(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetRandom : public BinaryOpcode
+{
+public:
+    ONDataSetRandom(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetRandom(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHalt : public BinaryOpcode
+{
+public:
+    ONDataSetHalt(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHalt(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetStep : public BinaryOpcode
+{
+public:
+    ONDataSetStep(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetStep(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHoming : public BinaryOpcode
+{
+public:
+    ONDataSetHoming(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHoming(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHunger : public BinaryOpcode
+{
+public:
+    ONDataSetHunger(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHunger(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetropset : public BinaryOpcode
+{
+public:
+    ONDataSetropset(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetropset(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetBGSound : public BinaryOpcode
+{
+public:
+    ONDataSetBGSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetBGSound(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetDeathSound : public BinaryOpcode
+{
+public:
+    ONDataSetDeathSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetDeathSound(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetXofs : public BinaryOpcode
+{
+public:
+    ONDataSetXofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetXofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetYofs : public BinaryOpcode
+{
+public:
+    ONDataSetYofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetYofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetZofs : public BinaryOpcode
+{
+public:
+    ONDataSetZofs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetZofs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHitXOfs : public BinaryOpcode
+{
+public:
+    ONDataSetHitXOfs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHitXOfs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHYOfs : public BinaryOpcode
+{
+public:
+    ONDataSetHYOfs(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHYOfs(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHitWidth : public BinaryOpcode
+{
+public:
+    ONDataSetHitWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHitWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHitHeight : public BinaryOpcode
+{
+public:
+    ONDataSetHitHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHitHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetHitZ : public BinaryOpcode
+{
+public:
+    ONDataSetHitZ(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHitZ(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetTileWidth : public BinaryOpcode
+{
+public:
+    ONDataSetTileWidth(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetTileWidth(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetTileHeight : public BinaryOpcode
+{
+public:
+    ONDataSetTileHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetTileHeight(a->clone(), b->clone());
+    }
+};
+//one input, no return
+class ONDataSetWeapSprite : public BinaryOpcode
+{
+public:
+    ONDataSetWeapSprite(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetWeapSprite(a->clone(), b->clone());
+    }
+};
+
+
 
 #endif
 
