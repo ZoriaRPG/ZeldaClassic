@@ -84,6 +84,105 @@ static bool getLinkDiagonal();
 static bool getLinkBigHitbox();
 static void setLinkBigHitbox(bool v);
 
+//NPCData getters One Input, One Return
+	static void getNPCData_flags(); //word
+	static void getNPCData_flags2();
+	static void getNPCData_width();
+	static void getNPCData_height();
+	static void getNPCData_s_tile();
+	static void getNPCData_s_width();
+	static void getNPCData_s_height();
+	static void getNPCData_e_tile();
+	static void getNPCData_e_width();
+	static void getNPCData_hp();
+	static void getNPCData_family();
+	static void getNPCData_cset();
+	static void getNPCData_anim();
+	static void getNPCData_e_anim();
+	static void getNPCData_frate();
+	static void getNPCData_e_frate();
+	static void getNPCData_dp();
+	static void getNPCData_wdp();
+	static void getNPCData_weapon();
+	static void getNPCData_rate();
+	static void getNPCData_hrate();
+	static void getNPCData_step();
+	static void getNPCData_homing();
+	static void getNPCData_grumble();
+	static void getNPCData_item_set();
+	static void getNPCData_bgsfx();
+	static void getNPCData_hitsfx();
+	static void getNPCData_deadsfx();
+	static void getNPCData_xofs();
+	static void getNPCData_yofs();
+	static void getNPCData_zofs();
+	static void getNPCData_hxofs();
+	static void getNPCData_hyofs();
+	static void getNPCData_hxsz();
+	static void getNPCData_hysz();
+	static void getNPCData_hzsz();
+	static void getNPCData_txsz();
+	static void getNPCData_tysz();
+	static void getNPCData_wpnsprite();
+
+	//NPCData Getters, two inouts, one return
+
+
+
+	static void getNPCData_scriptdefence();
+	static void getNPCData_misc();//switch-case
+	static void getNPCData_defense(); //extra arg
+	static void getNPCData_SIZEflags();
+
+
+	//NPCData Setters, two inputs, no return.
+
+	static void setNPCData_flags(); //word
+	static void setNPCData_flags2();
+	static void setNPCData_width();
+	static void setNPCData_height();
+	static void setNPCData_s_tile();
+	static void setNPCData_s_width();
+	static void setNPCData_s_height();
+	static void setNPCData_e_tile();
+	static void setNPCData_e_width();
+	static void setNPCData_hp();
+	static void setNPCData_family();
+	static void setNPCData_cset();
+	static void setNPCData_anim();
+	static void setNPCData_e_anim();
+	static void setNPCData_frate();
+	static void setNPCData_e_frate();
+	static void setNPCData_dp();
+	static void setNPCData_wdp();
+	static void setNPCData_weapon();
+	static void setNPCData_rate();
+	static void setNPCData_hrate();
+	static void setNPCData_step();
+	static void setNPCData_homing();
+	static void setNPCData_grumble();
+	static void setNPCData_item_set();
+	static void setNPCData_bgsfx();
+	static void setNPCData_hitsfx();
+	static void setNPCData_deadsfx();
+	static void setNPCData_xofs();
+	static void setNPCData_yofs();
+	static void setNPCData_zofs();
+	static void setNPCData_hxofs();
+	static void setNPCData_hyofs();
+	static void setNPCData_hxsz();
+	static void setNPCData_hysz();
+	static void setNPCData_hzsz();
+	static void setNPCData_txsz();
+	static void setNPCData_tysz();
+	static void setNPCData_wpnsprite();
+
+	//NPCData Setters, three inputs, no return.
+	static void setNPCData_scriptdefence();
+	static void setNPCData_defense(); //extra arg
+	static void setNPCData_SIZEflags();
+	static void setNPCData_misc(int val);
+
 #define INVALIDARRAY localRAM[0]  //localRAM[0] is never used
 
 enum __Error

@@ -10242,3 +10242,264 @@ void FFScript::do_changeffcscript(const bool v){
 	ffcScriptData[ri->ffcref].Clear();
 	tmpscr->initialized[ri->ffcref] = true;
 }
+
+
+//NPCData
+
+//NPCData Getter Macros
+
+#define GET_NPCDATA_VAR_INT(member) \
+{ \
+	long ID = SH::get_arg(sarg2, v) / 10000;\
+	if(ID < 1 || ID > 511) \
+		set_register(sarg, -10000); \
+	else \
+		set_register(sarg1, guysbuf[ID].member * 10000); \
+}
+
+#define GET_NPCDATA_VAR_INDEX(member) \
+{ \
+	int ID = int(ri->d[0] / 10000);\
+	int indx = int(ri->d[1] / 10000);\
+	if(ID < 1 || ID > 511) \
+		set_register(sarg1, -10000); \
+	else \
+		set_register(sarg1, guysbuf[ID].member[index] * 10000); \
+}
+
+#define GET_NPCDATA_VAR_FLAG(member) \
+{ \
+	int ID = int(ri->d[0] / 10000);\
+	int flag = int(ri->d[1] / 10000);\
+	if(ID < 1 || ID > 511) \
+		set_register(sarg1, -10000); \
+	else \
+		set_register(sarg1, (guysbuf[ID].member&flag) ? 10000 : 0); \
+}
+
+
+void FFscript::getNPCData_flags(){ GET_NPCDATA_VAR_INT(flags); } //word
+void FFscript::getNPCData_flags2(){ GET_NPCDATA_VAR_INT(flags2); } 
+void FFscript::getNPCData_width(){ GET_NPCDATA_VAR_INT(width); } 
+void FFscript::getNPCData_height(){ GET_NPCDATA_VAR_INT(height); } 
+void FFscript::getNPCData_s_tile(){ GET_NPCDATA_VAR_INT(s_tile); } 
+void FFscript::getNPCData_s_width(){ GET_NPCDATA_VAR_INT(s_width); } 
+void FFscript::getNPCData_s_height(){ GET_NPCDATA_VAR_INT(s_height); } 
+void FFscript::getNPCData_e_tile(){ GET_NPCDATA_VAR_INT(e_tile); } 
+void FFscript::getNPCData_e_width(){ GET_NPCDATA_VAR_INT(e_width); } 
+void FFscript::getNPCData_hp(){ GET_NPCDATA_VAR_INT(hp); } 
+void FFscript::getNPCData_family(){ GET_NPCDATA_VAR_INT(family); } 
+void FFscript::getNPCData_cset(){ GET_NPCDATA_VAR_INT(cset); } 
+void FFscript::getNPCData_anim(){ GET_NPCDATA_VAR_INT(anim); } 
+void FFscript::getNPCData_e_anim(){ GET_NPCDATA_VAR_INT(e_anim); } 
+void FFscript::getNPCData_frate(){ GET_NPCDATA_VAR_INT(frate); } 
+void FFscript::getNPCData_e_frate(){ GET_NPCDATA_VAR_INT(e_frate); } 
+void FFscript::getNPCData_dp(){ GET_NPCDATA_VAR_INT(dp); } 
+void FFscript::getNPCData_wdp(){ GET_NPCDATA_VAR_INT(wdp); } 
+void FFscript::getNPCData_weapon(){ GET_NPCDATA_VAR_INT(weapon); } 
+void FFscript::getNPCData_rate(){ GET_NPCDATA_VAR_INT(rate); } 
+void FFscript::getNPCData_hrate(){ GET_NPCDATA_VAR_INT(hrate); } 
+void FFscript::getNPCData_step(){ GET_NPCDATA_VAR_INT(step); } 
+void FFscript::getNPCData_homing(){ GET_NPCDATA_VAR_INT(homing); } 
+void FFscript::getNPCData_grumble(){ GET_NPCDATA_VAR_INT(grumble); } 
+void FFscript::getNPCData_item_set(){ GET_NPCDATA_VAR_INT(item_set); } 
+void FFscript::getNPCData_bgsfx(){ GET_NPCDATA_VAR_INT(bgsfx); } 
+void FFscript::getNPCData_hitsfx(){ GET_NPCDATA_VAR_INT(hitsfx); } 
+void FFscript::getNPCData_deadsfx(){ GET_NPCDATA_VAR_INT(deadsfx); } 
+void FFscript::getNPCData_xofs(){ GET_NPCDATA_VAR_INT(xofs); } 
+void FFscript::getNPCData_yofs(){ GET_NPCDATA_VAR_INT(yofs); } 
+void FFscript::getNPCData_zofs(){ GET_NPCDATA_VAR_INT(zofs); } 
+void FFscript::getNPCData_hxofs(){ GET_NPCDATA_VAR_INT(hxofs); } 
+void FFscript::getNPCData_hyofs(){ GET_NPCDATA_VAR_INT(hyofs); } 
+void FFscript::getNPCData_hxsz(){ GET_NPCDATA_VAR_INT(hxsz); } 
+void FFscript::getNPCData_hysz(){ GET_NPCDATA_VAR_INT(hysz); } 
+void FFscript::getNPCData_hzsz(){ GET_NPCDATA_VAR_INT(hzsz); } 
+void FFscript::getNPCData_txsz(){ GET_NPCDATA_VAR_INT(txsz); } 
+void FFscript::getNPCData_tysz(){ GET_NPCDATA_VAR_INT(tysz); } 
+void FFscript::getNPCData_wpnsprite(){ GET_NPCDATA_VAR_INT(wpnsprite); } 
+
+//NPCData Getters, two inputs, one return, similar to ISSolid
+
+/*
+
+void do_issolid()
+{
+    int x = int(ri->d[0] / 10000);
+    int y = int(ri->d[1] / 10000);
+    
+    set_register(sarg1, (_walkflag(x, y, 1) ? 10000 : 0));
+}
+
+*/
+
+
+
+
+
+
+void FFscript::getNPCData_scriptdefence(){GET_NPCDATA_VAR_INDEX(scriptdefence)};
+
+
+void FFscript::getNPCData_defense{GET_NPCDATA_VAR_INDEX(defense)};
+bool FFScript::getNPCData_SIZEflags(){GET_NPCDATA_VAR_FLAG(SIZEflags);}
+
+
+void FFscript::getNPCData_misc()
+{
+	int ID = int(ri->d[0] / 10000); //the enemy ID value
+	int indx = int(ri->d[1] / 10000); //the misc index ID
+	if ((ID < 1 || ID > 511) || ( indx < 0 || indx > 15 ))
+		set_register(sarg1, -10000); 
+	switch ( indx )
+	{
+		case 0: set_register(sarg1, guysbuf[ID].misc1 * 10000); break;
+		case 1: set_register(sarg1, guysbuf[ID].misc2 * 10000); break;
+		case 2: set_register(sarg1, guysbuf[ID].misc3 * 10000); break;
+		case 3: set_register(sarg1, guysbuf[ID].misc4 * 10000); break;
+		case 4: set_register(sarg1, guysbuf[ID].misc5 * 10000); break;
+		case 5: set_register(sarg1, guysbuf[ID].misc6 * 10000); break;
+		case 6: set_register(sarg1, guysbuf[ID].misc7 * 10000); break;
+		case 7: set_register(sarg1, guysbuf[ID].misc8 * 10000); break;
+		case 8: set_register(sarg1, guysbuf[ID].misc9 * 10000); break;
+		case 9: set_register(sarg1, guysbuf[ID].misc10 * 10000); break;
+		case 10: set_register(sarg1, guysbuf[ID].misc11 * 10000); break;
+		case 11: set_register(sarg1, guysbuf[ID].misc12 * 10000); break;
+		case 12: set_register(sarg1, guysbuf[ID].misc13 * 10000); break;
+		case 13: set_register(sarg1, guysbuf[ID].misc14 * 10000); break;
+		case 14: set_register(sarg1, guysbuf[ID].misc15 * 10000); break;
+		default: set_register(sarg1, -10000); break;
+	}
+}
+
+//NPCData Setters, two inputs, no return; similar to void GetDMapIntro(int DMap, int buffer[]);
+
+/*
+
+void do_getdmapintro(const bool v)
+{
+    long ID = SH::get_arg(sarg1, v) / 10000;
+    long arrayptr = get_register(sarg2) / 10000;
+    
+    if(BC::checkDMapID(ID, "Game->GetDMapIntro") != SH::_NoError)
+        return;
+        
+    if(ArrayH::setArray(arrayptr, string(DMaps[ID].intro)) == SH::_Overflow)
+        Z_scripterrlog("Array supplied to 'Game->GetDMapIntro' not large enough\n");
+}
+
+*/
+
+//NPCData Setter Macros
+
+
+#define SET_NPCDATA_VAR_INT(member) \
+{ \
+	long ID = SH::get_arg(sarg1, v) / 10000; \
+	long val = get_register(sarg2) / 10000; \
+	if(ID < 1 || ID > 511) \
+		set_register(sarg1, -10000); \
+	else \
+		guysbuf[ID].member = val; \
+}
+
+//SET_NPC_VAR_INDEX(member,value)
+#define SET_NPCDATA_VAR_INDEX(member, int val) \
+{ \
+	long ID = (ri->d[0]/10000);  \
+	long indx =  (ri->d[1]/10000);  \
+	if(ID < 1 || ID > 511) \
+		return; \
+	else \
+		guysbuf[ID].member[indx] = val; \
+}
+
+//Special case for flags, three inputs one return
+#define SET_NPCDATA_VAR_FLAG(member, int val) \
+{ \
+	long ID = (ri->d[0]/10000);  \
+	long flag =  (ri->d[1]/10000);  \
+	if(ID < 1 || ID > 511) \
+		return; \
+	else \
+	{ \
+		guysbuf[ID].member&flag = ((val)!=0); \
+	}\
+}
+
+void FFScript::setNPCData_flags(){SET_NPCdATA_VAR_INT(flags);} //word
+void FFScript::setNPCData_flags2(){SET_NPCdATA_VAR_INT(flags2);}
+void FFScript::setNPCData_width(){SET_NPCdATA_VAR_INT(width);}
+void FFScript::setNPCData_height(){SET_NPCdATA_VAR_INT(height);}
+void FFScript::setNPCData_s_tile(){SET_NPCdATA_VAR_INT(s_tile);}
+void FFScript::setNPCData_s_width(){SET_NPCdATA_VAR_INT(s_width);}
+void FFScript::setNPCData_s_height(){SET_NPCdATA_VAR_INT(s_height);}
+void FFScript::setNPCData_e_tile(){SET_NPCdATA_VAR_INT(e_tile);}
+void FFScript::setNPCData_e_width(){SET_NPCdATA_VAR_INT(e_width);}
+void FFScript::setNPCData_hp(){SET_NPCdATA_VAR_INT(hp);}
+void FFScript::setNPCData_family(){SET_NPCdATA_VAR_INT(family);}
+void FFScript::setNPCData_cset(){SET_NPCdATA_VAR_INT(cset);}
+void FFScript::setNPCData_anim(){SET_NPCdATA_VAR_INT(anim);}
+void FFScript::setNPCData_e_anim(){SET_NPCdATA_VAR_INT(e_anim);}
+void FFScript::setNPCData_frate(){SET_NPCdATA_VAR_INT(frate);}
+void FFScript::setNPCData_e_frate(){SET_NPCdATA_VAR_INT(e_frate);}
+void FFScript::setNPCData_dp(){SET_NPCdATA_VAR_INT(dp);}
+void FFScript::setNPCData_wdp(){SET_NPCdATA_VAR_INT(wdp);}
+void FFScript::setNPCData_weapon(){SET_NPCdATA_VAR_INT(weapon);}
+void FFScript::setNPCData_rate(){SET_NPCdATA_VAR_INT(rate);}
+void FFScript::setNPCData_hrate(){SET_NPCdATA_VAR_INT(hrate);}
+void FFScript::setNPCData_step(){SET_NPCdATA_VAR_INT(step);}
+void FFScript::setNPCData_homing(){SET_NPCdATA_VAR_INT(homing);}
+void FFScript::setNPCData_grumble(){SET_NPCdATA_VAR_INT(grumble);}
+void FFScript::setNPCData_item_set(){SET_NPCdATA_VAR_INT(item_set);}
+void FFScript::setNPCData_bgsfx(){SET_NPCdATA_VAR_INT(bgsfx);}
+void FFScript::setNPCData_hitsfx(){SET_NPCdATA_VAR_INT(hitsfx);}
+void FFScript::setNPCData_deadsfx(){SET_NPCdATA_VAR_INT(deadsfx);}
+void FFScript::setNPCData_xofs(){SET_NPCdATA_VAR_INT(xofs);}
+void FFScript::setNPCData_yofs(){SET_NPCdATA_VAR_INT(yofs);}
+void FFScript::setNPCData_zofs(){SET_NPCdATA_VAR_INT(zofs);}
+void FFScript::setNPCData_hxofs(){SET_NPCdATA_VAR_INT(hxofs);}
+void FFScript::setNPCData_hyofs(){SET_NPCdATA_VAR_INT(hyofs);}
+void FFScript::setNPCData_hxsz(){SET_NPCdATA_VAR_INT(hxsz);}
+void FFScript::setNPCData_hysz(){SET_NPCdATA_VAR_INT(hysz);}
+void FFScript::setNPCData_hzsz(){SET_NPCdATA_VAR_INT(hzsz);}
+void FFScript::setNPCData_txsz(){SET_NPCdATA_VAR_INT(txsz);}
+void FFScript::setNPCData_tysz(){SET_NPCdATA_VAR_INT(tysz);}
+void FFScript::setNPCData_wpnsprite(){SET_NPCdATA_VAR_INT(wpnsprite);}
+
+//NPCData Setters, three inputs, no return. works as SetDMapScreenD function
+
+
+
+
+
+
+
+void FFScript::setNPCData_scriptdefence(){SET_NPCDATA_VAR_INDEX(scriptdefence);}
+void FFScript::setNPCData_defense(){SET_NPCDATA_VAR_INDEX(defense);}
+void FFScript::setNPCData_SIZEflags(){SET_NPCDATA_VAR_FLAG(SIZEflags);}
+void FFScript::setNPCData_misc(int val)
+{
+	int ID = int(ri->d[0] / 10000); //the enemy ID value
+	int indx = int(ri->d[1] / 10000); //the misc index ID
+	if ((ID < 1 || ID > 511) || ( indx < 0 || indx > 15 )) return;
+	switch ( indx )
+	{
+		case 0: guysbuf[ID].misc1 = val; break;
+		case 1: guysbuf[ID].misc2 = val; break;
+		case 2: guysbuf[ID].misc3 = val; break;
+		case 3: guysbuf[ID].misc4 = val; break;
+		case 4: guysbuf[ID].misc5 = val; break;
+		case 5: guysbuf[ID].misc6 = val; break;
+		case 6: guysbuf[ID].misc7 = val; break;
+		case 7: guysbuf[ID].misc8 = val; break;
+		case 8: guysbuf[ID].misc9 = val; break;
+		case 9: guysbuf[ID].misc10 = val; break;
+		case 10: guysbuf[ID].misc11 = val; break;
+		case 11: guysbuf[ID].misc12 = val; break;
+		case 12: guysbuf[ID].misc13 = val; break;
+		case 13: guysbuf[ID].misc14 = val; break;
+		case 14: guysbuf[ID].misc15 = val; break;
+		default: break;
+	}
+	
+};
