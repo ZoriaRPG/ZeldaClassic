@@ -9814,7 +9814,7 @@ int run_script(const byte type, const word script, const byte i)
 	case	SETNPCDATAHITSFX: FFScript::setNPCData_hitsfx(); break;
 
 		
-	case	SETNPCDATASCRIPTDEF  : FFScript::setNPCData_scriptdefence(); break;
+//	case	SETNPCDATASCRIPTDEF  : FFScript::setNPCData_scriptdefence(); break;
 	case 	SETNPCDATADEFENSE : FFScript::setNPCData_defense(ri->d[2]); break;
 	case 	SETNPCDATASIZEFLAG : FFScript::setNPCData_SIZEflags(ri->d[2]); break;
 	case 	SETNPCDATAATTRIBUTE : FFScript::setNPCData_misc(ri->d[2]); break;
