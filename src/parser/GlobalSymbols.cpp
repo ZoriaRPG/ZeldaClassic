@@ -6522,7 +6522,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(first);
         code.push_back(new OPopRegister(new VarArgument(EXP2)));
         //pop pointer, and ignore it
-        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+	    code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
         code.push_back(new ONDataSetFlags(new VarArgument(EXP2), new VarArgument(EXP1)));
         code.push_back(new OPopRegister(new VarArgument(EXP2)));
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
@@ -6964,7 +6964,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(first);
         code.push_back(new OPopRegister(new VarArgument(EXP2)));
         //pop pointer, and ignore it
-        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+	    code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
         code.push_back(new ONDataSetHitSound(new VarArgument(EXP2), new VarArgument(EXP1)));
         code.push_back(new OPopRegister(new VarArgument(EXP2)));
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));

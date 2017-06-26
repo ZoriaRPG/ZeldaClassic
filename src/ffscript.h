@@ -179,8 +179,8 @@ static void setLinkBigHitbox(bool v);
 
 	//NPCData Setters, three inputs, no return.
 	static void setNPCData_scriptdefence();
-	static void setNPCData_defense(); //extra arg
-	static void setNPCData_SIZEflags();
+	static void setNPCData_defense(int v); //extra arg
+	static void setNPCData_SIZEflags(int v);
 	static void setNPCData_misc(int val);
 
 #define INVALIDARRAY localRAM[0]  //localRAM[0] is never used

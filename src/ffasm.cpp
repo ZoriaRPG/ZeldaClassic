@@ -435,7 +435,6 @@ script_command command_list[NUMCOMMANDS+1]=
 	{ "SETNPCDATADEATHSFX",        2,   0,   0,   0},
 	{ "SETNPCDATAXOFS",        2,   0,   0,   0},
 	{ "SETNPCDATAYOFS",        2,   0,   0,   0},
-	{ "SETNPCDATAYOFS",        2,   0,   0,   0},
 	{ "SETNPCDATAZOFS",        2,   0,   0,   0},
 	{ "SETNPCDATAHXOFS",        2,   0,   0,   0},
 	{ "SETNPCDATAHYOFS",        2,   0,   0,   0},

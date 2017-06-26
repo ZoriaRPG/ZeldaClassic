@@ -3634,7 +3634,7 @@ public:
     }
 };
 
-, no return
+
 class ONDataSetFlags : public BinaryOpcode
 {
 public:
@@ -3909,6 +3909,18 @@ public:
         return new ONDataSetropset(a->clone(), b->clone());
     }
 };
+//one input, no return
+class ONDataSetHitSound : public BinaryOpcode
+{
+public:
+    ONDataSetHitSound(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetHitSound(a->clone(), b->clone());
+    }
+};
+
 //one input, no return
 class ONDataSetBGSound : public BinaryOpcode
 {

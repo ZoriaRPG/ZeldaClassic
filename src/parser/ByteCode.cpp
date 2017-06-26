@@ -2562,7 +2562,7 @@ string ONDataSetHalt::toString()
 {
     return "SETNPCDATAHALT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
-string ONDataSettep::toString()
+string ONDataSetStep::toString()
 {
     return "SETNPCDATASTEP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
