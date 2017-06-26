@@ -231,5 +231,64 @@ private:
     NPCDataSymbols();
 };
 
+
+class SpriteDataSymbols : public LibrarySymbols
+{
+public:
+    static SpriteDataSymbols &getInst()
+    {
+        return singleton;
+    }
+    map<int, vector<Opcode *> > addSymbolsCode(LinkTable &lt);
+protected:
+private:
+    static SpriteDataSymbols singleton;
+    SpriteDataSymbols();
+};
+
+
+class TextPtrSymbols : public LibrarySymbols
+{
+public:
+    static TextPtrSymbols &getInst()
+    {
+        return singleton;
+    }
+    map<int, vector<Opcode *> > addSymbolsCode(LinkTable &lt);
+protected:
+private:
+    static TextPtrSymbols singleton;
+    TextPtrSymbols();
+};
+
+class GfxPtrSymbols : public LibrarySymbols
+{
+public:
+    static GfxPtrSymbols &getInst()
+    {
+        return singleton;
+    }
+    map<int, vector<Opcode *> > addSymbolsCode(LinkTable &lt);
+protected:
+private:
+    static GfxPtrSymbols singleton;
+    GfxPtrSymbols();
+};
+
+class CombosPtrSymbols : public LibrarySymbols
+{
+public:
+    static CombosPtrSymbols &getInst()
+    {
+        return singleton;
+    }
+    map<int, vector<Opcode *> > addSymbolsCode(LinkTable &lt);
+protected:
+private:
+    static CombosPtrSymbols singleton;
+    CombosPtrSymbols();
+};
+
+
 #endif
 

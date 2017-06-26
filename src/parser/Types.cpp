@@ -19,6 +19,10 @@ ZVarTypeClass const ZVarType::EWPN(ZCLASSID_EWPN, "EWeapon");
 ZVarTypeClass const ZVarType::AUDIO(ZCLASSID_AUDIO, "Audio");
 ZVarTypeClass const ZVarType::DEBUG(ZCLASSID_DEBUG, "Debug");
 ZVarTypeClass const ZVarType::NPCDATA(ZCLASSID_NPCDATA, "NPCData");
+ZVarTypeClass const ZVarType::TEXT(ZCLASSID_TEXT, "Text");
+ZVarTypeClass const ZVarType::COMBOS(ZCLASSID_COMBOS, "ComboData");
+ZVarTypeClass const ZVarType::GRAPHICS(ZCLASSID_GRAPHICS, "Graphics");
+ZVarTypeClass const ZVarType::SPRITEDATA(ZCLASSID_SPRITEDATA, "SpriteData");
 ZVarTypeConstFloat const ZVarType::CONST_FLOAT;
 
 ////////////////////////////////////////////////////////////////
@@ -51,6 +55,11 @@ ZVarType const* ZVarType::get(ZVarTypeId id)
 		case ZVARTYPEID_AUDIO: return &AUDIO;
 		case ZVARTYPEID_DEBUG: return &DEBUG;
 		case ZVARTYPEID_NPCDATA: return &NPCDATA;
+		case ZVARTYPEID_TEXT: return &TEXT;
+		case ZVARTYPEID_GRAPHICS: return &GRAPHICS;
+		case ZVARTYPEID_COMBOS: return &COMBOS;
+		case ZVARTYPEID_SPRITEDATA: return &SPRITEDATA;
+		
 	default: return NULL;
 	}
 }
