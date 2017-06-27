@@ -10605,9 +10605,9 @@ void FFScript::setNPCData_misc(int val)
 //Getters for ComboData 'Type' submembers. 
 #define GET_COMBODATA_TYPE_INT(member) \
 { \
-	long ID = SH::get_arg(sarg2, v) / 10000;\
+	long ID = get_register(sarg2) / 10000;\
 	if(ID < 1 || ID > 511) \
-		set_register(sarg, -10000); \
+		set_register(sarg1, -10000); \
 	else \
 		set_register(sarg1, combo_class_buf[combobuf[ID].type].member * 10000); \
 }
@@ -10623,7 +10623,7 @@ void FFScript::setNPCData_misc(int val)
 	if(ID < 1 || ID > 511) \
 		set_register(sarg1, -10000); \
 	else \
-		set_register(sarg1, combo_class_buf[combobuf[ID].type].member[index] * 10000); \
+		set_register(sarg1, combo_class_buf[combobuf[ID].type].member[indx] * 10000); \
 }
 
 #define GET_COMBODATA_TYPE_FLAG(member) \
@@ -10641,9 +10641,9 @@ void FFScript::setNPCData_misc(int val)
 //Getters for ComboData main members. 
 #define GET_COMBODATA_VAR_INT(member) \
 { \
-	long ID = SH::get_arg(sarg2, v) / 10000;\
+	long ID = get_register(sarg2) / 10000;\
 	if(ID < 1 || ID > 511) \
-		set_register(sarg, -10000); \
+		set_register(sarg1, -10000); \
 	else \
 		set_register(sarg1, combobuf[ID].member * 10000); \
 }
@@ -10655,7 +10655,7 @@ void FFScript::setNPCData_misc(int val)
 	if(ID < 1 || ID > 511) \
 		set_register(sarg1, -10000); \
 	else \
-		set_register(sarg1, combobuf[ID].member[index] * 10000); \
+		set_register(sarg1, combobuf[ID].member[indx] * 10000); \
 }
 
 #define GET_COMBODATA_VAR_FLAG(member) \
@@ -10675,7 +10675,7 @@ void FFScript::setNPCData_misc(int val)
 //Setters for ComboData 'type' submembers.
 #define SET_COMBODATA_TYPE_INT(member) \
 { \
-	long ID = SH::get_arg(sarg1, v) / 10000; \
+	long ID = get_register(sarg1) / 10000; \
 	long val = get_register(sarg2) / 10000; \
 	if(ID < 1 || ID > 511) \
 		set_register(sarg1, -10000); \
@@ -10683,7 +10683,7 @@ void FFScript::setNPCData_misc(int val)
 		combo_class_buf[combobuf[ID].type].member = val; \
 }
 
-#define SET_COMBODATA_TYPE_INDEX(member, int val) \
+#define SET_COMBODATA_TYPE_INDEX(member, val) \
 { \
 	long ID = (ri->d[0]/10000);  \
 	long indx =  (ri->d[1]/10000);  \
@@ -10693,7 +10693,7 @@ void FFScript::setNPCData_misc(int val)
 		combo_class_buf[combobuf[ID].type].member[indx] = val; \
 }
 
-#define SET_COMBODATA_TYPE_FLAG(member, int val) \
+#define SET_COMBODATA_TYPE_FLAG(member, val) \
 { \
 	long ID = (ri->d[0]/10000);  \
 	long flag =  (ri->d[1]/10000);  \
@@ -10709,7 +10709,7 @@ void FFScript::setNPCData_misc(int val)
 //Setters for ComboData main members
 #define SET_COMBODATA_VAR_INT(member) \
 { \
-	long ID = SH::get_arg(sarg1, v) / 10000; \
+	long ID = get_register(sarg1) / 10000; \
 	long val = get_register(sarg2) / 10000; \
 	if(ID < 1 || ID > 511) \
 		set_register(sarg1, -10000); \
@@ -10718,7 +10718,7 @@ void FFScript::setNPCData_misc(int val)
 }
 
 //SET_NPC_VAR_INDEX(member,value)
-#define SET_COMBODATA_VAR_INDEX(member, int val) \
+#define SET_COMBODATA_VAR_INDEX(member, val) \
 { \
 	long ID = (ri->d[0]/10000);  \
 	long indx =  (ri->d[1]/10000);  \
@@ -10729,7 +10729,7 @@ void FFScript::setNPCData_misc(int val)
 }
 
 //Special case for flags, three inputs one return
-#define SET_COMBODATA_VAR_FLAG(member, int val) \
+#define SET_COMBODATA_VAR_FLAG(member, val) \
 { \
 	long ID = (ri->d[0]/10000);  \
 	long flag =  (ri->d[1]/10000);  \
@@ -10744,175 +10744,175 @@ void FFScript::setNPCData_misc(int val)
 //Getters
 
 //one input, one return
-void FFscript::getComboData_block_enemies(){ GET_COMBODATA_TYPE_INT(block_enemies); } //byte a
-void FFscript::getComboData_block_hole(){ GET_COMBODATA_TYPE_INT(block_hole); } //byte b
-void FFscript::getComboData_block_trigger(){ GET_COMBODATA_TYPE_INT(block_trigger); } //byte c
-void FFscript::getComboData_conveyor_x_speed(){ GET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
-void FFscript::getComboData_conveyor_y_speed(){ GET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
-void FFscript::getComboData_create_enemy(){ GET_COMBODATA_TYPE_INT(create_enemy); } //word g
-void FFscript::getComboData_create_enemy_when(){ GET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
-void FFscript::getComboData_create_enemy_change(){ GET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
-void FFscript::getComboData_directional_change_type(){ GET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
-void FFscript::getComboData_distance_change_tiles(){ GET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
-void FFscript::getComboData_dive_item(){ GET_COMBODATA_TYPE_INT(dive_item); } //short l
-void FFscript::getComboData_dock(){ GET_COMBODATA_TYPE_INT(dock); } //byte m
-void FFscript::getComboData_fairy(){ GET_COMBODATA_TYPE_INT(fairy); } //byte n
-void FFscript::getComboData_ff_combo_attr_change(){ GET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
-void FFscript::getComboData_foot_decorations_tile(){ GET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
-void FFscript::getComboData_foot_decorations_type(){ GET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
-void FFscript::getComboData_hookshot_grab_point(){ GET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
-void FFscript::getComboData_ladder_pass(){ GET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
-void FFscript::getComboData_lock_block_type(){ GET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
-void FFscript::getComboData_lock_block_change(){ GET_COMBODATA_TYPE_INT(lock_block_change); } //long u
-void FFscript::getComboData_magic_mirror_type(){ GET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
-void FFscript::getComboData_modify_hp_amount(){ GET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
-void FFscript::getComboData_modify_hp_delay(){ GET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
-void FFscript::getComboData_modify_hp_type(){ GET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
-void FFscript::getComboData_modify_mp_amount(){ GET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
-void FFscript::getComboData_modify_mp_delay(){ GET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
-void FFscript::getComboData_modify_mp_type(){ GET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
-void FFscript::getComboData_no_push_blocks(){ GET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
-void FFscript::getComboData_overhead(){ GET_COMBODATA_TYPE_INT(overhead); } //byte ad
-void FFscript::getComboData_place_enemy(){ GET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
-void FFscript::getComboData_push_direction(){ GET_COMBODATA_TYPE_INT(push_direction); } //byte af
-void FFscript::getComboData_push_weight(){ GET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
-void FFscript::getComboData_push_wait(){ GET_COMBODATA_TYPE_INT(push_wait); } //byte ah
-void FFscript::getComboData_pushed(){ GET_COMBODATA_TYPE_INT(pushed); } //byte ai
-void FFscript::getComboData_raft(){ GET_COMBODATA_TYPE_INT(raft); } //byte aj
-void FFscript::getComboData_reset_room(){ GET_COMBODATA_TYPE_INT(reset_room); } //byte ak
-void FFscript::getComboData_save_point_type(){ GET_COMBODATA_TYPE_INT(save_point_type); } //byte al
-void FFscript::getComboData_screen_freeze_type(){ GET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
+void FFScript::getComboData_block_enemies(){ GET_COMBODATA_TYPE_INT(block_enemies); } //byte a
+void FFScript::getComboData_block_hole(){ GET_COMBODATA_TYPE_INT(block_hole); } //byte b
+void FFScript::getComboData_block_trigger(){ GET_COMBODATA_TYPE_INT(block_trigger); } //byte c
+void FFScript::getComboData_conveyor_x_speed(){ GET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
+void FFScript::getComboData_conveyor_y_speed(){ GET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
+void FFScript::getComboData_create_enemy(){ GET_COMBODATA_TYPE_INT(create_enemy); } //word g
+void FFScript::getComboData_create_enemy_when(){ GET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
+void FFScript::getComboData_create_enemy_change(){ GET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
+void FFScript::getComboData_directional_change_type(){ GET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
+void FFScript::getComboData_distance_change_tiles(){ GET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
+void FFScript::getComboData_dive_item(){ GET_COMBODATA_TYPE_INT(dive_item); } //short l
+void FFScript::getComboData_dock(){ GET_COMBODATA_TYPE_INT(dock); } //byte m
+void FFScript::getComboData_fairy(){ GET_COMBODATA_TYPE_INT(fairy); } //byte n
+void FFScript::getComboData_ff_combo_attr_change(){ GET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
+void FFScript::getComboData_foot_decorations_tile(){ GET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
+void FFScript::getComboData_foot_decorations_type(){ GET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
+void FFScript::getComboData_hookshot_grab_point(){ GET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
+void FFScript::getComboData_ladder_pass(){ GET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
+void FFScript::getComboData_lock_block_type(){ GET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
+void FFScript::getComboData_lock_block_change(){ GET_COMBODATA_TYPE_INT(lock_block_change); } //long u
+void FFScript::getComboData_magic_mirror_type(){ GET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
+void FFScript::getComboData_modify_hp_amount(){ GET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
+void FFScript::getComboData_modify_hp_delay(){ GET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
+void FFScript::getComboData_modify_hp_type(){ GET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
+void FFScript::getComboData_modify_mp_amount(){ GET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
+void FFScript::getComboData_modify_mp_delay(){ GET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
+void FFScript::getComboData_modify_mp_type(){ GET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
+void FFScript::getComboData_no_push_blocks(){ GET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
+void FFScript::getComboData_overhead(){ GET_COMBODATA_TYPE_INT(overhead); } //byte ad
+void FFScript::getComboData_place_enemy(){ GET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
+void FFScript::getComboData_push_direction(){ GET_COMBODATA_TYPE_INT(push_direction); } //byte af
+void FFScript::getComboData_push_weight(){ GET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
+void FFScript::getComboData_push_wait(){ GET_COMBODATA_TYPE_INT(push_wait); } //byte ah
+void FFScript::getComboData_pushed(){ GET_COMBODATA_TYPE_INT(pushed); } //byte ai
+void FFScript::getComboData_raft(){ GET_COMBODATA_TYPE_INT(raft); } //byte aj
+void FFScript::getComboData_reset_room(){ GET_COMBODATA_TYPE_INT(reset_room); } //byte ak
+void FFScript::getComboData_save_point_type(){ GET_COMBODATA_TYPE_INT(save_point_type); } //byte al
+void FFScript::getComboData_screen_freeze_type(){ GET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
 
-void FFscript::getComboData_secret_combo(){ GET_COMBODATA_TYPE_INT(secret_combo); } //byte an
-void FFscript::getComboData_singular(){ GET_COMBODATA_TYPE_INT(singular); } //byte ao
-void FFscript::getComboData_slow_movement(){ GET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
-void FFscript::getComboData_statue_type(){ GET_COMBODATA_TYPE_INT(statue_type); } //byte aq
-void FFscript::getComboData_step_type(){ GET_COMBODATA_TYPE_INT(step_type); } //byte ar
-void FFscript::getComboData_step_change_to(){ GET_COMBODATA_TYPE_INT(step_change_to); } //long as
-void FFscript::getComboData_strike_remnants(){ GET_COMBODATA_TYPE_INT(strike_remnants); } //long au
-void FFscript::getComboData_strike_remnants_type(){ GET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
-void FFscript::getComboData_strike_change(){ GET_COMBODATA_TYPE_INT(strike_change); } //long aw
-void FFscript::getComboData_strike_item(){ GET_COMBODATA_TYPE_INT(strike_item); } //short ax
-void FFscript::getComboData_touch_item(){ GET_COMBODATA_TYPE_INT(touch_item); } //short ay
-void FFscript::getComboData_touch_stairs(){ GET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
-void FFscript::getComboData_trigger_type(){ GET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
-void FFscript::getComboData_trigger_sensitive(){ GET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
-void FFscript::getComboData_warp_type(){ GET_COMBODATA_TYPE_INT(warp_type); } //byte bc
-void FFscript::getComboData_warp_sensitive(){ GET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
-void FFscript::getComboData_warp_direct(){ GET_COMBODATA_TYPE_INT(warp_direct); } //byte be
-void FFscript::getComboData_warp_location(){ GET_COMBODATA_TYPE_INT(warp_location); } //byte bf
-void FFscript::getComboData_water(){ GET_COMBODATA_TYPE_INT(water); } //byte bg
-void FFscript::getComboData_whistle(){ GET_COMBODATA_TYPE_INT(whistle); } //byte bh
-void FFscript::getComboData_win_game(){ GET_COMBODATA_TYPE_INT(win_game); } //byte bi
-void FFscript::getComboData_block_weapon_lvl(){ GET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
+void FFScript::getComboData_secret_combo(){ GET_COMBODATA_TYPE_INT(secret_combo); } //byte an
+void FFScript::getComboData_singular(){ GET_COMBODATA_TYPE_INT(singular); } //byte ao
+void FFScript::getComboData_slow_movement(){ GET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
+void FFScript::getComboData_statue_type(){ GET_COMBODATA_TYPE_INT(statue_type); } //byte aq
+void FFScript::getComboData_step_type(){ GET_COMBODATA_TYPE_INT(step_type); } //byte ar
+void FFScript::getComboData_step_change_to(){ GET_COMBODATA_TYPE_INT(step_change_to); } //long as
+void FFScript::getComboData_strike_remnants(){ GET_COMBODATA_TYPE_INT(strike_remnants); } //long au
+void FFScript::getComboData_strike_remnants_type(){ GET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
+void FFScript::getComboData_strike_change(){ GET_COMBODATA_TYPE_INT(strike_change); } //long aw
+void FFScript::getComboData_strike_item(){ GET_COMBODATA_TYPE_INT(strike_item); } //short ax
+void FFScript::getComboData_touch_item(){ GET_COMBODATA_TYPE_INT(touch_item); } //short ay
+void FFScript::getComboData_touch_stairs(){ GET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
+void FFScript::getComboData_trigger_type(){ GET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
+void FFScript::getComboData_trigger_sensitive(){ GET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
+void FFScript::getComboData_warp_type(){ GET_COMBODATA_TYPE_INT(warp_type); } //byte bc
+void FFScript::getComboData_warp_sensitive(){ GET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
+void FFScript::getComboData_warp_direct(){ GET_COMBODATA_TYPE_INT(warp_direct); } //byte be
+void FFScript::getComboData_warp_location(){ GET_COMBODATA_TYPE_INT(warp_location); } //byte bf
+void FFScript::getComboData_water(){ GET_COMBODATA_TYPE_INT(water); } //byte bg
+void FFScript::getComboData_whistle(){ GET_COMBODATA_TYPE_INT(whistle); } //byte bh
+void FFScript::getComboData_win_game(){ GET_COMBODATA_TYPE_INT(win_game); } //byte bi
+void FFScript::getComboData_block_weapon_lvl(){ GET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
 
-void FFscript::getComboData_tile(){ GET_COMBODATA_VAR_INT(tile); } //newcombo, word
-void FFscript::getComboData_flip(){ GET_COMBODATA_VAR_INT(flip); } //newcombo byte
+void FFScript::getComboData_tile(){ GET_COMBODATA_VAR_INT(tile); } //newcombo, word
+void FFScript::getComboData_flip(){ GET_COMBODATA_VAR_INT(flip); } //newcombo byte
 
-void FFscript::getComboData_walk(){ GET_COMBODATA_VAR_INT(walk); } //newcombo byte
-void FFscript::getComboData_type(){ GET_COMBODATA_VAR_INT(type); } //newcombo byte
-void FFscript::getComboData_csets(){ GET_COMBODATA_VAR_INT(csets); } //newcombo byte
-void FFscript::getComboData_foo(){ GET_COMBODATA_VAR_INT(foo); } //newcombo word
-void FFscript::getComboData_frames(){ GET_COMBODATA_VAR_INT(frames); } //newcombo byte
-void FFscript::getComboData_speed(){ GET_COMBODATA_VAR_INT(speed); } //newcombo byte
-void FFscript::getComboData_nextcombo(){ GET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
-void FFscript::getComboData_nextcset(){ GET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
-void FFscript::getComboData_flag(){ GET_COMBODATA_VAR_INT(flag); } //newcombo byte
-void FFscript::getComboData_skipanim(){ GET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
-void FFscript::getComboData_nexttimer(){ GET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
-void FFscript::getComboData_skipanimy(){ GET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
-void FFscript::getComboData_animflags(){ GET_COMBODATA_VAR_INT(animflags); } //newcombo byte
+void FFScript::getComboData_walk(){ GET_COMBODATA_VAR_INT(walk); } //newcombo byte
+void FFScript::getComboData_type(){ GET_COMBODATA_VAR_INT(type); } //newcombo byte
+void FFScript::getComboData_csets(){ GET_COMBODATA_VAR_INT(csets); } //newcombo byte
+void FFScript::getComboData_foo(){ GET_COMBODATA_VAR_INT(foo); } //newcombo word
+void FFScript::getComboData_frames(){ GET_COMBODATA_VAR_INT(frames); } //newcombo byte
+void FFScript::getComboData_speed(){ GET_COMBODATA_VAR_INT(speed); } //newcombo byte
+void FFScript::getComboData_nextcombo(){ GET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
+void FFScript::getComboData_nextcset(){ GET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
+void FFScript::getComboData_flag(){ GET_COMBODATA_VAR_INT(flag); } //newcombo byte
+void FFScript::getComboData_skipanim(){ GET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
+void FFScript::getComboData_nexttimer(){ GET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
+void FFScript::getComboData_skipanimy(){ GET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
+void FFScript::getComboData_animflags(){ GET_COMBODATA_VAR_INT(animflags); } //newcombo byte
 
 
 //two inputs, one return
-void FFscript::getComboData_block_weapon(){ GET_COMBODATA_TYPE_INDEX(block_weapon); } //byte array[32] d (ID of LWeapon)
-void FFscript::getComboData_expansion(){ GET_COMBODATA_VAR_INDEX(expansion); } //newcombo byte, arr[6]
-void FFscript::getComboData_strike_weapons(){ GET_COMBODATA_TYPE_INDEX(strike_weapons); } //byte at, arr[32]
+void FFScript::getComboData_block_weapon(){ GET_COMBODATA_TYPE_INDEX(block_weapon); } //byte array[32] d (ID of LWeapon)
+void FFScript::getComboData_expansion(){ GET_COMBODATA_VAR_INDEX(expansion); } //newcombo byte, arr[6]
+void FFScript::getComboData_strike_weapons(){ GET_COMBODATA_TYPE_INDEX(strike_weapons); } //byte at, arr[32]
 
 //Setters, two inputs no returns
 
-void FFscript::setComboData_block_enemies(){ SET_COMBODATA_TYPE_INT(block_enemies); } //byte a
-void FFscript::setComboData_block_hole(){ SET_COMBODATA_TYPE_INT(block_hole); } //byte b
-void FFscript::setComboData_block_trigger(){ SET_COMBODATA_TYPE_INT(block_trigger); } //byte c
-void FFscript::setComboData_conveyor_x_speed(){ SET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
-void FFscript::setComboData_conveyor_y_speed(){ SET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
-void FFscript::setComboData_create_enemy(){ SET_COMBODATA_TYPE_INT(create_enemy); } //word g
-void FFscript::setComboData_create_enemy_when(){ SET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
-void FFscript::setComboData_create_enemy_change(){ SET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
-void FFscript::setComboData_directional_change_type(){ SET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
-void FFscript::setComboData_distance_change_tiles(){ SET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
-void FFscript::setComboData_dive_item(){ SET_COMBODATA_TYPE_INT(dive_item); } //short l
-void FFscript::setComboData_dock(){ SET_COMBODATA_TYPE_INT(dock); } //byte m
-void FFscript::setComboData_fairy(){ SET_COMBODATA_TYPE_INT(fairy); } //byte n
-void FFscript::setComboData_ff_combo_attr_change(){ SET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
-void FFscript::setComboData_foot_decorations_tile(){ SET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
-void FFscript::setComboData_foot_decorations_type(){ SET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
-void FFscript::setComboData_hookshot_grab_point(){ SET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
-void FFscript::setComboData_ladder_pass(){ SET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
-void FFscript::setComboData_lock_block_type(){ SET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
-void FFscript::setComboData_lock_block_change(){ SET_COMBODATA_TYPE_INT(lock_block_change); } //long u
-void FFscript::setComboData_magic_mirror_type(){ SET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
-void FFscript::setComboData_modify_hp_amount(){ SET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
-void FFscript::setComboData_modify_hp_delay(){ SET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
-void FFscript::setComboData_modify_hp_type(){ SET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
-void FFscript::setComboData_modify_mp_amount(){ SET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
-void FFscript::setComboData_modify_mp_delay(){ SET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
-void FFscript::setComboData_modify_mp_type(){ SET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
-void FFscript::setComboData_no_push_blocks(){ SET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
-void FFscript::setComboData_overhead(){ SET_COMBODATA_TYPE_INT(overhead); } //byte ad
-void FFscript::setComboData_place_enemy(){ SET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
-void FFscript::setComboData_push_direction(){ SET_COMBODATA_TYPE_INT(push_direction); } //byte af
-void FFscript::setComboData_push_weight(){ SET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
-void FFscript::setComboData_push_wait(){ SET_COMBODATA_TYPE_INT(push_wait); } //byte ah
-void FFscript::setComboData_pushed(){ SET_COMBODATA_TYPE_INT(pushed); } //byte ai
-void FFscript::setComboData_raft(){ SET_COMBODATA_TYPE_INT(raft); } //byte aj
-void FFscript::setComboData_reset_room(){ SET_COMBODATA_TYPE_INT(reset_room); } //byte ak
-void FFscript::setComboData_save_point_type(){ SET_COMBODATA_TYPE_INT(save_point_type); } //byte al
-void FFscript::setComboData_screen_freeze_type(){ SET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
+void FFScript::setComboData_block_enemies(){ SET_COMBODATA_TYPE_INT(block_enemies); } //byte a
+void FFScript::setComboData_block_hole(){ SET_COMBODATA_TYPE_INT(block_hole); } //byte b
+void FFScript::setComboData_block_trigger(){ SET_COMBODATA_TYPE_INT(block_trigger); } //byte c
+void FFScript::setComboData_conveyor_x_speed(){ SET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
+void FFScript::setComboData_conveyor_y_speed(){ SET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
+void FFScript::setComboData_create_enemy(){ SET_COMBODATA_TYPE_INT(create_enemy); } //word g
+void FFScript::setComboData_create_enemy_when(){ SET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
+void FFScript::setComboData_create_enemy_change(){ SET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
+void FFScript::setComboData_directional_change_type(){ SET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
+void FFScript::setComboData_distance_change_tiles(){ SET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
+void FFScript::setComboData_dive_item(){ SET_COMBODATA_TYPE_INT(dive_item); } //short l
+void FFScript::setComboData_dock(){ SET_COMBODATA_TYPE_INT(dock); } //byte m
+void FFScript::setComboData_fairy(){ SET_COMBODATA_TYPE_INT(fairy); } //byte n
+void FFScript::setComboData_ff_combo_attr_change(){ SET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
+void FFScript::setComboData_foot_decorations_tile(){ SET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
+void FFScript::setComboData_foot_decorations_type(){ SET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
+void FFScript::setComboData_hookshot_grab_point(){ SET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
+void FFScript::setComboData_ladder_pass(){ SET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
+void FFScript::setComboData_lock_block_type(){ SET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
+void FFScript::setComboData_lock_block_change(){ SET_COMBODATA_TYPE_INT(lock_block_change); } //long u
+void FFScript::setComboData_magic_mirror_type(){ SET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
+void FFScript::setComboData_modify_hp_amount(){ SET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
+void FFScript::setComboData_modify_hp_delay(){ SET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
+void FFScript::setComboData_modify_hp_type(){ SET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
+void FFScript::setComboData_modify_mp_amount(){ SET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
+void FFScript::setComboData_modify_mp_delay(){ SET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
+void FFScript::setComboData_modify_mp_type(){ SET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
+void FFScript::setComboData_no_push_blocks(){ SET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
+void FFScript::setComboData_overhead(){ SET_COMBODATA_TYPE_INT(overhead); } //byte ad
+void FFScript::setComboData_place_enemy(){ SET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
+void FFScript::setComboData_push_direction(){ SET_COMBODATA_TYPE_INT(push_direction); } //byte af
+void FFScript::setComboData_push_weight(){ SET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
+void FFScript::setComboData_push_wait(){ SET_COMBODATA_TYPE_INT(push_wait); } //byte ah
+void FFScript::setComboData_pushed(){ SET_COMBODATA_TYPE_INT(pushed); } //byte ai
+void FFScript::setComboData_raft(){ SET_COMBODATA_TYPE_INT(raft); } //byte aj
+void FFScript::setComboData_reset_room(){ SET_COMBODATA_TYPE_INT(reset_room); } //byte ak
+void FFScript::setComboData_save_point_type(){ SET_COMBODATA_TYPE_INT(save_point_type); } //byte al
+void FFScript::setComboData_screen_freeze_type(){ SET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
 
-void FFscript::setComboData_secret_combo(){ SET_COMBODATA_TYPE_INT(secret_combo); } //byte an
-void FFscript::setComboData_singular(){ SET_COMBODATA_TYPE_INT(singular); } //byte ao
-void FFscript::setComboData_slow_movement(){ SET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
-void FFscript::setComboData_statue_type(){ SET_COMBODATA_TYPE_INT(statue_type); } //byte aq
-void FFscript::setComboData_step_type(){ SET_COMBODATA_TYPE_INT(step_type); } //byte ar
-void FFscript::setComboData_step_change_to(){ SET_COMBODATA_TYPE_INT(step_change_to); } //long as
+void FFScript::setComboData_secret_combo(){ SET_COMBODATA_TYPE_INT(secret_combo); } //byte an
+void FFScript::setComboData_singular(){ SET_COMBODATA_TYPE_INT(singular); } //byte ao
+void FFScript::setComboData_slow_movement(){ SET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
+void FFScript::setComboData_statue_type(){ SET_COMBODATA_TYPE_INT(statue_type); } //byte aq
+void FFScript::setComboData_step_type(){ SET_COMBODATA_TYPE_INT(step_type); } //byte ar
+void FFScript::setComboData_step_change_to(){ SET_COMBODATA_TYPE_INT(step_change_to); } //long as
 
-void FFscript::setComboData_strike_remnants(){ SET_COMBODATA_TYPE_INT(strike_remnants); } //long au
-void FFscript::setComboData_strike_remnants_type(){ SET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
-void FFscript::setComboData_strike_change(){ SET_COMBODATA_TYPE_INT(strike_change); } //long aw
-void FFscript::setComboData_strike_item(){ SET_COMBODATA_TYPE_INT(strike_item); } //short ax
-void FFscript::setComboData_touch_item(){ SET_COMBODATA_TYPE_INT(touch_item); } //short ay
-void FFscript::setComboData_touch_stairs(){ SET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
-void FFscript::setComboData_trigger_type(){ SET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
-void FFscript::setComboData_trigger_sensitive(){ SET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
-void FFscript::setComboData_warp_type(){ SET_COMBODATA_TYPE_INT(warp_type); } //byte bc
-void FFscript::setComboData_warp_sensitive(){ SET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
-void FFscript::setComboData_warp_direct(){ SET_COMBODATA_TYPE_INT(warp_direct); } //byte be
-void FFscript::setComboData_warp_location(){ SET_COMBODATA_TYPE_INT(warp_location); } //byte bf
-void FFscript::setComboData_water(){ SET_COMBODATA_TYPE_INT(water); } //byte bg
-void FFscript::setComboData_whistle(){ SET_COMBODATA_TYPE_INT(whistle); } //byte bh
-void FFscript::setComboData_win_game(){ SET_COMBODATA_TYPE_INT(win_game); } //byte bi
-void FFscript::setComboData_block_weapon_lvl(){ SET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
+void FFScript::setComboData_strike_remnants(){ SET_COMBODATA_TYPE_INT(strike_remnants); } //long au
+void FFScript::setComboData_strike_remnants_type(){ SET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
+void FFScript::setComboData_strike_change(){ SET_COMBODATA_TYPE_INT(strike_change); } //long aw
+void FFScript::setComboData_strike_item(){ SET_COMBODATA_TYPE_INT(strike_item); } //short ax
+void FFScript::setComboData_touch_item(){ SET_COMBODATA_TYPE_INT(touch_item); } //short ay
+void FFScript::setComboData_touch_stairs(){ SET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
+void FFScript::setComboData_trigger_type(){ SET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
+void FFScript::setComboData_trigger_sensitive(){ SET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
+void FFScript::setComboData_warp_type(){ SET_COMBODATA_TYPE_INT(warp_type); } //byte bc
+void FFScript::setComboData_warp_sensitive(){ SET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
+void FFScript::setComboData_warp_direct(){ SET_COMBODATA_TYPE_INT(warp_direct); } //byte be
+void FFScript::setComboData_warp_location(){ SET_COMBODATA_TYPE_INT(warp_location); } //byte bf
+void FFScript::setComboData_water(){ SET_COMBODATA_TYPE_INT(water); } //byte bg
+void FFScript::setComboData_whistle(){ SET_COMBODATA_TYPE_INT(whistle); } //byte bh
+void FFScript::setComboData_win_game(){ SET_COMBODATA_TYPE_INT(win_game); } //byte bi
+void FFScript::setComboData_block_weapon_lvl(){ SET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
 
 //combosbuf
-void FFscript::setComboData_tile(){ SET_COMBODATA_VAR_INT(tile); } //newcombo, word
-void FFscript::setComboData_flip(){ SET_COMBODATA_VAR_INT(flip); } //newcombo byte
+void FFScript::setComboData_tile(){ SET_COMBODATA_VAR_INT(tile); } //newcombo, word
+void FFScript::setComboData_flip(){ SET_COMBODATA_VAR_INT(flip); } //newcombo byte
 
-void FFscript::setComboData_walk(){ SET_COMBODATA_VAR_INT(walk); } //newcombo byte
-void FFscript::setComboData_type(){ SET_COMBODATA_VAR_INT(type); } //newcombo byte
-void FFscript::setComboData_csets(){ SET_COMBODATA_VAR_INT(csets); } //newcombo byte
-void FFscript::setComboData_foo(){ SET_COMBODATA_VAR_INT(foo); } //newcombo word
-void FFscript::setComboData_frames(){ SET_COMBODATA_VAR_INT(frames); } //newcombo byte
-void FFscript::setComboData_speed(){ SET_COMBODATA_VAR_INT(speed); } //newcombo byte
-void FFscript::setComboData_nextcombo(){ SET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
-void FFscript::setComboData_nextcset(){ SET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
-void FFscript::setComboData_flag(){ SET_COMBODATA_VAR_INT(flag); } //newcombo byte
-void FFscript::setComboData_skipanim(){ SET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
-void FFscript::setComboData_nexttimer(){ SET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
-void FFscript::setComboData_skipanimy(){ SET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
-void FFscript::setComboData_animflags(){ SET_COMBODATA_VAR_INT(animflags); } //newcombo byte
+void FFScript::setComboData_walk(){ SET_COMBODATA_VAR_INT(walk); } //newcombo byte
+void FFScript::setComboData_type(){ SET_COMBODATA_VAR_INT(type); } //newcombo byte
+void FFScript::setComboData_csets(){ SET_COMBODATA_VAR_INT(csets); } //newcombo byte
+void FFScript::setComboData_foo(){ SET_COMBODATA_VAR_INT(foo); } //newcombo word
+void FFScript::setComboData_frames(){ SET_COMBODATA_VAR_INT(frames); } //newcombo byte
+void FFScript::setComboData_speed(){ SET_COMBODATA_VAR_INT(speed); } //newcombo byte
+void FFScript::setComboData_nextcombo(){ SET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
+void FFScript::setComboData_nextcset(){ SET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
+void FFScript::setComboData_flag(){ SET_COMBODATA_VAR_INT(flag); } //newcombo byte
+void FFScript::setComboData_skipanim(){ SET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
+void FFScript::setComboData_nexttimer(){ SET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
+void FFScript::setComboData_skipanimy(){ SET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
+void FFScript::setComboData_animflags(){ SET_COMBODATA_VAR_INT(animflags); } //newcombo byte
 
 //three inputs, no returns
-void FFscript::setComboData_block_weapon(){ SET_COMBODATA_TYPE_INDEX(block_weapon); } //byte array[32] d (ID of LWeapon)
-void FFscript::setComboData_strike_weapons(){ SET_COMBODATA_TYPE_INDEX(strike_weapons); } //byte at, arr[32]
-void FFscript::setComboData_expansion(){ SET_COMBODATA_VAR_INDEX(expansion); } //newcombo byte, arr[6]
+void FFScript::setComboData_block_weapon(int v){ SET_COMBODATA_TYPE_INDEX(block_weapon,v); } //byte array[32] d (ID of LWeapon)
+void FFScript::setComboData_strike_weapons(int v){ SET_COMBODATA_TYPE_INDEX(strike_weapons,v); } //byte at, arr[32]
+void FFScript::setComboData_expansion(int v){ SET_COMBODATA_VAR_INDEX(expansion,v); } //newcombo byte, arr[6]

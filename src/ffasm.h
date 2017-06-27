@@ -717,7 +717,7 @@ struct script_variable
 
 #define SCDBLOCKWEAPON 0x118A
 #define SCDSTRIKEWEAPONS 0x118B
-#define SCDEXPANSION 0118C
+#define SCDEXPANSION 0x118C
 
 #define NUMVARIABLES         0x118D
 

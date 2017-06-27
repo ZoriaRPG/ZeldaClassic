@@ -84,6 +84,7 @@ static bool getLinkDiagonal();
 static bool getLinkBigHitbox();
 static void setLinkBigHitbox(bool v);
 
+
 //NPCData getters One Input, One Return
 	static void getNPCData_flags(); //word
 	static void getNPCData_flags2();
@@ -185,179 +186,174 @@ static void setLinkBigHitbox(bool v);
 	
 	
 	//one input, one return
-	static void getComboData_block_enemies(){ GET_COMBODATA_TYPE_INT(block_enemies); } //byte a
-	static void getComboData_block_hole(){ GET_COMBODATA_TYPE_INT(block_hole); } //byte b
-	static void getComboData_block_trigger(){ GET_COMBODATA_TYPE_INT(block_trigger); } //byte c
-	static void getComboData_conveyor_x_speed(){ GET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
-	static void getComboData_conveyor_y_speed(){ GET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
-	static void getComboData_create_enemy(){ GET_COMBODATA_TYPE_INT(create_enemy); } //word g
-	static void getComboData_create_enemy_when(){ GET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
-	static void getComboData_create_enemy_change(){ GET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
-	static void getComboData_directional_change_type(){ GET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
-	static void getComboData_distance_change_tiles(){ GET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
-	static void getComboData_dive_item(){ GET_COMBODATA_TYPE_INT(dive_item); } //short l
-	static void getComboData_dock(){ GET_COMBODATA_TYPE_INT(dock); } //byte m
-	static void getComboData_fairy(){ GET_COMBODATA_TYPE_INT(fairy); } //byte n
-	static void getComboData_ff_combo_attr_change(){ GET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
-	static void getComboData_foot_decorations_tile(){ GET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
-	static void getComboData_foot_decorations_type(){ GET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
-	static void getComboData_hookshot_grab_point(){ GET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
-	static void getComboData_ladder_pass(){ GET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
-	static void getComboData_lock_block_type(){ GET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
-	static void getComboData_lock_block_change(){ GET_COMBODATA_TYPE_INT(lock_block_change); } //long u
-	static void getComboData_magic_mirror_type(){ GET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
-	static void getComboData_modify_hp_amount(){ GET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
-	static void getComboData_modify_hp_delay(){ GET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
-	static void getComboData_modify_hp_type(){ GET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
-	static void getComboData_modify_mp_amount(){ GET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
-	static void getComboData_modify_mp_delay(){ GET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
-	static void getComboData_modify_mp_type(){ GET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
-	static void getComboData_no_push_blocks(){ GET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
-	static void getComboData_overhead(){ GET_COMBODATA_TYPE_INT(overhead); } //byte ad
-	static void getComboData_place_enemy(){ GET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
-	static void getComboData_push_direction(){ GET_COMBODATA_TYPE_INT(push_direction); } //byte af
-	static void getComboData_push_weight(){ GET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
-	static void getComboData_push_wait(){ GET_COMBODATA_TYPE_INT(push_wait); } //byte ah
-	static void getComboData_pushed(){ GET_COMBODATA_TYPE_INT(pushed); } //byte ai
-	static void getComboData_raft(){ GET_COMBODATA_TYPE_INT(raft); } //byte aj
-	static void getComboData_reset_room(){ GET_COMBODATA_TYPE_INT(reset_room); } //byte ak
-	static void getComboData_save_point_type(){ GET_COMBODATA_TYPE_INT(save_point_type); } //byte al
-	static void getComboData_screen_freeze_type(){ GET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
+	static void getComboData_block_enemies();
+	static void getComboData_block_hole();
+	static void getComboData_block_trigger();
+	static void getComboData_conveyor_x_speed();
+	static void getComboData_conveyor_y_speed();
+	static void getComboData_create_enemy();
+	static void getComboData_create_enemy_when();
+	static void getComboData_create_enemy_change();
+	static void getComboData_directional_change_type();
+	static void getComboData_distance_change_tiles();
+	static void getComboData_dive_item();
+	static void getComboData_dock();
+	static void getComboData_fairy();
+	static void getComboData_ff_combo_attr_change();
+	static void getComboData_foot_decorations_tile();
+	static void getComboData_foot_decorations_type();
+	static void getComboData_hookshot_grab_point();
+	static void getComboData_ladder_pass();
+	static void getComboData_lock_block_type();
+	static void getComboData_lock_block_change();
+	static void getComboData_magic_mirror_type();
+	static void getComboData_modify_hp_amount();
+	static void getComboData_modify_hp_delay();
+	static void getComboData_modify_hp_type();
+	static void getComboData_modify_mp_amount();
+	static void getComboData_modify_mp_delay();
+	static void getComboData_modify_mp_type();
+	static void getComboData_no_push_blocks();
+	static void getComboData_overhead();
+	static void getComboData_place_enemy();
+	static void getComboData_push_direction();
+	static void getComboData_push_weight();
+	static void getComboData_push_wait();
+	static void getComboData_pushed();
+	static void getComboData_raft();
+	static void getComboData_reset_room();
+	static void getComboData_save_point_type();
+	static void getComboData_screen_freeze_type();
 
-	static void getComboData_secret_combo(){ GET_COMBODATA_TYPE_INT(secret_combo); } //byte an
-	static void getComboData_singular(){ GET_COMBODATA_TYPE_INT(singular); } //byte ao
-	static void getComboData_slow_movement(){ GET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
-	static void getComboData_statue_type(){ GET_COMBODATA_TYPE_INT(statue_type); } //byte aq
-	static void getComboData_step_type(){ GET_COMBODATA_TYPE_INT(step_type); } //byte ar
-	static void getComboData_step_change_to(){ GET_COMBODATA_TYPE_INT(step_change_to); } //long as
-	static void getComboData_strike_remnants(){ GET_COMBODATA_TYPE_INT(strike_remnants); } //long au
-	static void getComboData_strike_remnants_type(){ GET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
-	static void getComboData_strike_change(){ GET_COMBODATA_TYPE_INT(strike_change); } //long aw
-	static void getComboData_strike_item(){ GET_COMBODATA_TYPE_INT(strike_item); } //short ax
-	static void getComboData_touch_item(){ GET_COMBODATA_TYPE_INT(touch_item); } //short ay
-	static void getComboData_touch_stairs(){ GET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
-	static void getComboData_trigger_type(){ GET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
-	static void getComboData_trigger_sensitive(){ GET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
-	static void getComboData_warp_type(){ GET_COMBODATA_TYPE_INT(warp_type); } //byte bc
-	static void getComboData_warp_sensitive(){ GET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
-	static void getComboData_warp_direct(){ GET_COMBODATA_TYPE_INT(warp_direct); } //byte be
-	static void getComboData_warp_location(){ GET_COMBODATA_TYPE_INT(warp_location); } //byte bf
-	static void getComboData_water(){ GET_COMBODATA_TYPE_INT(water); } //byte bg
-	static void getComboData_whistle(){ GET_COMBODATA_TYPE_INT(whistle); } //byte bh
-	static void getComboData_win_game(){ GET_COMBODATA_TYPE_INT(win_game); } //byte bi
-	static void getComboData_block_weapon_lvl(){ GET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
+	static void getComboData_secret_combo();
+	static void getComboData_singular();
+	static void getComboData_slow_movement();
+	static void getComboData_statue_type();
+	static void getComboData_step_type();
+	static void getComboData_step_change_to();
+	static void getComboData_strike_remnants();
+	static void getComboData_strike_remnants_type();
+	static void getComboData_strike_change();
+	static void getComboData_strike_item();
+	static void getComboData_touch_item();
+	static void getComboData_touch_stairs();
+	static void getComboData_trigger_type();
+	static void getComboData_trigger_sensitive();
+	static void getComboData_warp_type();
+	static void getComboData_warp_sensitive();
+	static void getComboData_warp_direct();
+	static void getComboData_warp_location();
+	static void getComboData_water();
+	static void getComboData_whistle();
+	static void getComboData_win_game();
+	static void getComboData_block_weapon_lvl();
 
-	static void getComboData_tile(){ GET_COMBODATA_VAR_INT(tile); } //newcombo, word
-	static void getComboData_flip(){ GET_COMBODATA_VAR_INT(flip); } //newcombo byte
+	static void getComboData_tile();
+	static void getComboData_flip();
 
-	static void getComboData_walk(){ GET_COMBODATA_VAR_INT(walk); } //newcombo byte
-	static void getComboData_type(){ GET_COMBODATA_VAR_INT(type); } //newcombo byte
-	static void getComboData_csets(){ GET_COMBODATA_VAR_INT(csets); } //newcombo byte
-	static void getComboData_foo(){ GET_COMBODATA_VAR_INT(foo); } //newcombo word
-	static void getComboData_frames(){ GET_COMBODATA_VAR_INT(frames); } //newcombo byte
-	static void getComboData_speed(){ GET_COMBODATA_VAR_INT(speed); } //newcombo byte
-	static void getComboData_nextcombo(){ GET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
-	static void getComboData_nextcset(){ GET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
-	static void getComboData_flag(){ GET_COMBODATA_VAR_INT(flag); } //newcombo byte
-	static void getComboData_skipanim(){ GET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
-	static void getComboData_nexttimer(){ GET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
-	static void getComboData_skipanimy(){ GET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
-	static void getComboData_animflags(){ GET_COMBODATA_VAR_INT(animflags); } //newcombo byte
-
+	static void getComboData_walk();
+	static void getComboData_type();
+	static void getComboData_csets();
+	static void getComboData_foo();
+	static void getComboData_frames();
+	static void getComboData_speed();
+	static void getComboData_nextcombo();
+	static void getComboData_nextcset();
+	static void getComboData_flag();
+	static void getComboData_skipanim();
+	static void getComboData_nexttimer();
+	static void getComboData_skipanimy();
+	static void getComboData_animflags();
 
 	//two inputs, one return
-	static void getComboData_block_weapon(){ GET_COMBODATA_TYPE_INDEX(block_weapon); } //byte array[32] d (ID of LWeapon)
-	static void getComboData_expansion(){ GET_COMBODATA_VAR_INDEX(expansion); } //newcombo byte, arr[6]
-	static void getComboData_strike_weapons(){ GET_COMBODATA_TYPE_INDEX(strike_weapons); } //byte at, arr[32]
+	static void getComboData_block_weapon();
+	static void getComboData_expansion();
+	static void getComboData_strike_weapons();
 
-	//Setters, two inputs no returns
+	//two inputs, no return
+	static void setComboData_block_enemies();
+	static void setComboData_block_hole();
+	static void setComboData_block_trigger();
+	static void setComboData_conveyor_x_speed();
+	static void setComboData_conveyor_y_speed();
+	static void setComboData_create_enemy();
+	static void setComboData_create_enemy_when();
+	static void setComboData_create_enemy_change();
+	static void setComboData_directional_change_type();
+	static void setComboData_distance_change_tiles();
+	static void setComboData_dive_item();
+	static void setComboData_dock();
+	static void setComboData_fairy();
+	static void setComboData_ff_combo_attr_change();
+	static void setComboData_foot_decorations_tile();
+	static void setComboData_foot_decorations_type();
+	static void setComboData_hookshot_grab_point();
+	static void setComboData_ladder_pass();
+	static void setComboData_lock_block_type();
+	static void setComboData_lock_block_change();
+	static void setComboData_magic_mirror_type();
+	static void setComboData_modify_hp_amount();
+	static void setComboData_modify_hp_delay();
+	static void setComboData_modify_hp_type();
+	static void setComboData_modify_mp_amount();
+	static void setComboData_modify_mp_delay();
+	static void setComboData_modify_mp_type();
+	static void setComboData_no_push_blocks();
+	static void setComboData_overhead();
+	static void setComboData_place_enemy();
+	static void setComboData_push_direction();
+	static void setComboData_push_weight();
+	static void setComboData_push_wait();
+	static void setComboData_pushed();
+	static void setComboData_raft();
+	static void setComboData_reset_room();
+	static void setComboData_save_point_type();
+	static void setComboData_screen_freeze_type();
 
-	static void setComboData_block_enemies(){ SET_COMBODATA_TYPE_INT(block_enemies); } //byte a
-	static void setComboData_block_hole(){ SET_COMBODATA_TYPE_INT(block_hole); } //byte b
-	static void setComboData_block_trigger(){ SET_COMBODATA_TYPE_INT(block_trigger); } //byte c
-	static void setComboData_conveyor_x_speed(){ SET_COMBODATA_TYPE_INT(conveyor_x_speed); } //short e
-	static void setComboData_conveyor_y_speed(){ SET_COMBODATA_TYPE_INT(conveyor_y_speed); } //short f
-	static void setComboData_create_enemy(){ SET_COMBODATA_TYPE_INT(create_enemy); } //word g
-	static void setComboData_create_enemy_when(){ SET_COMBODATA_TYPE_INT(create_enemy_when); } //byte h
-	static void setComboData_create_enemy_change(){ SET_COMBODATA_TYPE_INT(create_enemy_change); } //long i
-	static void setComboData_directional_change_type(){ SET_COMBODATA_TYPE_INT(directional_change_type); } //byte j
-	static void setComboData_distance_change_tiles(){ SET_COMBODATA_TYPE_INT(distance_change_tiles); } //long k
-	static void setComboData_dive_item(){ SET_COMBODATA_TYPE_INT(dive_item); } //short l
-	static void setComboData_dock(){ SET_COMBODATA_TYPE_INT(dock); } //byte m
-	static void setComboData_fairy(){ SET_COMBODATA_TYPE_INT(fairy); } //byte n
-	static void setComboData_ff_combo_attr_change(){ SET_COMBODATA_TYPE_INT(ff_combo_attr_change); } //byte o
-	static void setComboData_foot_decorations_tile(){ SET_COMBODATA_TYPE_INT(foot_decorations_tile); } //long p
-	static void setComboData_foot_decorations_type(){ SET_COMBODATA_TYPE_INT(foot_decorations_type); } //byte q
-	static void setComboData_hookshot_grab_point(){ SET_COMBODATA_TYPE_INT(hookshot_grab_point); } //byte r
-	static void setComboData_ladder_pass(){ SET_COMBODATA_TYPE_INT(ladder_pass); } //byte s
-	static void setComboData_lock_block_type(){ SET_COMBODATA_TYPE_INT(lock_block_type); } //byte t
-	static void setComboData_lock_block_change(){ SET_COMBODATA_TYPE_INT(lock_block_change); } //long u
-	static void setComboData_magic_mirror_type(){ SET_COMBODATA_TYPE_INT(magic_mirror_type); } //byte v
-	static void setComboData_modify_hp_amount(){ SET_COMBODATA_TYPE_INT(modify_hp_amount); } //short w
-	static void setComboData_modify_hp_delay(){ SET_COMBODATA_TYPE_INT(modify_hp_delay); } //byte x
-	static void setComboData_modify_hp_type(){ SET_COMBODATA_TYPE_INT(modify_hp_type); } //byte y
-	static void setComboData_modify_mp_amount(){ SET_COMBODATA_TYPE_INT(modify_mp_amount); } //short z
-	static void setComboData_modify_mp_delay(){ SET_COMBODATA_TYPE_INT(modify_mp_delay); } //byte aa
-	static void setComboData_modify_mp_type(){ SET_COMBODATA_TYPE_INT(modify_mp_type); } //byte ab
-	static void setComboData_no_push_blocks(){ SET_COMBODATA_TYPE_INT(no_push_blocks); } //byte ac
-	static void setComboData_overhead(){ SET_COMBODATA_TYPE_INT(overhead); } //byte ad
-	static void setComboData_place_enemy(){ SET_COMBODATA_TYPE_INT(place_enemy); } //byte ae
-	static void setComboData_push_direction(){ SET_COMBODATA_TYPE_INT(push_direction); } //byte af
-	static void setComboData_push_weight(){ SET_COMBODATA_TYPE_INT(push_weight); } //byte ag  heavy or not
-	static void setComboData_push_wait(){ SET_COMBODATA_TYPE_INT(push_wait); } //byte ah
-	static void setComboData_pushed(){ SET_COMBODATA_TYPE_INT(pushed); } //byte ai
-	static void setComboData_raft(){ SET_COMBODATA_TYPE_INT(raft); } //byte aj
-	static void setComboData_reset_room(){ SET_COMBODATA_TYPE_INT(reset_room); } //byte ak
-	static void setComboData_save_point_type(){ SET_COMBODATA_TYPE_INT(save_point_type); } //byte al
-	static void setComboData_screen_freeze_type(){ SET_COMBODATA_TYPE_INT(screen_freeze_type); } //byte am
+	static void setComboData_secret_combo();
+	static void setComboData_singular();
+	static void setComboData_slow_movement();
+	static void setComboData_statue_type();
+	static void setComboData_step_type();
+	static void setComboData_step_change_to();
+	static void setComboData_strike_remnants();
+	static void setComboData_strike_remnants_type();
+	static void setComboData_strike_change();
+	static void setComboData_strike_item();
+	static void setComboData_touch_item();
+	static void setComboData_touch_stairs();
+	static void setComboData_trigger_type();
+	static void setComboData_trigger_sensitive();
+	static void setComboData_warp_type();
+	static void setComboData_warp_sensitive();
+	static void setComboData_warp_direct();
+	static void setComboData_warp_location();
+	static void setComboData_water();
+	static void setComboData_whistle();
+	static void setComboData_win_game();
+	static void setComboData_block_weapon_lvl();
 
-	static void setComboData_secret_combo(){ SET_COMBODATA_TYPE_INT(secret_combo); } //byte an
-	static void setComboData_singular(){ SET_COMBODATA_TYPE_INT(singular); } //byte ao
-	static void setComboData_slow_movement(){ SET_COMBODATA_TYPE_INT(slow_movement); } //byte ap
-	static void setComboData_statue_type(){ SET_COMBODATA_TYPE_INT(statue_type); } //byte aq
-	static void setComboData_step_type(){ SET_COMBODATA_TYPE_INT(step_type); } //byte ar
-	static void setComboData_step_change_to(){ SET_COMBODATA_TYPE_INT(step_change_to); } //long as
+	static void setComboData_tile();
+	static void setComboData_flip();
 
-	static void setComboData_strike_remnants(){ SET_COMBODATA_TYPE_INT(strike_remnants); } //long au
-	static void setComboData_strike_remnants_type(){ SET_COMBODATA_TYPE_INT(strike_remnants_type); } //byte av
-	static void setComboData_strike_change(){ SET_COMBODATA_TYPE_INT(strike_change); } //long aw
-	static void setComboData_strike_item(){ SET_COMBODATA_TYPE_INT(strike_item); } //short ax
-	static void setComboData_touch_item(){ SET_COMBODATA_TYPE_INT(touch_item); } //short ay
-	static void setComboData_touch_stairs(){ SET_COMBODATA_TYPE_INT(touch_stairs); } //byte az
-	static void setComboData_trigger_type(){ SET_COMBODATA_TYPE_INT(trigger_type); } //byte ba
-	static void setComboData_trigger_sensitive(){ SET_COMBODATA_TYPE_INT(trigger_sensitive); } //byte bb
-	static void setComboData_warp_type(){ SET_COMBODATA_TYPE_INT(warp_type); } //byte bc
-	static void setComboData_warp_sensitive(){ SET_COMBODATA_TYPE_INT(warp_sensitive); } //byte bd
-	static void setComboData_warp_direct(){ SET_COMBODATA_TYPE_INT(warp_direct); } //byte be
-	static void setComboData_warp_location(){ SET_COMBODATA_TYPE_INT(warp_location); } //byte bf
-	static void setComboData_water(){ SET_COMBODATA_TYPE_INT(water); } //byte bg
-	static void setComboData_whistle(){ SET_COMBODATA_TYPE_INT(whistle); } //byte bh
-	static void setComboData_win_game(){ SET_COMBODATA_TYPE_INT(win_game); } //byte bi
-	static void setComboData_block_weapon_lvl(){ SET_COMBODATA_TYPE_INT(block_weapon_lvl); } //byte bj - max level of weapon to block
+	static void setComboData_walk();
+	static void setComboData_type();
+	static void setComboData_csets();
+	static void setComboData_foo();
+	static void setComboData_frames();
+	static void setComboData_speed();
+	static void setComboData_nextcombo();
+	static void setComboData_nextcset();
+	static void setComboData_flag();
+	static void setComboData_skipanim();
+	static void setComboData_nexttimer();
+	static void setComboData_skipanimy();
+	static void setComboData_animflags();
 
-	//combosbuf
-	static void setComboData_tile(){ SET_COMBODATA_VAR_INT(tile); } //newcombo, word
-	static void setComboData_flip(){ SET_COMBODATA_VAR_INT(flip); } //newcombo byte
-
-	static void setComboData_walk(){ SET_COMBODATA_VAR_INT(walk); } //newcombo byte
-	static void setComboData_type(){ SET_COMBODATA_VAR_INT(type); } //newcombo byte
-	static void setComboData_csets(){ SET_COMBODATA_VAR_INT(csets); } //newcombo byte
-	static void setComboData_foo(){ SET_COMBODATA_VAR_INT(foo); } //newcombo word
-	static void setComboData_frames(){ SET_COMBODATA_VAR_INT(frames); } //newcombo byte
-	static void setComboData_speed(){ SET_COMBODATA_VAR_INT(speed); } //newcombo byte
-	static void setComboData_nextcombo(){ SET_COMBODATA_VAR_INT(nextcombo); } //newcombo word
-	static void setComboData_nextcset(){ SET_COMBODATA_VAR_INT(nextcset); } //newcombo byte
-	static void setComboData_flag(){ SET_COMBODATA_VAR_INT(flag); } //newcombo byte
-	static void setComboData_skipanim(){ SET_COMBODATA_VAR_INT(skipanim); } //newcombo byte
-	static void setComboData_nexttimer(){ SET_COMBODATA_VAR_INT(nexttimer); } //newcombo word
-	static void setComboData_skipanimy(){ SET_COMBODATA_VAR_INT(skipanimy); } //newcombo byte
-	static void setComboData_animflags(){ SET_COMBODATA_VAR_INT(animflags); } //newcombo byte
-
-	//three inputs, no returns
-	static void setComboData_block_weapon(){ SET_COMBODATA_TYPE_INDEX(block_weapon); } //byte array[32] d (ID of LWeapon)
-	static void setComboData_strike_weapons(){ SET_COMBODATA_TYPE_INDEX(strike_weapons); } //byte at, arr[32]
-	static void setComboData_expansion(){ SET_COMBODATA_VAR_INDEX(expansion); } //newcombo byte, arr[6]
-
+	//three inputs, no return
+	static void setComboData_block_weapon(int v);
+	static void setComboData_expansion(int v);
+	static void setComboData_strike_weapons(int v);
 
 
 #define INVALIDARRAY localRAM[0]  //localRAM[0] is never used
