@@ -1171,6 +1171,13 @@ string VarArgument::toString()
 	case SETNPCDATASIZEFLAG: return "SETNPCDATASIZEFLAG";
 	case SETNPCDATAATTRIBUTE: return "SETNPCDATAATTRIBUTE";
     
+    //ComboData
+    
+    //three inputs no return (function-only)
+	case SCDBLOCKWEAPON: return "SCDBLOCKWEAPON";
+	case SCDEXPANSION: return "SCDEXPANSION";
+	case SCDSTRIKEWEAPONS: return "SCDSTRIKEWEAPONS";
+
     default:
     {
         sprintf(temp, "d%d", ID);
@@ -2633,6 +2640,628 @@ string ONDataSetTileHeight::toString()
 string ONDataSetWeapSprite::toString()
 {
     return "SETNPCDATAWPNSPRITE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+//ComboData
+
+string OCDataBlockEnemy::toString()
+{
+    return "GCDBLOCKENEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataBlockHole::toString()
+{
+    return "GCDBLOCKHOLE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataBlockTrig::toString()
+{
+    return "GCDBLOCKTRIG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataConveyX::toString()
+{
+    return "GCDCONVEYSPDX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataConveyY::toString()
+{
+    return "GCDCONVEYSPDY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataCreateNPC::toString()
+{
+    return "GCDCREATEENEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataCreateEnemW::toString()
+{
+    return "GCDCREATEENEMWH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataCreateEnemC::toString()
+{
+    return "GCDCREATEENEMCH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataDirch::toString()
+{
+    return "GCDDIRCHTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataDistTiles::toString()
+{
+    return "GCDDISTCHTILES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataDiveItem::toString()
+{
+    return "GCDDIVEITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataDock::toString()
+{
+    return "GCDDOCK " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFairy::toString()
+{
+    return "GCDFAIRY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataAttrib::toString()
+{
+    return "GCDFFCOMBOATTRIB " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataDecoTile::toString()
+{
+    return "GCDFOOTDECOTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+string OCDataLadderPass::toString()
+{
+    return "GCDLADDERPASS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataLadderPass::toString()
+{
+    return "SCDLADDERPASS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+
+string OCDataDecoType::toString()
+{
+    return "GCDFOOTDECOTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataHookshotGrab::toString()
+{
+    return "GCDHOOKSHOTGRAB " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataLockBlock::toString()
+{
+    return "GCDLOCKBLOCKTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataLockBlockChange::toString()
+{
+    return "GCDLOCKBLOCKCHANGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataMagicMirror::toString()
+{
+    return "GCDMAGICMIRRORTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataModHP::toString()
+{
+    return "GCDMODIFYHPAMOUNT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataModHPDelay::toString()
+{
+    return "GCDMODIFYHPDELAY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataModHpType::toString()
+{
+    return "GCDMODIFYHPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataModMP::toString()
+{
+    return "GCDMODIFYMPAMOUNT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataMpdMPDelay::toString()
+{
+    return "GCDMODIFYMPDELAY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataModMPType::toString()
+{
+    return "GCDMODIFYMPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataNoPush::toString()
+{
+    return "GCDNOPUSHBLOCKS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataOverhead::toString()
+{
+    return "GCDOVERHEAD " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataEnemyLoc::toString()
+{
+    return "GCDPLACEENEMY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataPushDir::toString()
+{
+    return "GCDPUSHDIR " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataPushWeight::toString()
+{
+    return "GCDPUSHWEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataPushWait::toString()
+{
+    return "GCDPUSHWAIT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataPushed::toString()
+{
+    return "GCDPUSHED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataRaft::toString()
+{
+    return "GCDRAFT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataResetRoom::toString()
+{
+    return "GCDRESETROOM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSavePoint::toString()
+{
+    return "GCDSAVEPOINT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFreeezeScreen::toString()
+{
+    return "GCDSCREENFREEZE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSecretCombo::toString()
+{
+    return "GCDSECRETCOMBO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSingular::toString()
+{
+    return "GCDSINGULAR " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSlowMove::toString()
+{
+    return "GCDSLOWMOVE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStatue::toString()
+{
+    return "GCDSTATUE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStepType::toString()
+{
+    return "GCDSTEPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSteoChange::toString()
+{
+    return "GCDSTEPCHANGETO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStrikeRem::toString()
+{
+    return "GCDSTRIKEREMNANTS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStrikeRemType::toString()
+{
+    return "GCDSTRIKEREMNANTSTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStrikeChange::toString()
+{
+    return "GCDSTRIKECHANGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataStrikeChangeItem::toString()
+{
+    return "GCDSTRIKECHANGEITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTouchItem::toString()
+{
+    return "GCDTOUCHITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTouchStairs::toString()
+{
+    return "GCDTOUCHSTAIRS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTriggerType::toString()
+{
+    return "GCDTRIGGERTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTriggerSens::toString()
+{
+    return "GCDTRIGGERSENS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWarpType::toString()
+{
+    return "GCDWARPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWarpSens::toString()
+{
+    return "GCDWARPSENS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWarpDirect::toString()
+{
+    return "GCDWARPDIRECT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWarpLoc::toString()
+{
+    return "GCDWARPLOCATION " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWater::toString()
+{
+    return "GCDWATER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+string OCDataWinGame::toString()
+{
+    return "GCDWINGAME " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWhistle::toString()
+{
+    return "GCDWHISTLE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWeapBlockLevel::toString()
+{
+    return "GCDBLOCKWEAPLVL " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTile::toString()
+{
+    return "GCDTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFlip::toString()
+{
+    return "GCDFLIP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataWalkability::toString()
+{
+    return "GCDWALK " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataType::toString()
+{
+    return "GCDTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataCSets::toString()
+{
+    return "GCDCSETS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFoo::toString()
+{
+    return "GCDFOO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFrames::toString()
+{
+    return "GCDFRAMES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSpeed::toString()
+{
+    return "GCDSPEED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataNext::toString()
+{
+    return "GCDNEXTCOMBO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataNextCSet::toString()
+{
+    return "GCDNEXTCSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataFlag::toString()
+{
+    return "GCDFLAG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataSkipAnim::toString()
+{
+    return "GCDSKIPANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataTimer::toString()
+{
+    return "GCDNEXTTIMER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataAnimY::toString()
+{
+    return "GCDSKIPANIMY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCDataAnimFlags::toString()
+{
+    return "GCDANIMFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+string OCDataBlockWeapon::toString()
+{
+    return "GCDBLOCKWEAPON " + getArgument()->toString();
+}
+string OCDataExpansion::toString()
+{
+    return "GCDEXPANSION " + getArgument()->toString();
+}
+string OCDataStrikeWeapon::toString()
+{
+    return "GCDSTRIKEWEAPONS " + getArgument()->toString();
+}
+
+string OCSetDataBlockEnemy::toString()
+{
+    return "SCDBLOCKENEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataBlockHole::toString()
+{
+    return "SCDBLOCKHOLE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataBlockTrig::toString()
+{
+    return "SCDBLOCKTRIG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataConveyX::toString()
+{
+    return "SCDCONVEYSPDX " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataConveyY::toString()
+{
+    return "SCDCONVEYSPDY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataCreateNPC::toString()
+{
+    return "SCDCREATEENEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataCreateEnemW::toString()
+{
+    return "SCDCREATEENEMWH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataCreateEnemC::toString()
+{
+    return "SCDCREATEENEMCH " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDirch::toString()
+{
+    return "SCDDIRCHTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDistTiles::toString()
+{
+    return "SCDDISTCHTILES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDiveItem::toString()
+{
+    return "SCDDIVEITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDock::toString()
+{
+    return "SCDDOCK " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFairy::toString()
+{
+    return "SCDFAIRY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataAttrib::toString()
+{
+    return "SCDFFCOMBOATTRIB " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDecoTile::toString()
+{
+    return "SCDFOOTDECOTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataDecoType::toString()
+{
+    return "SCDFOOTDECOTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataHookshotGrab::toString()
+{
+    return "SCDHOOKSHOTGRAB " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataLockBlock::toString()
+{
+    return "SCDLOCKBLOCKTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataLockBlockChange::toString()
+{
+    return "SCDLOCKBLOCKCHANGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataMagicMirror::toString()
+{
+    return "SCDMAGICMIRRORTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataModHP::toString()
+{
+    return "SCDMODIFYHPAMOUNT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataModHPDelay::toString()
+{
+    return "SCDMODIFYHPDELAY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataModHpType::toString()
+{
+    return "SCDMODIFYHPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataModMP::toString()
+{
+    return "SCDMODIFYMPAMOUNT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataMpdMPDelay::toString()
+{
+    return "SCDMODIFYMPDELAY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataModMPType::toString()
+{
+    return "SCDMODIFYMPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataNoPush::toString()
+{
+    return "SCDNOPUSHBLOCKS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataOverhead::toString()
+{
+    return "SCDOVERHEAD " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataEnemyLoc::toString()
+{
+    return "SCDPLACEENEMY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataPushDir::toString()
+{
+    return "SCDPUSHDIR " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataPushWeight::toString()
+{
+    return "SCDPUSHWEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataPushWait::toString()
+{
+    return "SCDPUSHWAIT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataPushed::toString()
+{
+    return "SCDPUSHED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataRaft::toString()
+{
+    return "SCDRAFT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataResetRoom::toString()
+{
+    return "SCDRESETROOM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSavePoint::toString()
+{
+    return "SCDSAVEPOINT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFreeezeScreen::toString()
+{
+    return "SCDSCREENFREEZE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSecretCombo::toString()
+{
+    return "SCDSECRETCOMBO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSingular::toString()
+{
+    return "SCDSINGULAR " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSlowMove::toString()
+{
+    return "SCDSLOWMOVE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStatue::toString()
+{
+    return "SCDSTATUE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStepType::toString()
+{
+    return "SCDSTEPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSteoChange::toString()
+{
+    return "SCDSTEPCHANGETO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStrikeRem::toString()
+{
+    return "SCDSTRIKEREMNANTS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStrikeRemType::toString()
+{
+    return "SCDSTRIKEREMNANTSTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStrikeChange::toString()
+{
+    return "SCDSTRIKECHANGE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataStrikeChangeItem::toString()
+{
+    return "SCDSTRIKECHANGEITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTouchItem::toString()
+{
+    return "SCDTOUCHITEM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTouchStairs::toString()
+{
+    return "SCDTOUCHSTAIRS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTriggerType::toString()
+{
+    return "SCDTRIGGERTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTriggerSens::toString()
+{
+    return "SCDTRIGGERSENS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWarpType::toString()
+{
+    return "SCDWARPTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWarpSens::toString()
+{
+    return "SCDWARPSENS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWarpDirect::toString()
+{
+    return "SCDWARPDIRECT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWarpLoc::toString()
+{
+    return "SCDWARPLOCATION " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWater::toString()
+{
+    return "SCDWATER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWhistle::toString()
+{
+    return "SCDWHISTLE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWeapBlockLevel::toString()
+{
+    return "SCDBLOCKWEAPLVL " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTile::toString()
+{
+    return "SCDTILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFlip::toString()
+{
+    return "SCDFLIP " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataWalkability::toString()
+{
+    return "SCDWALK " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataType::toString()
+{
+    return "SCDTYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataCSets::toString()
+{
+    return "SCDCSETS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFoo::toString()
+{
+    return "SCDFOO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFrames::toString()
+{
+    return "SCDFRAMES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSpeed::toString()
+{
+    return "SCDSPEED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataNext::toString()
+{
+    return "SCDNEXTCOMBO " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataNextCSet::toString()
+{
+    return "SCDNEXTCSET " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataFlag::toString()
+{
+    return "SCDFLAG " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataSkipAnim::toString()
+{
+    return "SCDSKIPANIM " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataTimer::toString()
+{
+    return "SCDNEXTTIMER " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataAnimY::toString()
+{
+    return "SCDSKIPANIMY " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OCSetDataAnimFlags::toString()
+{
+    return "SCDANIMFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+string OCSetDataWinGame::toString()
+{
+    return "SCDWINGAME " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
 //////////////////////////////////////////////////////////////////////////////////////
 

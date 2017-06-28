@@ -33,6 +33,72 @@ const int radsperdeg = 572958;
 
 #define ARGS_17(t, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17) { t, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15,arg16,arg17,-1,-1 }
 
+#define ONE_INPUT_ONE_RETURN(flabel, ocode) \
+{ \
+	int id = functions[flabel]; \
+	int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(EXP1)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+	code.push_back(new ocode(new VarArgument(EXP1),new VarArgument(EXP2))); \
+	code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+
+
+#define TWO_INPUT_NO_RETURN(flabel, ocode) \
+{ \
+	int id = functions[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(INDEX2)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        code.push_back(new OPopRegister(new VarArgument(INDEX))); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+        code.push_back(new ocode(new VarArgument(EXP1))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+    
+#define TWO_INPUT_ONE_RETURN(flabel,ocode) \
+{ \
+        int id = functions[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(INDEX2)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        code.push_back(new OPopRegister(new VarArgument(INDEX))); \
+        code.push_back(new ocode(new VarArgument(NUL))); \
+        code.push_back(new ONDataScriptDef(new VarArgument(EXP1))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+
+#define THREE_INPUT_NO_RETURN(flabel,zasmid) \
+{ \
+        int id = functions[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(SFTEMP)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        code.push_back(new OPopRegister(new VarArgument(INDEX2))); \
+        code.push_back(new OPopRegister(new VarArgument(INDEX))); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+        code.push_back(new OSetRegister(new VarArgument(zasmid), new VarArgument(SFTEMP))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+
 #define POP_ARGS(num_args, t) \
 	for(int _i(0); _i < num_args; ++_i) \
 		code.push_back(new OPopRegister(new VarArgument(t)))
@@ -56,6 +122,8 @@ LibrarySymbols* LibrarySymbols::getTypeInstance(ZVarTypeId typeId)
 	    case ZVARTYPEID_TEXT: return &TextPtrSymbols::getInst();
 	    case ZVARTYPEID_GRAPHICS: return &GfxPtrSymbols::getInst();
 	    case ZVARTYPEID_COMBOS: return &CombosPtrSymbols::getInst();
+	    
+	    //case ZVARTYPEID_SPRITEDATA: return &SpriteDataSymbols::getInst();
     default: return NULL;
     }
 }
@@ -5138,9 +5206,171 @@ CombosPtrSymbols CombosPtrSymbols::singleton = CombosPtrSymbols();
 static AccessorTable CombosTable[] =
 {
     //name,                     rettype,                        setorget,     var,              numindex,      params
-	//All of these return a function label error when used:
-	{ "getTest",               ZVARTYPEID_FLOAT,         GETTER,       DEBUGREFFFC,            1,      {  ZVARTYPEID_COMBOS,         -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
-	
+	//one input, one return
+	{ "GetBlockEnemies",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetBlockHole",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetBlockTrigger",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetConveyorSpeedX",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetConveyorSpeedY",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetCreateEnemy",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetCreateEnemyWhen",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetCreateEnemyChnge",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetDirChangeType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetDistanceChangeTiles",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetDiveItem",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetDock",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFairy",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFFComboChangeAttrib",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFootDecorationsTile",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFootDecorationsType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetHookshotGrab",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetLadderPass",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetLockBlockType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetLockBlockChange",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetMagicMirror",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyHPAmount",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyHPDelay",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyHPType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyMPAmount",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyMPDelay",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetModifyMPType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetNoPushBlocks",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetOverhead",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetPlaceEnemy",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetPushDirection",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetPushWeight",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetPushWait",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetPushed",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetRaft",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetResetRoom",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSavePoint",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetScreenFreeze",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSecretCombo",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSingular",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSlowMove",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStatue",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStepType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStepChangeTo",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStrikeRemnants",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStrikeRemnantsType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStrikeChange",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStrikeItem",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetTouchItem",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetTouchStairs",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetTriggerType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetTriggerSens",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWarpType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWarpSens",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWarpDirect",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWarpLocation",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWater",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWhistle",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWinGame",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetBlockWeaponLevel",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetTile",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFlip",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetWalkability",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetCSets",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFoo",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFrames",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSpeed",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetNextCombo",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetNextCSet",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFlag",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSkipAnim",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetNextTimer",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSkipAnimY",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetAnimFlags",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+
+	//two inputs, one return
+	{ "GetBlockWeapon",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetExpansion",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetStrikeWeapons",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+		
+	//two inputs, no return
+	{ "SetBlockEnemies",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetBlockHole",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetBlockTrigger",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetConveyorSpeedX",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetConveyorSpeedY",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetCreateEnemy",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetCreateEnemyWhen",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetCreateEnemyChnge",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetDirChangeType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetDistanceChangeTiles",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetDiveItem",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetDock",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFairy",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFFComboChangeAttrib",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFootDecorationsTile",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFootDecorationsType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetHookshotGrab",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetLadderPass",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetLockBlockType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetLockBlockChange",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetMagicMirror",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyHPAmount",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyHPDelay",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyHPType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyMPAmount",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyMPDelay",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetModifyMPType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetNoPushBlocks",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetOverhead",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetPlaceEnemy",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetPushDirection",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetPushWeight",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetPushWait",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetPushed",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetRaft",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetResetRoom",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSavePoint",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetScreenFreeze",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSecretCombo",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSingular",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSlowMove",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStatue",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStepType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStepChangeTo",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStrikeRemnants",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStrikeRemnantsType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStrikeChange",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStrikeItem",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetTouchItem",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetTouchStairs",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetTriggerType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetTriggerSens",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWarpType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWarpSens",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWarpDirect",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWarpLocation",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWater",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWhistle",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWinGame",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetBlockWeaponLevel",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetTile",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFlip",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetWalkability",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetCSets",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFoo",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFrames",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSpeed",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetNextCombo",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetNextCSet",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFlag",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSkipAnim",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetNextTimer",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSkipAnimY",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetAnimFlags",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+
+	//three inputs, no return
+	{ "SetBlockWeapon",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetExpansion",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetStrikeWeapons",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_COMBOS,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+
+
     { "",                      -1,                               -1,           -1,                   -1,      { -1,                               -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } }
 };
 
@@ -5154,7 +5384,482 @@ map<int, vector<Opcode *> > CombosPtrSymbols::addSymbolsCode(LinkTable &lt)
 {
     map<int, vector<Opcode *> > rval;
     int id=-1;
-	
+
+    
+
+    {
+        ONE_INPUT_ONE_RETURN("GetBlockEnemies",OCDataBlockEnemy);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetBlockHole",OCDataBlockHole);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetBlockTrigger",OCDataBlockTrig);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetConveyorSpeedX",OCDataConveyX);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetConveyorSpeedY",OCDataConveyY);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetCreateEnemy",OCDataCreateNPC);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetCreateEnemyWhen",OCDataCreateEnemW);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetCreateEnemyChnge",OCDataCreateEnemC);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetDirChangeType",OCDataDirch);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetDistanceChangeTiles",OCDataDistTiles);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetDiveItem",OCDataDiveItem);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetDock",OCDataDock);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFairy",OCDataFairy);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFFComboChangeAttrib",OCDataAttrib);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFootDecorationsTile",OCDataDecoTile);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFootDecorationsType",OCDataDecoType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetHookshotGrab",OCDataHookshotGrab);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetLadderPass",OCDataLadderPass);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetLockBlockType",OCDataLockBlock);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetLockBlockChange",OCDataLockBlockChange);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetMagicMirror",OCDataMagicMirror);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyHPAmount",OCDataModHP);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyHPDelay",OCDataModHPDelay);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyHPType",OCDataModHpType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyMPAmount",OCDataModMP);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyMPDelay",OCDataMpdMPDelay);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetModifyMPType",OCDataModMPType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetNoPushBlocks",OCDataNoPush);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetOverhead",OCDataOverhead);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetPlaceEnemy",OCDataEnemyLoc);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetPushDirection",OCDataPushDir);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetPushWeight",OCDataPushWeight);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetPushWait",OCDataPushWait);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetPushed",OCDataPushed);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetRaft",OCDataRaft);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetResetRoom",OCDataResetRoom);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSavePoint",OCDataSavePoint);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetScreenFreeze",OCDataFreeezeScreen);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSecretCombo",OCDataSecretCombo);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSingular",OCDataSingular);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSlowMove",OCDataSlowMove);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStatue",OCDataStatue);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStepType",OCDataStepType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStepChangeTo",OCDataSteoChange);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStrikeRemnants",OCDataStrikeRem);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStrikeRemnantsType",OCDataStrikeRemType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStrikeChange",OCDataStrikeChange);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetStrikeItem",OCDataStrikeChangeItem);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetTouchItem",OCDataTouchItem);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetTouchStairs",OCDataTouchStairs);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetTriggerType",OCDataTriggerType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetTriggerSens",OCDataTriggerSens);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWarpType",OCDataWarpType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWarpSens",OCDataWarpSens);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWarpDirect",OCDataWarpDirect);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWarpLocation",OCDataWarpLoc);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWater",OCDataWater);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWhistle",OCDataWhistle);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWinGame",OCDataWinGame);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetBlockWeaponLevel",OCDataWeapBlockLevel);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetTile",OCDataTile);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFlip",OCDataFlip);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetWalkability",OCDataWalkability);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetType",OCDataType);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetCSets",OCDataCSets);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFoo",OCDataFoo);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFrames",OCDataFrames);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSpeed",OCDataSpeed);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetNextCombo",OCDataNext);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetNextCSet",OCDataNextCSet);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetFlag",OCDataFlag);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSkipAnim",OCSetDataSkipAnim);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetNextTimer",OCDataTimer);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetSkipAnimY",OCDataAnimY);
+    }
+    {
+        ONE_INPUT_ONE_RETURN("GetAnimFlags",OCDataAnimFlags);
+    }
+    
+    {
+        TWO_INPUT_NO_RETURN("SetBlockEnemies",OCSetDataBlockEnemy);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetBlockHole",OCSetDataBlockHole);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetBlockTrigger",OCSetDataBlockTrig);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetConveyorSpeedX",OCSetDataConveyX);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetConveyorSpeedY",OCSetDataConveyY);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetCreateEnemy",OCSetDataCreateNPC);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetCreateEnemyWhen",OCSetDataCreateEnemW);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetCreateEnemyChnge",OCSetDataCreateEnemC);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetDirChangeType",OCSetDataDirch);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetDistanceChangeTiles",OCSetDataDistTiles);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetDiveItem",OCSetDataDiveItem);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetDock",OCSetDataDock);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFairy",OCSetDataFairy);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFFComboChangeAttrib",OCSetDataAttrib);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFootDecorationsTile",OCSetDataDecoTile);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFootDecorationsType",OCSetDataDecoType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetHookshotGrab",OCSetDataHookshotGrab);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetLadderPass",OCSetDataLadderPass);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetLockBlockType",OCSetDataLockBlock);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetLockBlockChange",OCSetDataLockBlockChange);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetMagicMirror",OCSetDataMagicMirror);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyHPAmount",OCSetDataModHP);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyHPDelay",OCSetDataModHPDelay);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyHPType",OCSetDataModHpType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyMPAmount",OCSetDataModMP);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyMPDelay",OCSetDataMpdMPDelay);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetModifyMPType",OCSetDataModMPType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetNoPushBlocks",OCSetDataNoPush);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetOverhead",OCSetDataOverhead);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetPlaceEnemy",OCSetDataEnemyLoc);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetPushDirection",OCSetDataPushDir);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetPushWeight",OCSetDataPushWeight);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetPushWait",OCSetDataPushWait);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetPushed",OCSetDataPushed);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetRaft",OCSetDataRaft);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetResetRoom",OCSetDataResetRoom);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSavePoint",OCSetDataSavePoint);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetScreenFreeze",OCSetDataFreeezeScreen);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSecretCombo",OCSetDataSecretCombo);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSingular",OCSetDataSingular);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSlowMove",OCSetDataSlowMove);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStatue",OCSetDataStatue);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStepType",OCSetDataStepType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStepChangeTo",OCSetDataSteoChange);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStrikeRemnants",OCSetDataStrikeRem);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStrikeRemnantsType",OCSetDataStrikeRemType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStrikeChange",OCSetDataStrikeChange);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetStrikeItem",OCSetDataStrikeChangeItem);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetTouchItem",OCSetDataTouchItem);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetTouchStairs",OCSetDataTouchStairs);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetTriggerType",OCSetDataTriggerType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetTriggerSens",OCSetDataTriggerSens);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWarpType",OCSetDataWarpType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWarpSens",OCSetDataWarpSens);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWarpDirect",OCSetDataWarpDirect);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWarpLocation",OCSetDataWarpLoc);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWater",OCSetDataWater);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWhistle",OCSetDataWhistle);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWinGame",OCSetDataWinGame);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetBlockWeaponLevel",OCSetDataWeapBlockLevel);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetTile",OCSetDataTile);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFlip",OCSetDataFlip);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetWalkability",OCSetDataWalkability);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetType",OCSetDataType);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetCSets",OCSetDataCSets);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFoo",OCSetDataFoo);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFrames",OCSetDataFrames);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSpeed",OCSetDataSpeed);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetNextCombo",OCSetDataNext);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetNextCSet",OCSetDataNextCSet);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetFlag",OCSetDataFlag);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSkipAnim",OCSetDataSkipAnim);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetNextTimer",OCSetDataTimer);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetSkipAnimY",OCSetDataAnimY);
+    }
+    {
+        TWO_INPUT_NO_RETURN("SetAnimFlags",OCSetDataAnimFlags);
+    }
+    
+    {
+        TWO_INPUT_ONE_RETURN("GetBlockWeapon",OCDataBlockWeapon);
+    }
+    {
+        TWO_INPUT_ONE_RETURN("GetExpansion",OCDataExpansion);
+    }
+    {
+        TWO_INPUT_ONE_RETURN("GetStrikeWeapons",OCDataStrikeWeapon);
+    }
+    {
+	THREE_INPUT_NO_RETURN("SetBlockWeapon", SCDBLOCKWEAPON);
+    }
+    {
+	THREE_INPUT_NO_RETURN("SetExpansion", SCDEXPANSION);
+    }
+    {
+	THREE_INPUT_NO_RETURN("SetStrikeWeapons", SCDSTRIKEWEAPONS);
+    }
+    
+  
+  
 
     return rval;
 }
