@@ -43,11 +43,12 @@ const int radsperdeg = 572958;
         code.push_back(first); \
         code.push_back(new OPopRegister(new VarArgument(EXP2))); \
         code.push_back(new OPopRegister(new VarArgument(NUL))); \
-	code.push_back(new ocode(new VarArgument(EXP1),new VarArgument(EXP2))); \
-	code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new ocode(new VarArgument(EXP1),new VarArgument(EXP2))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
         code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
         rval[label] = code; \
 } \
+
 
 
 #define TWO_INPUT_NO_RETURN(flabel, ocode) \
@@ -58,15 +59,18 @@ const int radsperdeg = 572958;
         Opcode *first = new OPopRegister(new VarArgument(INDEX2)); \
         first->setLabel(label); \
         code.push_back(first); \
-        code.push_back(new OPopRegister(new VarArgument(INDEX))); \
-        code.push_back(new OPopRegister(new VarArgument(NUL))); \
-        code.push_back(new ocode(new VarArgument(EXP1))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP))); \
+        code.push_back(new ocode(new VarArgument(EXP2), new VarArgument(EXP1))); \
         code.push_back(new OPopRegister(new VarArgument(EXP2))); \
         code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
         rval[label] = code; \
 } \
     
-#define TWO_INPUT_ONE_RETURN(flabel,ocode) \
+	
+	
+	 
+#define TWO_INPUT_ONE_RETURN(flabel, ocode) \
 { \
         int id = functions[flabel]; \
         int label = lt.functionToLabel(id); \
@@ -75,8 +79,8 @@ const int radsperdeg = 572958;
         first->setLabel(label); \
         code.push_back(first); \
         code.push_back(new OPopRegister(new VarArgument(INDEX))); \
-        code.push_back(new ocode(new VarArgument(NUL))); \
-        code.push_back(new ONDataScriptDef(new VarArgument(EXP1))); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+        code.push_back(new ocode(new VarArgument(EXP1))); \
         code.push_back(new OPopRegister(new VarArgument(EXP2))); \
         code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
         rval[label] = code; \
