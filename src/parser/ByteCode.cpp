@@ -3283,5 +3283,57 @@ string OCSetDataWinGame::toString()
 {
     return "SCDWINGAME " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
+
+//SpriteData
+string OSDataTile::toString()
+{
+    return "GETSPRITEDATATILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSDataMisc::toString()
+{
+    return "GETSPRITEDATAMISC " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSDataCSets::toString()
+{
+    return "GETSPRITEDATACGETS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSDataFrames::toString()
+{
+    return "GETSPRITEDATAFRAMES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSDataSpeed::toString()
+{
+    return "GETSPRITEDATASPEED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSDataType::toString()
+{
+    return "GETSPRITEDATATYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
+string OSSetDataTile::toString()
+{
+    return "SETSPRITEDATATILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSSetDataMisc::toString()
+{
+    return "SETSPRITEDATAMISC " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSSetDataCSets::toString()
+{
+    return "SETSPRITEDATACGETS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSSetDataFrames::toString()
+{
+    return "SETSPRITEDATAFRAMES " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSSetDataSpeed::toString()
+{
+    return "SETSPRITEDATASPEED " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string OSSetDataType::toString()
+{
+    return "SETSPRITEDATATYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 

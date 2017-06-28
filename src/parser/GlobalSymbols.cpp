@@ -127,7 +127,7 @@ LibrarySymbols* LibrarySymbols::getTypeInstance(ZVarTypeId typeId)
 	    case ZVARTYPEID_GRAPHICS: return &GfxPtrSymbols::getInst();
 	    case ZVARTYPEID_COMBOS: return &CombosPtrSymbols::getInst();
 	    
-	    //case ZVARTYPEID_SPRITEDATA: return &SpriteDataSymbols::getInst();
+	    case ZVARTYPEID_SPRITEDATA: return &SpriteDataSymbols::getInst();
     default: return NULL;
     }
 }
@@ -5185,8 +5185,20 @@ static AccessorTable SpriteDataTable[] =
 {
     //name,                     rettype,                        setorget,     var,              numindex,      params
 	//All of these return a function label error when used:
-	{ "getTest",               ZVARTYPEID_FLOAT,         GETTER,       DEBUGREFFFC,            1,      {  ZVARTYPEID_SPRITEDATA,         -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
-	
+	{ "GetTile",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetMisc",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetCSets",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetFrames",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetSpeed",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetType",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+		
+	{ "SetTile",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetMisc",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetCSets",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetFrames",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetSpeed",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetType",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_SPRITEDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+		
     { "",                      -1,                               -1,           -1,                   -1,      { -1,                               -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } }
 };
 
@@ -5201,7 +5213,212 @@ map<int, vector<Opcode *> > SpriteDataSymbols::addSymbolsCode(LinkTable &lt)
     map<int, vector<Opcode *> > rval;
     int id=-1;
 	
+	
 
+//GetTile(SpriteData, int)
+    {
+        int id = functions["GetTile"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataTile(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetMisc(SpriteData, int)
+    {
+        int id = functions["GetMisc"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataMisc(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetCSets(SpriteData, int)
+    {
+        int id = functions["GetCSets"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataCSets(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetFrames(SpriteData, int)
+    {
+        int id = functions["GetFrames"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataFrames(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetSpeed(SpriteData, int)
+    {
+        int id = functions["GetSpeed"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataSpeed(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetType(SpriteData, int)
+    {
+        int id = functions["GetType"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSDataType(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetTile(SpriteData, int, int)
+    {
+        int id = functions["SetTile"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataTile(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetMisc(SpriteData, int, int)
+    {
+        int id = functions["SetMisc"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataMisc(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetCSets(SpriteData, int, int)
+    {
+        int id = functions["SetCSets"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataCSets(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetFrames(SpriteData, int, int)
+    {
+        int id = functions["SetFrames"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataFrames(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetSpeed(SpriteData, int, int)
+    {
+        int id = functions["SetSpeed"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataSpeed(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetType(SpriteData, int, int)
+    {
+        int id = functions["SetType"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new OSSetDataType(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
     return rval;
 }
 

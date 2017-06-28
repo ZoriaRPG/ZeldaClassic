@@ -396,6 +396,22 @@ static void setLinkBigHitbox(bool v);
 	static void setComboData_block_weapon(int v);
 	static void setComboData_expansion(int v);
 	static void setComboData_strike_weapons(int v);
+	
+	//SpriteData
+	static void getSpriteDataTile();
+	static void getSpriteDataMisc();
+	static void getSpriteDataCSets();
+	static void getSpriteDataFrames();
+	static void getSpriteDataSpeed();
+	static void getSpriteDataType();
+	static void getSpriteDataString();
+	static void setSpriteDataTile();
+	static void setSpriteDataMisc();
+	static void setSpriteDataCSets();
+	static void setSpriteDataFrames();
+	static void setSpriteDataSpeed();
+	static void setSpriteDataType();
+	static void setSpriteDataString();
 
 
 #define INVALIDARRAY localRAM[0]  //localRAM[0] is never used

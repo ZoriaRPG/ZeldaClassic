@@ -9987,6 +9987,24 @@ int run_script(const byte type, const word script, const byte i)
 	case	SCDEXPANSION:  FFScript::setComboData_expansion(ri->d[2]); break;
 	case	SCDSTRIKEWEAPONS:  FFScript::setComboData_strike_weapons(ri->d[2]); break;
 
+	//SpriteData
+	
+	//case	GETSPRITEDATASTRING: 
+	case	GETSPRITEDATATILE: FFScript::getSpriteDataTile();
+	case	GETSPRITEDATAMISC: FFScript::getSpriteDataCSets();
+	case	GETSPRITEDATACGETS: FFScript::getSpriteDataCSets();
+	case	GETSPRITEDATAFRAMES: FFScript::getSpriteDataFrames();
+	case	GETSPRITEDATASPEED: FFScript::getSpriteDataSpeed();
+	case	GETSPRITEDATATYPE: FFScript::getSpriteDataType();
+
+	//case	SETSPRITEDATASTRING:
+	case	SETSPRITEDATATILE: FFScript::setSpriteDataTile();
+	case	SETSPRITEDATAMISC: FFScript::setSpriteDataMisc();
+	case	SETSPRITEDATACSETS: FFScript::setSpriteDataCSets();
+	case	SETSPRITEDATAFRAMES: FFScript::setSpriteDataFrames();
+	case	SETSPRITEDATASPEED: FFScript::setSpriteDataSpeed();
+	case	SETSPRITEDATATYPE: FFScript::setSpriteDataType();
+	
         default:
             Z_scripterrlog("Invalid ZASM command %ld reached\n", scommand);
             break;
@@ -11066,3 +11084,49 @@ void FFScript::setComboData_animflags(){ SET_COMBODATA_VAR_INT(animflags,ZS_BYTE
 void FFScript::setComboData_block_weapon(int v){ SET_COMBODATA_TYPE_INDEX(block_weapon,v,ZS_BYTE,32); } //byte array[32] d (ID of LWeapon)
 void FFScript::setComboData_strike_weapons(int v){ SET_COMBODATA_TYPE_INDEX(strike_weapons,v,ZS_BYTE,32); } //byte at, arr[32]
 void FFScript::setComboData_expansion(int v){ SET_COMBODATA_VAR_INDEX(expansion,v,ZS_BYTE,6); } //newcombo byte, arr[6]
+
+//SpriteData Macros
+#define GET_SPRITEDATA_TYPE_INT(member) \
+{ \
+	long ID = vbound((get_register(sarg2) / 10000),0,255);\
+	set_register(sarg1, wpnsbuf[ID].member * 10000); \
+}
+
+#define SET_SPRITEDATA_TYPE_INT(member, bound) \
+{ \
+	long ID = get_register(sarg1) / 10000; \
+	long val = vbound( (get_register(sarg2) / 10000), 0, bound); \
+	if(ID < 1 || ID > 255) \
+		set_register(sarg1, -10000); \
+	else \
+		wpnsbuf[ID].member = val; \
+}
+
+#define SET_SPRITEDATA_TYPE_INT_NOBOUND(member) \
+{ \
+	long ID = get_register(sarg1) / 10000; \
+	long val = get_register(sarg2) / 10000; \
+	if(ID < 1 || ID > 255) \
+		set_register(sarg1, -10000); \
+	else \
+		wpnsbuf[ID].member = val; \
+}
+
+
+void FFScript::getSpriteDataTile(){GET_SPRITEDATA_TYPE_INT(tile);}
+void FFScript::getSpriteDataMisc(){GET_SPRITEDATA_TYPE_INT(misc);}
+void FFScript::getSpriteDataCSets(){GET_SPRITEDATA_TYPE_INT(csets);}
+void FFScript::getSpriteDataFrames(){GET_SPRITEDATA_TYPE_INT(frames);}
+void FFScript::getSpriteDataSpeed(){GET_SPRITEDATA_TYPE_INT(speed);}
+void FFScript::getSpriteDataType(){GET_SPRITEDATA_TYPE_INT(type);}
+//void FFScript::getSpriteDataString();
+
+
+
+void FFScript::setSpriteDataTile(){SET_SPRITEDATA_TYPE_INT(tile,ZS_WORD);}
+void FFScript::setSpriteDataMisc(){SET_SPRITEDATA_TYPE_INT(misc,ZS_CHAR);}
+void FFScript::setSpriteDataCSets(){SET_SPRITEDATA_TYPE_INT(csets,ZS_CHAR);}
+void FFScript::setSpriteDataFrames(){SET_SPRITEDATA_TYPE_INT(frames,ZS_CHAR);}
+void FFScript::setSpriteDataSpeed(){SET_SPRITEDATA_TYPE_INT(speed,ZS_CHAR);}
+void FFScript::setSpriteDataType(){SET_SPRITEDATA_TYPE_INT(type,ZS_CHAR);}
+//void FFScript::setSpriteDataString();

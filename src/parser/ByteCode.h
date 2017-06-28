@@ -5682,6 +5682,136 @@ public:
     }
 };
 
+//SpriteData
+class OSDataTile : public BinaryOpcode
+{
+public:
+    OSDataTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataTile(a->clone(), b->clone());
+    }
+};
+
+class OSDataMisc : public BinaryOpcode
+{
+public:
+    OSDataMisc(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataMisc(a->clone(), b->clone());
+    }
+};
+
+class OSDataCSets : public BinaryOpcode
+{
+public:
+    OSDataCSets(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataCSets(a->clone(), b->clone());
+    }
+};
+
+class OSDataFrames : public BinaryOpcode
+{
+public:
+    OSDataFrames(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataFrames(a->clone(), b->clone());
+    }
+};
+
+class OSDataSpeed : public BinaryOpcode
+{
+public:
+    OSDataSpeed(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataSpeed(a->clone(), b->clone());
+    }
+};
+class OSDataType : public BinaryOpcode
+{
+public:
+    OSDataType(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSDataType(a->clone(), b->clone());
+    }
+};
+
+class OSSetDataTile : public BinaryOpcode
+{
+public:
+    OSSetDataTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataTile(a->clone(), b->clone());
+    }
+};
+
+class OSSetDataMisc : public BinaryOpcode
+{
+public:
+    OSSetDataMisc(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataMisc(a->clone(), b->clone());
+    }
+};
+
+class OSSetDataCSets : public BinaryOpcode
+{
+public:
+    OSSetDataCSets(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataCSets(a->clone(), b->clone());
+    }
+};
+
+class OSSetDataFrames : public BinaryOpcode
+{
+public:
+    OSSetDataFrames(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataFrames(a->clone(), b->clone());
+    }
+};
+
+class OSSetDataSpeed : public BinaryOpcode
+{
+public:
+    OSSetDataSpeed(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataSpeed(a->clone(), b->clone());
+    }
+};
+class OSSetDataType : public BinaryOpcode
+{
+public:
+    OSSetDataType(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSSetDataType(a->clone(), b->clone());
+    }
+};
 
 #endif
 
