@@ -222,6 +222,10 @@ static void setLinkBigHitbox(bool v);
 	static void setNPCData_SIZEflags(int v);
 	static void setNPCData_misc(int val);
 	
+	static void setNPCData_tile();
+	static void setNPCData_e_height();
+	static void getNPCData_tile();
+	static void getNPCData_e_height();
 	
 	//one input, one return
 	static void getComboData_block_enemies();

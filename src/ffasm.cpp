@@ -602,7 +602,10 @@ script_command command_list[NUMCOMMANDS+1]=
 	{ "SCDNEXTTIMER",           2,   0,   0,   0},  
 	{ "SCDSKIPANIMY",           2,   0,   0,   0},  
 	{ "SCDANIMFLAGS",           2,   0,   0,   0},  
-
+	{ "GETNPCDATATILE",           2,   0,   0,   0},
+	{ "GETNPCDATAEHEIGHT",           2,   0,   0,   0},
+	{ "SETNPCDATATILE",        2,   0,   0,   0},
+	{ "SETNPCDATAEHEIGHT",        2,   0,   0,   0},
     
     { "",                    0,   0,   0,   0}
 };

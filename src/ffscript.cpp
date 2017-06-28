@@ -9729,6 +9729,8 @@ int run_script(const byte type, const word script, const byte i)
 	
 	//case NPCData
 	
+	case 	GETNPCDATATILE: FFScript::getNPCData_tile(); break;
+	case	GETNPCDATAEHEIGHT: FFScript::getNPCData_e_height(); break;
 	case 	GETNPCDATAFLAGS: FFScript::getNPCData_flags(); break;
 	case	GETNPCDATAFLAGS2: FFScript::getNPCData_flags2(); break;
 	case	GETNPCDATAWIDTH: FFScript::getNPCData_flags2(); break;
@@ -9812,6 +9814,12 @@ int run_script(const byte type, const word script, const byte i)
 	case	SETNPCDATATILEHEIGHT: FFScript::setNPCData_tysz(); break;
 	case	SETNPCDATAWPNSPRITE: FFScript::setNPCData_wpnsprite(); break;
 	case	SETNPCDATAHITSFX: FFScript::setNPCData_hitsfx(); break;
+	case	SETNPCDATATILE: FFScript::setNPCData_tile(); break;
+	case	SETNPCDATAEHEIGHT: FFScript::setNPCData_e_height(); break;
+	
+	
+	
+	
 
 		
 //	case	SETNPCDATASCRIPTDEF  : FFScript::setNPCData_scriptdefence(); break;
@@ -10528,7 +10536,8 @@ void FFScript::do_changeffcscript(const bool v){
 		set_register(sarg1, (guysbuf[ID].member&flag) ? 10000 : 0); \
 }
 
-
+void FFScript::getNPCData_tile(){ GET_NPCDATA_VAR_INT(tile); } //word
+void FFScript::getNPCData_e_height(){ GET_NPCDATA_VAR_INT(e_height); } 
 void FFScript::getNPCData_flags(){ GET_NPCDATA_VAR_INT(flags); } //word
 void FFScript::getNPCData_flags2(){ GET_NPCDATA_VAR_INT(flags2); } 
 void FFScript::getNPCData_width(){ GET_NPCDATA_VAR_INT(width); } 
@@ -10692,10 +10701,12 @@ void do_getdmapintro(const bool v)
 		else guysbuf[ID].member|= ~flag; \
 	}\
 }
-//MISSING tile, e_height
+
 void FFScript::setNPCData_flags(){SET_NPCDATA_VAR_INT(flags,ZS_DWORD);} //word
 void FFScript::setNPCData_flags2(){SET_NPCDATA_VAR_INT(flags2,ZS_DWORD);}
 void FFScript::setNPCData_width(){SET_NPCDATA_VAR_INT(width,ZS_BYTE);}
+void FFScript::setNPCData_tile(){SET_NPCDATA_VAR_INT(tile,ZS_WORD);}
+void FFScript::setNPCData_e_height(){SET_NPCDATA_VAR_INT(e_height,ZS_BYTE);}
 void FFScript::setNPCData_height(){SET_NPCDATA_VAR_INT(height,ZS_BYTE);}
 void FFScript::setNPCData_s_tile(){SET_NPCDATA_VAR_INT(s_tile,ZS_WORD);}
 void FFScript::setNPCData_s_width(){SET_NPCDATA_VAR_INT(s_width,ZS_BYTE);}

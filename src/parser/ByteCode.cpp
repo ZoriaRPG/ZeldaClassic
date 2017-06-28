@@ -2308,6 +2308,16 @@ string OChangeFFCScriptRegister::toString()
 
 
 //NPCData
+
+string ONDataBaseTile::toString()
+{
+    return "GETNPCDATATILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataEHeight::toString()
+{
+    return "GETNPCDATAEHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
 string ONDataFlags::toString()
 {
     return "GETNPCDATAFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
@@ -2485,6 +2495,16 @@ string ONDatattributes::toString()
 {
     return "GETNPCDATAATTRIBUTE " + getArgument()->toString();
 }
+
+string ONDataSetBaseTile::toString()
+{
+    return "SETNPCDATATILE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+string ONDataSetEHeight::toString()
+{
+    return "SETNPCDATAEHEIGHT " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
+}
+
 string ONDataSetFlags::toString()
 {
     return "SETNPCDATAFLAGS " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();

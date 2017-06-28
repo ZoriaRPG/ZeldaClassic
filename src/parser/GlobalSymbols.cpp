@@ -6402,6 +6402,8 @@ static AccessorTable NPCDataTable[] =
     //name,                     rettype,                        setorget,     var,              numindex,      params
    
 	//one inout, no return
+	{ "GetTile",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "GetEHeight",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "GetFlags",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "GetFlags2",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "GetWidth",              ZVARTYPEID_FLOAT,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
@@ -6450,6 +6452,8 @@ static AccessorTable NPCDataTable[] =
 
 
 	//two inputs, no return
+	{ "SetTile",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SetEHeight",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "SetFlags",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "SetFlags2",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
 	{ "SetWidth",              ZVARTYPEID_VOID,         FUNCTION,     0,                    1,      {  ZVARTYPEID_NPCDATA,          ZVARTYPEID_FLOAT,        ZVARTYPEID_FLOAT,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
@@ -6516,7 +6520,43 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
     map<int, vector<Opcode *> > rval;
     int id=-1;
 	
-	//int GetScriptDefense(screen, int, int)
+	//GetTile(NPCData, int)
+    {
+        int id = functions["GetTile"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new ONDataBaseTile(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //GetEHeight(NPCData, int)
+     {
+        int id = functions["GetEHeight"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new ONDataEHeight(new VarArgument(EXP1),new VarArgument(EXP2)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+	
+
+	//int GetScriptDefense((NPCData, int, int)
     {
         int id = functions["GetScriptDefense"];
         int label = lt.functionToLabel(id);
@@ -6533,7 +6573,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //int GetDefense(screen, int, int)
+    //int GetDefense(NPCData, int, int)
     {
         int id = functions["GetDefense"];
         int label = lt.functionToLabel(id);
@@ -6550,7 +6590,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //int GetSizeFlag(screen, int, int)
+    //int GetSizeFlag(NPCData, int, int)
     {
         int id = functions["GetSizeFlag"];
         int label = lt.functionToLabel(id);
@@ -6567,7 +6607,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //int GetAttribute(screen, int, int)
+    //int GetAttribute(NPCData, int, int)
     {
         int id = functions["GetAttribute"];
         int label = lt.functionToLabel(id);
@@ -6588,7 +6628,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
     
       //three inputs, no return
     
-      //void SetScriptDefense(game, int,int,int)
+      //void SetScriptDefense(NPCData, int,int,int)
     {
         int id = functions["SetScriptDefense"];
         int label = lt.functionToLabel(id);
@@ -6608,7 +6648,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
     }
       //three inputs, no return
     
-      //void SetDefense(game, int,int,int)
+      //void SetDefense(NPCData, int,int,int)
     {
         int id = functions["SetDefense"];
         int label = lt.functionToLabel(id);
@@ -6628,7 +6668,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
     }
       //three inputs, no return
     
-      //void SetSizeFlag(game, int,int,int)
+      //void SetSizeFlag(NPCData, int,int,int)
     {
         int id = functions["SetSizeFlag"];
         int label = lt.functionToLabel(id);
@@ -6648,7 +6688,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
     }
       //three inputs, no return
     
-      //void SetAttribute(game, int,int,int)
+      //void SetAttribute(NPCData, int,int,int)
     {
         int id = functions["SetAttribute"];
         int label = lt.functionToLabel(id);
@@ -6666,7 +6706,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-	//GetFlags(game, int, int)
+	//GetFlags(NPCData, int)
     {
         int id = functions["GetFlags"];
         int label = lt.functionToLabel(id);
@@ -6683,7 +6723,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetFlags2(game, int, int)
+    //GetFlags2(NPCData, int)
     {
         int id = functions["GetFlags2"];
         int label = lt.functionToLabel(id);
@@ -6717,7 +6757,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHeight(game, int, int)
+    //GetHeight(NPCData, int)
     {
         int id = functions["GetHeight"];
         int label = lt.functionToLabel(id);
@@ -6734,7 +6774,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetSTile(game, int, int)
+    //GetSTile(NPCData, int)
     {
         int id = functions["GetSTile"];
         int label = lt.functionToLabel(id);
@@ -6751,7 +6791,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetSWidth(game, int, int)
+    //GetSWidth(NPCData, int)
     {
         int id = functions["GetSWidth"];
         int label = lt.functionToLabel(id);
@@ -6768,7 +6808,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetSHeight(game, int, int)
+    //GetSHeight(NPCData, int)
     {
         int id = functions["GetSHeight"];
         int label = lt.functionToLabel(id);
@@ -6785,7 +6825,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetETile(game, int, int)
+    //GetETile(NPCData, int)
     {
         int id = functions["GetETile"];
         int label = lt.functionToLabel(id);
@@ -6802,7 +6842,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetEWidth(game, int, int)
+    //GetEWidth(NPCData, int)
     {
         int id = functions["GetEWidth"];
         int label = lt.functionToLabel(id);
@@ -6819,7 +6859,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHP(game, int, int)
+    //GetHP(NPCData, int)
     {
         int id = functions["GetHP"];
         int label = lt.functionToLabel(id);
@@ -6836,7 +6876,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetFamily(game, int, int)
+    //GetFamily(NPCData, int)
     {
         int id = functions["GetFamily"];
         int label = lt.functionToLabel(id);
@@ -6853,7 +6893,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetCSet(game, int, int)
+    //GetCSet(NPCData, int)
     {
         int id = functions["GetCSet"];
         int label = lt.functionToLabel(id);
@@ -6870,7 +6910,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDMapIntro(game, int, int)
+    //SetDMapIntro(NPCData, int)
     {
         int id = functions["GetAnim"];
         int label = lt.functionToLabel(id);
@@ -6887,7 +6927,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetEAnim(game, int, int)
+    //GetEAnim(NPCData, int)
     {
         int id = functions["GetEAnim"];
         int label = lt.functionToLabel(id);
@@ -6904,7 +6944,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetFramerate(game, int, int)
+    //GetFramerate(NPCData, int)
     {
         int id = functions["GetFramerate"];
         int label = lt.functionToLabel(id);
@@ -6921,7 +6961,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetEFramerate(game, int, int)
+    //GetEFramerate(NPCData, int)
     {
         int id = functions["GetEFramerate"];
         int label = lt.functionToLabel(id);
@@ -6938,7 +6978,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetTouchDamage(game, int, int)
+    //GetTouchDamage(NPCData,, int)
     {
         int id = functions["GetTouchDamage"];
         int label = lt.functionToLabel(id);
@@ -6955,7 +6995,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetWeaponDamage(game, int, int)
+    //GetWeaponDamage(NPCData, int)
     {
         int id = functions["GetWeaponDamage"];
         int label = lt.functionToLabel(id);
@@ -6972,7 +7012,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetWeapon(game, int, int)
+    //GetWeapon(NPCData, int)
     {
         int id = functions["GetWeapon"];
         int label = lt.functionToLabel(id);
@@ -6989,7 +7029,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetRandom(game, int, int)
+    //GetRandom(NPCData, int)
     {
         int id = functions["GetRandom"];
         int label = lt.functionToLabel(id);
@@ -7006,7 +7046,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHaltRate(game, int, int)
+    //GetHaltRate(NPCData, int)
     {
         int id = functions["GetHaltRate"];
         int label = lt.functionToLabel(id);
@@ -7023,7 +7063,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetStep(game, int, int)
+    //GetStep(NPCData, int)
     {
         int id = functions["GetStep"];
         int label = lt.functionToLabel(id);
@@ -7040,7 +7080,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHoming(game, int, int)
+    //GetHoming(NPCData, int)
     {
         int id = functions["GetHoming"];
         int label = lt.functionToLabel(id);
@@ -7057,7 +7097,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHunger(game, int, int)
+    //GetHunger(NPCData, int)
     {
         int id = functions["GetHunger"];
         int label = lt.functionToLabel(id);
@@ -7074,7 +7114,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetDropset(game, int, int)
+    //GetDropset(NPCData, int)
     {
         int id = functions["GetDropset"];
         int label = lt.functionToLabel(id);
@@ -7091,7 +7131,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetBGSFX(game, int, int)
+    //GetBGSFX(NPCData, int)
     {
         int id = functions["GetBGSFX"];
         int label = lt.functionToLabel(id);
@@ -7108,7 +7148,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitSFX(game, int, int)
+    //GetHitSFX(NPCData, int)
     {
         int id = functions["GetHitSFX"];
         int label = lt.functionToLabel(id);
@@ -7125,7 +7165,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetDeathSFX(game, int, int)
+    //GetDeathSFX(NPCData, int)
     {
         int id = functions["GetDeathSFX"];
         int label = lt.functionToLabel(id);
@@ -7142,7 +7182,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetDrawXOffset(game, int, int)
+    //GetDrawXOffset(NPCData, int)
     {
         int id = functions["GetDrawXOffset"];
         int label = lt.functionToLabel(id);
@@ -7159,7 +7199,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetDrawYOffset(game, int, int)
+    //GetDrawYOffset(NPCData, int)
     {
         int id = functions["GetDrawYOffset"];
         int label = lt.functionToLabel(id);
@@ -7176,7 +7216,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetDrawZOffset(game, int, int)
+    //GetDrawZOffset(NPCData,int)
     {
         int id = functions["GetDrawZOffset"];
         int label = lt.functionToLabel(id);
@@ -7193,7 +7233,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitXOffset(game, int, int)
+    //GetHitXOffset(NPCData, int)
     {
         int id = functions["GetHitXOffset"];
         int label = lt.functionToLabel(id);
@@ -7210,7 +7250,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitYOffset(game, int, int)
+    //GetHitYOffset(NPCData, int)
     {
         int id = functions["GetHitYOffset"];
         int label = lt.functionToLabel(id);
@@ -7227,7 +7267,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitWidth(game, int, int)
+    //GetHitWidth(NPCData, int)
     {
         int id = functions["GetHitWidth"];
         int label = lt.functionToLabel(id);
@@ -7244,7 +7284,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitHeight(game, int, int)
+    //GetHitHeight(NPCData, int)
     {
         int id = functions["GetHitHeight"];
         int label = lt.functionToLabel(id);
@@ -7261,7 +7301,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetHitZHeight(game, int, int)
+    //GetHitZHeight(NPCData, int)
     {
         int id = functions["GetHitZHeight"];
         int label = lt.functionToLabel(id);
@@ -7278,7 +7318,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetTileWidth(game, int, int)
+    //GetTileWidth(NPCData, int)
     {
         int id = functions["GetTileWidth"];
         int label = lt.functionToLabel(id);
@@ -7295,7 +7335,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetTileHeight(game, int, int)
+    //GetTileHeight(NPCData, int)
     {
         int id = functions["GetTileHeight"];
         int label = lt.functionToLabel(id);
@@ -7312,7 +7352,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //GetWeaponSprite(game, int, int)
+    //GetWeaponSprite(NPCData, int)
     {
         int id = functions["GetWeaponSprite"];
         int label = lt.functionToLabel(id);
@@ -7329,7 +7369,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-	//SetFlags(game, int, int)
+	//SetFlags(NPCData, int, int)
     {
         int id = functions["SetFlags"];
         int label = lt.functionToLabel(id);
@@ -7346,7 +7386,41 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetFlags2(game, int, int)
+     //SetTile(NPCData, int, int)
+    {
+        int id = functions["SetTile"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new ONDataSetBaseTile(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+     //SetEHeight(NPCData, int, int)
+    {
+        int id = functions["SetEHeight"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(SFTEMP)));
+        code.push_back(new ONDataSetEHeight(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    //SetFlags2(NPCData, int, int)
     {
         int id = functions["SetFlags2"];
         int label = lt.functionToLabel(id);
@@ -7363,7 +7437,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetWidth(game, int, int)
+    //SetWidth(NPCData, int, int)
     {
         int id = functions["SetWidth"];
         int label = lt.functionToLabel(id);
@@ -7380,7 +7454,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHeight(game, int, int)
+    //SetHeight(NPCData, int, int)
     {
         int id = functions["SetHeight"];
         int label = lt.functionToLabel(id);
@@ -7397,7 +7471,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetSTile(game, int, int)
+    //SetSTile(NPCData, int, int)
     {
         int id = functions["SetSTile"];
         int label = lt.functionToLabel(id);
@@ -7414,7 +7488,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetSWidth(game, int, int)
+    //SetSWidth(NPCData, int, int)
     {
         int id = functions["SetSWidth"];
         int label = lt.functionToLabel(id);
@@ -7431,7 +7505,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetSHeight(game, int, int)
+    //SetSHeight(NPCData, int, int)
     {
         int id = functions["SetSHeight"];
         int label = lt.functionToLabel(id);
@@ -7448,7 +7522,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetETile(game, int, int)
+    //SetETile(NPCData, int, int)
     {
         int id = functions["SetETile"];
         int label = lt.functionToLabel(id);
@@ -7465,7 +7539,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetEWidth(game, int, int)
+    //SetEWidth(NPCData, int, int)
     {
         int id = functions["SetEWidth"];
         int label = lt.functionToLabel(id);
@@ -7482,7 +7556,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHP(game, int, int)
+    //SetHP(NPCData, int, int)
     {
         int id = functions["SetHP"];
         int label = lt.functionToLabel(id);
@@ -7499,7 +7573,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetFamily(game, int, int)
+    //SetFamily(NPCData, int, int)
     {
         int id = functions["SetFamily"];
         int label = lt.functionToLabel(id);
@@ -7516,7 +7590,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetCSet(game, int, int)
+    //SetCSet(NPCData, int, int)
     {
         int id = functions["SetCSet"];
         int label = lt.functionToLabel(id);
@@ -7533,7 +7607,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDMapIntro(game, int, int)
+    //SetDMapIntro(NPCData, int, int)
     {
         int id = functions["SetAnim"];
         int label = lt.functionToLabel(id);
@@ -7550,7 +7624,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetEAnim(game, int, int)
+    //SetEAnim(NPCData, int, int)
     {
         int id = functions["SetEAnim"];
         int label = lt.functionToLabel(id);
@@ -7567,7 +7641,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetFramerate(game, int, int)
+    //SetFramerate(NPCData, int, int)
     {
         int id = functions["SetFramerate"];
         int label = lt.functionToLabel(id);
@@ -7584,7 +7658,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetEFramerate(game, int, int)
+    //SetEFramerate(NPCData, int, int)
     {
         int id = functions["SetEFramerate"];
         int label = lt.functionToLabel(id);
@@ -7601,7 +7675,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetTouchDamage(game, int, int)
+    //SetTouchDamage(NPCData, int, int)
     {
         int id = functions["SetTouchDamage"];
         int label = lt.functionToLabel(id);
@@ -7618,7 +7692,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetWeaponDamage(game, int, int)
+    //SetWeaponDamage(NPCData, int, int)
     {
         int id = functions["SetWeaponDamage"];
         int label = lt.functionToLabel(id);
@@ -7635,7 +7709,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetWeapon(game, int, int)
+    //SetWeapon(NPCData, int, int)
     {
         int id = functions["SetWeapon"];
         int label = lt.functionToLabel(id);
@@ -7652,7 +7726,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetRandom(game, int, int)
+    //SetRandom(NPCData, int, int)
     {
         int id = functions["SetRandom"];
         int label = lt.functionToLabel(id);
@@ -7669,7 +7743,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHaltRate(game, int, int)
+    //SetHaltRate(NPCData, int, int)
     {
         int id = functions["SetHaltRate"];
         int label = lt.functionToLabel(id);
@@ -7686,7 +7760,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetStep(game, int, int)
+    //SetStep(NPCData, int, int)
     {
         int id = functions["SetStep"];
         int label = lt.functionToLabel(id);
@@ -7703,7 +7777,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHoming(game, int, int)
+    //SetHoming(NPCData, int, int)
     {
         int id = functions["SetHoming"];
         int label = lt.functionToLabel(id);
@@ -7720,7 +7794,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHunger(game, int, int)
+    //SetHunger(NPCData, int, int)
     {
         int id = functions["SetHunger"];
         int label = lt.functionToLabel(id);
@@ -7737,7 +7811,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDropset(game, int, int)
+    //SetDropset(NPCData, int, int)
     {
         int id = functions["SetDropset"];
         int label = lt.functionToLabel(id);
@@ -7754,7 +7828,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetBGSFX(game, int, int)
+    //SetBGSFX(NPCData, int, int)
     {
         int id = functions["SetBGSFX"];
         int label = lt.functionToLabel(id);
@@ -7771,7 +7845,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitSFX(game, int, int)
+    //SetHitSFX(NPCData, int, int)
     {
         int id = functions["SetHitSFX"];
         int label = lt.functionToLabel(id);
@@ -7788,7 +7862,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDeathSFX(game, int, int)
+    //SetDeathSFX(NPCData, int, int)
     {
         int id = functions["SetDeathSFX"];
         int label = lt.functionToLabel(id);
@@ -7805,7 +7879,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDrawXOffset(game, int, int)
+    //SetDrawXOffset(NPCData, int, int)
     {
         int id = functions["SetDrawXOffset"];
         int label = lt.functionToLabel(id);
@@ -7822,7 +7896,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDrawYOffset(game, int, int)
+    //SetDrawYOffset(NPCData, int, int)
     {
         int id = functions["SetDrawYOffset"];
         int label = lt.functionToLabel(id);
@@ -7839,7 +7913,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetDrawZOffset(game, int, int)
+    //SetDrawZOffset(NPCData, int, int)
     {
         int id = functions["SetDrawZOffset"];
         int label = lt.functionToLabel(id);
@@ -7856,7 +7930,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitXOffset(game, int, int)
+    //SetHitXOffset(NPCData, int, int)
     {
         int id = functions["SetHitXOffset"];
         int label = lt.functionToLabel(id);
@@ -7873,7 +7947,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitYOffset(game, int, int)
+    //SetHitYOffset(NPCData, int, int)
     {
         int id = functions["SetHitYOffset"];
         int label = lt.functionToLabel(id);
@@ -7890,7 +7964,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitWidth(game, int, int)
+    //SetHitWidth(NPCData, int, int)
     {
         int id = functions["SetHitWidth"];
         int label = lt.functionToLabel(id);
@@ -7907,7 +7981,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitHeight(game, int, int)
+    //SetHitHeight(NPCData, int, int)
     {
         int id = functions["SetHitHeight"];
         int label = lt.functionToLabel(id);
@@ -7924,7 +7998,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetHitZHeight(game, int, int)
+    //SetHitZHeight(NPCData, int, int)
     {
         int id = functions["SetHitZHeight"];
         int label = lt.functionToLabel(id);
@@ -7941,7 +8015,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetTileWidth(game, int, int)
+    //SetTileWidth(NPCData, int, int)
     {
         int id = functions["SetTileWidth"];
         int label = lt.functionToLabel(id);
@@ -7958,7 +8032,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetTileHeight(game, int, int)
+    //SetTileHeight(NPCData, int, int)
     {
         int id = functions["SetTileHeight"];
         int label = lt.functionToLabel(id);
@@ -7975,7 +8049,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-    //SetWeaponSprite(game, int, int)
+    //SetWeaponSprite(NPCData, int, int)
     {
         int id = functions["SetWeaponSprite"];
         int label = lt.functionToLabel(id);
@@ -7992,21 +8066,7 @@ map<int, vector<Opcode *> > NPCDataSymbols::addSymbolsCode(LinkTable &lt)
         code.push_back(new OGotoRegister(new VarArgument(EXP2)));
         rval[label] = code;
     }
-	//bool isValid(eweapon)
-    {
-        id = functions["isValid"];
-        int label = lt.functionToLabel(id);
-        vector<Opcode *> code;
-        //pop off the pointer
-        Opcode *first = new OPopRegister(new VarArgument(EXP1));
-        first->setLabel(label);
-        code.push_back(first);
-        //Check validity
-        code.push_back(new OIsValidEWpn(new VarArgument(EXP1)));
-        code.push_back(new OPopRegister(new VarArgument(EXP2)));
-        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
-        rval[label] = code;
-    }
+	
     
     return rval;
 }

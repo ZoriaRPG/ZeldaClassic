@@ -3158,6 +3158,30 @@ public:
     }
 };
 
+
+
+class ONDataBaseTile : public BinaryOpcode
+{
+public:
+    ONDataBaseTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataBaseTile(a->clone(), b->clone());
+    }
+};
+
+class ONDataEHeight : public BinaryOpcode
+{
+public:
+    ONDataEHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataEHeight(a->clone(), b->clone());
+    }
+};
+
 //one input, no return
 class ONDataFlags : public BinaryOpcode
 {
@@ -3637,6 +3661,26 @@ public:
     }
 };
 
+class ONDataSetBaseTile : public BinaryOpcode
+{
+public:
+    ONDataSetBaseTile(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetBaseTile(a->clone(), b->clone());
+    }
+};
+class ONDataSetEHeight : public BinaryOpcode
+{
+public:
+    ONDataSetEHeight(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new ONDataSetEHeight(a->clone(), b->clone());
+    }
+};
 
 class ONDataSetFlags : public BinaryOpcode
 {
