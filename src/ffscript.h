@@ -7,6 +7,15 @@
 #include "zelda.h"
 
 
+#define ZS_BYTE 255
+#define ZS_CHAR 255
+#define ZS_WORD 65535
+#define ZS_SHORT 32767
+#define ZS_LONG 214747
+#define ZS_INT 214747
+#define ZS_FIX 214748
+#define ZS_DWORD 65535
+	
 class FFScript
 {
 private:
@@ -39,6 +48,35 @@ public:
     virtual ~FFScript();
     virtual int getrule(int rule);   
     virtual void setrule(int rule, bool state); 
+	
+	
+
+
+	static INLINE int ZSbound_byte(int val)
+	{
+		return vbound(val,0,ZS_BYTE);
+	}
+	static INLINE int ZSbound_char(int val)
+	{
+		return vbound(val,0,ZS_CHAR);
+	}
+	static INLINE int ZSbound_word(int val)
+	{
+		return vbound(val,0,ZS_WORD);
+	}
+	static INLINE int ZSbound_short(int val)
+	{
+		return vbound(val,0,ZS_SHORT);
+	}
+	static INLINE int ZSbound_long(int val)
+	{
+		return vbound(val,0,ZS_LONG);
+	}
+	static INLINE int ZSbound_fix(int val)
+	{
+		return vbound(val,0,ZS_FIX);
+	}
+	
 static void set_screenwarpReturnY(mapscr *m, int d, int value);
 static void set_screendoor(mapscr *m, int d, int value);
 static void set_screenenemy(mapscr *m, int index, int value);
