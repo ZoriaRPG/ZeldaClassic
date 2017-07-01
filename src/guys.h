@@ -62,7 +62,6 @@ public:
     guydata *d;
     // Approximately all of these variables are accessed by either ffscript.cpp or inherited classes
     int o_tile, frate, hp, hclk, clk3, stunclk, timer, fading, superman, mainguy, did_armos;
-//2.54 int script_tile; //An override for the current npc tile. In the future, read tro see if this is not -1 before drawing. -Z
     byte movestatus, item_set, grumble, posframe;
     bool itemguy, count_enemy, dying, ceiling, leader, scored, script_spawned;
     fix  step, floor_y;
@@ -78,7 +77,7 @@ public:
     fix dstep;
     long dmisc1, dmisc2, dmisc3, dmisc4, dmisc5, dmisc6, dmisc7, dmisc8, dmisc9, dmisc10, dmisc11, dmisc12, dmisc13, dmisc14, dmisc15;
     short bgsfx, bosspal;
-    byte defense[edefLAST255]; //Will be changing the size of this. 
+    byte defense[edefLAST];
     byte hitsfx,deadsfx;
     
     fix  getX();
@@ -111,9 +110,7 @@ public:
     {
         return false;
     }
-    int wpnsprite; //wpnsprite is new for 2.6 -Z
-    int SIZEflags; //Flags for size panel offsets. The user must enable these to override defaults. 
-
+    
 protected:
     int  clk2,sclk;
     int  starting_hp;
@@ -131,11 +128,7 @@ protected:
     virtual bool hitshield(int wpnx, int wpny, int xdir);
     virtual int defend(int wpnId, int *power, int edef);
     bool candamage(int power, int edef);
-	//Weapon Editor Nonsense -Z
-	int resolveEnemyDefence(weapon *w);
-	int getWeaponID(weapon *w);
-	int weaponToDefence(int wid);
-    int defenditemclass(int wpnId, int *power, weapon *w);
+    int defenditemclass(int wpnId, int *power);
     
     bool dont_draw();
     // base drawing function to be used by all derived classes instead of

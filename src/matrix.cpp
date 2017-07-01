@@ -11,7 +11,6 @@
 #include "precompiled.h" //always first
 
 #include "matrix.h"
-#include "backend/AllBackends.h"
 
 // external FONTs
 extern FONT *deffont, *mfont;
@@ -32,22 +31,22 @@ extern FONT *deffont, *mfont;
 
 typedef unsigned char byte;
 
-typedef struct zcMatrixTRACER
+typedef struct TRACER
 {
     byte x, y;
     byte speed;
     byte cnt;
-} zcMatrixTRACER;
+} TRACER;
 
-typedef struct zcMatrixCOLUMN
+typedef struct COLUMN
 {
     short speed, cnt;
-} zcMatrixCOLUMN;
+} COLUMN;
 
 static BITMAP *linebmp = NULL;
-static zcMatrixTRACER tracer[MAX_TRACERS];
-static zcMatrixTRACER eraser[MAX_TRACERS];
-static zcMatrixCOLUMN column[MAX_COLS];
+static TRACER tracer[MAX_TRACERS];
+static TRACER eraser[MAX_TRACERS];
+static COLUMN column[MAX_COLS];
 static byte   activecol[MAX_COLS];
 static int cols, rows, maxtracers, _speed, _density;
 
@@ -60,6 +59,9 @@ static void UpdateColumns();
 static void DrawLetter(int x, int y, int color);
 static void DrawEraser(int x, int y, int type);
 
+extern void throttleFPS();
+
+
 void Matrix(int speed, int density, int mousedelay)
 {
     // speed 0-6, density 0-6
@@ -71,8 +73,7 @@ void Matrix(int speed, int density, int mousedelay)
     for(;;)
     {
         //vsync();
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
+		throttleFPS();
 
         AddTracer();
         AddEraser(-1);
@@ -113,10 +114,10 @@ static void InitMatrix()
     RGB c_mgrn = {0,170,0,0};
     RGB c_dgrn = {0,85,0,0};
     
-    Backend::palette->setPaletteEntry(BLACK, c_blck);
-    Backend::palette->setPaletteEntry(LIGHT_GREEN, c_lgrn);
-    Backend::palette->setPaletteEntry(MED_GREEN, c_mgrn);
-    Backend::palette->setPaletteEntry(DARK_GREEN, c_dgrn);
+    set_color(BLACK, &c_blck);
+    set_color(LIGHT_GREEN, &c_lgrn);
+    set_color(MED_GREEN, &c_mgrn);
+    set_color(DARK_GREEN, &c_dgrn);
     
     cols = zc_max(zc_min(SCREEN_W / 8, MAX_COLS), 1);
     rows = zc_max(zc_min(SCREEN_H / 8, MAX_COLS), 1);

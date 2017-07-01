@@ -28,9 +28,8 @@
 #include "pal.h"
 #include "link.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
-extern LinkClass *Link;
+extern LinkClass Link;
 extern zinitdata zinit;
 extern int directWpn;
 
@@ -181,69 +180,34 @@ int weapon::seekEnemy2(int j)
 }
 
 weapon::weapon(weapon const & other):
-
-    //Struct Element			Type		Purpose
     sprite(other),
-    power(other.power), 		//int
-    type(other.type), 			//int
-    dead(other.dead),			//int
-    clk2(other.clk2),			//int
-    misc2(other.misc2),			//int
-    ignorecombo(other.ignorecombo),	//int
-    isLit(other.isLit),			//bool		Does it light the screen?
-    parentid(other.parentid),		//int		Enemy that created it. -1 for none. This is the Enemy POINTER, not the Enemy ID. 
-    parentitem(other.parentitem),	//int		Item that created it. -1 for none. 
-    dragging(other.dragging),		//int draggong		?
-    step(other.step),			//fix		Speed of movement
-    bounce(other.bounce),		//bool		Boomerang, or hookshot bounce. 
-    ignoreLink(other.ignoreLink),	//bool		?
-    flash(other.flash),			//word		Is it flashing?
-    wid(other.wid),			//word		ID
-    aframe(other.aframe),		//word		Anim frame
-    csclk(other.csclk),			//word		CSet flash clk (?)
-    o_tile(other.o_tile),		//int		The base item tile
-    o_cset(other.o_cset),		//int		The CSet		
-    o_speed(other.o_speed),		//int		Original anim (?) speed.
-    o_type(other.o_type),		//int		The weapon ID (type)
-    frames(other.frames),		//int		Frames of the anim cycle
-    o_flip(other.o_flip),		//int		The original flip/orientationn
-    temp1(other.temp1),			//int		Misc var.
-    behind(other.behind),		//bool		Should it be drawn behind Link, NPC, and other sprites?
-    minX(other.minX),			//int		How close can the weapon get tot he edge of the screen
-    maxX(other.maxX),			//int		...before being deleted or bouncing
-    minY(other.minY),			//int		...
-    maxY(other.maxY),			//int		...
-	
-    //! Dimentio Wand
-    /*
-    //!Dimentio: These 5 exist both here and in the header file. If you remove these, don't forget to
-    remove them over there as well.
-    */
-    count1(other.count1), 		//int		Dimentio Wand 
-    count2(other.count2), 		//int		Dimentio Wand 
-    count3(other.count3), 		//int		Dimentio Wand
-    count4(other.count4), 		//int		Dimentio Wand
-    count5(other.count5), 		//int		Dimentio Wand
-	
-    //Weapon Editor -Z
-    useweapon(other.useweapon),		//byte		The weapon editor weapon type.
-    usedefence(other.usedefence),	//byte		The defence type to evaluate in do_enemy_hit()
-    weaprange(other.weaprange),		//int		The range or distance of the weapon before removing it. 
-    weapduration(other.weapduration),	//int		The number of frames that must elapse before removing it
-    weaponscript(other.weaponscript),	//word		The weapon action script. 
-    tilemod(other.tilemod),		//long		The LTM to use when the weapon is active. 
-    drawlayer(other.drawlayer),		//byte		The layer onto which we draw the weapon.
-    family_class(other.family_class),	//byte		Item Class
-    family_level(other.family_level),	//byte		Item Level
-    flags(other.flags),			//word		A misc flagset. 
-    collectflags(other.collectflags)	//long		A flagset that determines of the weapon can collect an item.
-    
-	
-	//End Weapon editor non-arrays. 
+    power(other.power),
+    type(other.type),
+    dead(other.dead),
+    clk2(other.clk2),
+    misc2(other.misc2),
+    ignorecombo(other.ignorecombo),
+    isLit(other.isLit),
+    parentid(other.parentid),
+    parentitem(other.parentitem),
+    dragging(other.dragging),
+    step(other.step),
+    bounce(other.bounce),
+    ignoreLink(other.ignoreLink),
+    flash(other.flash),
+    wid(other.wid),
+    aframe(other.aframe),
+    csclk(other.csclk),
+    o_tile(other.o_tile),
+    o_cset(other.o_cset),
+    o_speed(other.o_speed),
+    o_type(other.o_type),
+    frames(other.frames),
+    o_flip(other.o_flip),
+    temp1(other.temp1),
+    behind(other.behind)
 
-     
 {
-	//weapname = other.weapname;		//char[128]	The name of the weapon. 
     for(int i=0; i<10; ++i)
     {
         dummy_int[i]=other.dummy_int[i];
@@ -251,32 +215,6 @@ weapon::weapon(weapon const & other):
         dummy_float[i]=other.dummy_float[i];
         dummy_bool[i]=other.dummy_bool[i];
     }
-    
-    //Weapon Editor Arrays
-    for ( int q = 0; q < ITEM_MOVEMENT_PATTERNS; q++ ) 
-    {
-	weap_pattern[q] = other.weap_pattern[q];	//int	The movement pattern and args.
-    }
-    for ( int q = 0; q < WEAPON_CLOCKS; q++ ) 
-    {
-	clocks[q] = other.clocks[q];		//long	An array of misc clocks. 
-    }
-    for ( int q = 0; q < INITIAL_A; q++ )
-    {
-	initiala[q] = other.initiala[q];		//byte	InitA[]
-    }
-    for ( int q = 0; q < INITIAL_D; q++ ) 
-    {
-	initiald[q] = other.initiald[q];		//long	InitD[]
-    }
-    for ( int q = 0; q < FFSCRIPT_MISC; q++ ) 
-    {
-	ffmisc[q] = other.ffmisc[q];		//long -The base wpn->Misc[32] set from the editor
-    }
-    
-   
-    
-	//! END Weapon Editor
     
     /*for (int i=0; i<8; ++i)
     {
@@ -286,11 +224,6 @@ weapon::weapon(weapon const & other):
     {
       a[i]=other.a[i];
     }*/
-    
-    //Enemy Editor Weapon Sprite
-    wpnsprite = other.wpnsprite;
-    //if ( parentid > 0 ) wpnsprite = guysbuf[parentid].wpnsprite;
-    //else wpnsprite  = -1;
 }
 
 // Let's dispose of some sound effects!
@@ -334,7 +267,7 @@ weapon::~weapon()
     switch(id)
     {
     case wWind:
-        Backend::sfx->stop(WAV_ZN1WHIRLWIND);
+        stop_sfx(WAV_ZN1WHIRLWIND);
         break;
         
     case ewBrang:
@@ -345,7 +278,7 @@ weapon::~weapon()
     case wCByrna:
         if(parentitem>=0)
         {
-            Backend::sfx->stop(itemsbuf[parentitem].usesound);
+            stop_sfx(itemsbuf[parentitem].usesound);
         }
         
         break;
@@ -354,73 +287,14 @@ weapon::~weapon()
     case wFSparkle:
         if(parentitem>=0 && itemsbuf[parentitem].family==itype_cbyrna)
         {
-            Backend::sfx->stop(itemsbuf[parentitem].usesound);
+            stop_sfx(itemsbuf[parentitem].usesound);
         }
         
         break;
     }
 }
 
-// This should be done elsewhere
-void setScreenLimits(weapon& w)
-{
-	bool isDgn = isdungeon() != 0;
-	int border = get_bit(quest_rules, qr_NOBORDER) ? 16 : 0;
-
-	if (w.id>wEnemyWeapons && w.id != ewBrang)
-	{
-		w.minY = isDgn ? 32 : (16 - border);
-		w.maxY = isDgn ? 128 : (144 + border);
-		w.minX = isDgn ? 32 : (16 - border);
-		w.maxX = isDgn ? 208 : (224 + border);
-	}
-	else if (w.id == wHookshot || w.id == wHSChain)
-	{
-		w.minY = isDgn ? 8 : 0;
-		w.maxY = isDgn ? 152 : 160;
-		w.minX = isDgn ? 8 : 0;
-		w.maxX = isDgn ? 248 : 256;
-	}
-	else
-	{
-		w.minY = isDgn ? 18 : 2;
-		w.maxY = isDgn ? 144 : 160;
-		w.minX = isDgn ? 20 : 4;
-		w.maxX = isDgn ? 220 : 236;
-	}
-
-	if (w.id == wSSparkle || w.id == wFSparkle)
-	{
-		w.minY = 0;
-		w.maxY = 176;
-		w.minX = 0;
-		w.maxX = 256;
-	}
-	else if (w.id == ewFlame)
-	{
-		w.minY = isDgn ? 32 : (16 - border);
-		w.maxY = isDgn ? 128 : (144 + border);
-		w.minX = isDgn ? 32 : (16 - border);
-		w.maxX = isDgn ? 208 : (224 + border);
-	}
-	else if (w.id == ewFireTrail)
-	{
-		w.minY = isDgn ? 32 : (16 - border);
-		w.maxY = isDgn ? 128 : (144 + border);
-		w.minX = isDgn ? 32 : (16 - border);
-		w.maxX = isDgn ? 208 : (224 + border);
-	}
-
-	else if (w.id == ewWind)
-	{
-		w.minY = isDgn ? 32 : (16 - border);
-		w.maxY = isDgn ? 128 : (144 + border);
-		w.minX = isDgn ? 32 : (16 - border);
-		w.maxX = isDgn ? 208 : (224 + border);
-	}
-}
-
-weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem, int prntid, bool isDummy) : sprite(*pool), parentid(prntid)
+weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem, int prntid, bool isDummy) : sprite(), parentid(prntid)
 {
     x=X;
     y=Y;
@@ -442,58 +316,6 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
     hysz=15;
     hzsz=8;
     isLit = false;
-	setScreenLimits(*this);
-	
-	//2.6 ZScript
-    
-    //We might need to clear scriptrange. -Z
-    scriptrange = -1; //we'll try -1 so that 0 does not interfere.
-    //Pewrhaps check the weapon editor properties, and see if it has a range; only for weapons
-    //that use misc1 for this.
-	
-	//Weapon Editor -Z
-	if ( parentitem > -1 ) { 
-		useweapon = itemsbuf[parentitem].useweapon;
-		usedefence = itemsbuf[parentitem].usedefence;
-		weaprange = itemsbuf[parentitem].weaprange;
-		weapduration = itemsbuf[parentitem].weapduration;
-		duplicates = itemsbuf[parentitem].duplicates;
-		family_class = itemsbuf[parentitem].family;
-		family_level = itemsbuf[parentitem].fam_type;
-		//flags = 
-		collectflags = itemsbuf[parentitem].collectflags;
-		tilemod = itemsbuf[parentitem].ltm;
-		
-		for ( int q = 0; q < ITEM_MOVEMENT_PATTERNS; q++ )  
-		{
-			weap_pattern[q] = itemsbuf[parentitem].weap_pattern[q];
-		}
-		
-		for ( int q = 0; q < FFSCRIPT_MISC; q++ )
-		{
-			wpn_misc_d[q] = itemsbuf[parentitem].wpn_misc_d[q];
-			
-		}
-		//hxofs = itemsbuf[parentitem].weap_hxofs; //hit x offset
-		//hyofs = itemsbuf[parentitem].weap_yxofs; //hit y offset
-		//hxsz = (itemsbuf[parentitem].weap_hxsz > 0 ? itemsbuf[parentitem].weap_hxsz : 15); //hitwidth
-		//hysz = (itemsbuf[parentitem].weap_hysz > 0 ? itemsbuf[parentitem].weap_hysz : 15);  //hitheight
-		//hzsz = (itemsbuf[parentitem].weap_hzsz > 0 ? itemsbuf[parentitem].weap_hzsz : 8);   //HitZHeight / HitDepth
-		//xofs = itemsbuf[parentitem].weap_xofs; //drawxoffset
-		//yofs = itemsbuf[parentitem].weap_yofs; //drawyoffset
-		//weaponscript = itemsbuf[parentitem].weaponscript;
-		
-		for ( int q = 0; q < INITIAL_D; q++ )
-		{
-			initiald[q] = itemsbuf[parentitem].weap_initiald[q];
-		}
-		for ( int q = 0; q < INITIAL_A; q++ )
-		{
-			initiala[q] = itemsbuf[parentitem].weap_initiala[q];
-		}
-			
-			
-	}
     
     int defaultw, itemid = parentitem;
     
@@ -512,99 +334,6 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
                 misc=-1;
         }
     }
-    
-    //! Dimentio Wand
-    
-    if (itemsbuf[parentitem].family == itype_wand && (id != wWand ||(itemsbuf[parentitem].flags & ITEM_FLAG3)))
-	{ //!Dimentio: This calculates the move effects. These are modifiers to normal wand weapon's movement. 
-		//Turn on flag 3 to include the wand with it.
-		switch(itemsbuf[parentitem].misc5)
-		{
-			case 1: 
-			case 2:
-			case 3:
-			{
-				switch (dir)
-				{
-					case up: this->count1 = 90;
-					break;
-					case down: this->count1 = 270;
-					break;
-					case left: this->count1 = 180;
-					break;
-					case right: this->count1 = 0;
-					break;
-				}
-				this->count3 = dir;
-			}
-			default: break;
-		}
-	}
-	if (type == 1 && itemsbuf[parentitem].misc4 > 0 && itemsbuf[parentitem].family == itype_book)
-	{
-		switch(itemsbuf[parentitem].misc4)
-		{
-			case 5:
-			{
-				if (GuyCount() > 0) seekEnemy(-1);
-				break;
-			}
-			case 6:
-			{
-				if (GuyCount() > 0) seekEnemy(-1);
-				break;
-			}
-			case 7:
-			{
-				seekLink();
-				break;
-			}
-			case 8:
-			{
-				seekLink();
-				break;
-			}
-		}
-	}
-	
-	if (type == 1 && itemsbuf[parentitem].misc4 > 0 && itemsbuf[parentitem].family == itype_book)
-	{
-		switch(itemsbuf[parentitem].misc4)
-		{
-			case 5:
-			{
-				if (GuyCount() > 0) 
-				{
-					fix StepSaving = itemsbuf[parentitem].misc5 / (fix)100.0;
-					step = StepSaving;
-				}
-				break;
-			}
-			case 6:
-			{
-				if (GuyCount() > 0) 
-				{
-					fix StepSaving = itemsbuf[parentitem].misc5 / (fix)100.0;
-					step = StepSaving;
-				}
-				break;
-			}
-			case 7:
-			{
-				fix StepSaving = itemsbuf[parentitem].misc5 / (fix)100.0;
-				step = StepSaving;
-				seekLink();
-				break;
-			}
-			case 8:
-			{
-				fix StepSaving = itemsbuf[parentitem].misc5 / (fix)100.0;
-				step = StepSaving;
-				seekLink();
-				break;
-			}
-		}
-	}
     
     switch(id)
     {
@@ -683,7 +412,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         
         if(parentitem>-1)
         {
-            Backend::sfx->loop(itemsbuf[parentitem].usesound,128);
+            cont_sfx(itemsbuf[parentitem].usesound);
         }
         
         break;
@@ -710,7 +439,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         LOADGFX(defaultw);
         
         if(get_bit(quest_rules,qr_MORESOUNDS))
-            Backend::sfx->loop(WAV_ZN1WHIRLWIND,128);
+            cont_sfx(WAV_ZN1WHIRLWIND);
             
         clk=-14;
         step=2;
@@ -864,29 +593,13 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
     {
         if(isDummy || itemid<0)
         {
-            if (itemsbuf[parentitem].family == itype_wand || itemsbuf[parentitem].family == itype_book) itemid = parentitem;
-		//!Dimentio: Bomb exceptions, to prevent them from being naughty with the new wand.
-            else itemid = getCanonicalItemID(itemsbuf, itype_bomb);
+            itemid = getCanonicalItemID(itemsbuf, itype_bomb);
         }
         
         if(itemid >-1)
         {
-		if (itemsbuf[parentitem].family == itype_wand) 
-		{
-			defaultw = itemsbuf[itemid].wpn3; //!Dimentio: Here too.
-			//! ZoriaRPG: I need to know what value wpn3 is doing here. 
-			misc = (id==wBomb ? 1 : itemsbuf[itemid].misc2);
-		}
-		else if (itemsbuf[parentitem].family == itype_book) 
-		{
-			defaultw = itemsbuf[itemid].wpn2; //!Dimentio: Here too.
-			//! ZoriaRPG: I need to know what value wpn3 is doing here. 
-			misc = (id==wBomb ? 1 : itemsbuf[itemid].misc2);
-		}
-		else {
-			defaultw = itemsbuf[itemid].wpn;
-			misc = (id==wBomb ? 1 : itemsbuf[itemid].misc1);
-		}
+            defaultw = itemsbuf[itemid].wpn;
+            misc = (id==wBomb ? 1 : itemsbuf[itemid].misc1);
         }
         else
         {
@@ -905,23 +618,13 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
     {
         if(isDummy || itemid<0)
         {
-	    if (itemsbuf[parentitem].family == itype_wand) itemid = parentitem; 
-		//!Dimentio: Bomb exceptions, to prevent them from being naughty with the new wand.
-            else itemid = getCanonicalItemID(itemsbuf, itype_sbomb);
+            itemid = getCanonicalItemID(itemsbuf, itype_sbomb);
         }
         
         if(parentitem>-1)
         {
-			if (itemsbuf[parentitem].family == itype_wand){ 
-				defaultw = itemsbuf[itemid].wpn3; 
-				//!Dimentio: Here too.
-				//! ZoriaRPG: I need to know what value wpn3 is doing here. 
-				misc = (id==wSBomb ? 1 : itemsbuf[itemid].misc2);
-			}
-            else {
-				defaultw = itemsbuf[itemid].wpn;
-				misc = (id==wSBomb ? 1 : itemsbuf[itemid].misc1);
-			}
+            defaultw = itemsbuf[itemid].wpn;
+            misc = (id==wSBomb ? 1 : itemsbuf[itemid].misc1);
         }
         else
         {
@@ -967,12 +670,8 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         }
         
         if(itemid >-1)
-	{
             // Book Magic sprite is wpn, Wand Magic sprite is wpn3.
-	    if (itemsbuf[parentitem].family == itype_book && type == 1) defaultw = itemsbuf[parentitem].wpn3;
-		//!Dimentio: Okay, is it created by the book?
-            else defaultw = book ? itemsbuf[itemid].wpn : itemsbuf[itemid].wpn3;
-	}
+            defaultw = book ? itemsbuf[itemid].wpn : itemsbuf[itemid].wpn3;
         else
             defaultw = wMAGIC;
             
@@ -1170,15 +869,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
     
     case ewLitBomb:
     case ewBomb:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewBOMB);
-	}
-	
-	else LOADGFX(ewBOMB);
-
+        LOADGFX(ewBOMB);
         hxofs=0;
         hxsz=16;
         
@@ -1213,13 +904,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         
     case ewLitSBomb:
     case ewSBomb:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewSBOMB);
-	}
-	else LOADGFX(ewSBOMB);
+        LOADGFX(ewSBOMB);
         hxofs=0;
         hxsz=16;
 		if(get_bit(quest_rules, qr_OFFSETEWPNCOLLISIONFIX))
@@ -1266,14 +951,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         }
         
         wid = zc_min(zc_max(current_item(itype_brang),1),3)-1+wBRANG;
-        
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(wid);
-	}
-	else LOADGFX(wid);
+        LOADGFX(wid);
         break;
         
     case ewFireball2:
@@ -1287,14 +965,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         //fallthrough
     case ewFireball:
     case wRefFireball:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewFIREBALL);
-	}
-	else LOADGFX(ewFIREBALL);
- 
+        LOADGFX(ewFIREBALL);
         step=1.75;
         
         if(Type&2)
@@ -1306,15 +977,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         break;
         
     case ewRock:
-	    
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewROCK);
-	}
-	else LOADGFX(ewROCK);
-  
+        LOADGFX(ewROCK);
         
         if(get_bit(quest_rules, qr_OFFSETEWPNCOLLISIONFIX))
         {
@@ -1333,15 +996,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         break;
         
     case ewArrow:
-	    
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewARROW);
-	}
-	else LOADGFX(ewARROW);
-        
+        LOADGFX(ewARROW);
         step=2;
         
         switch(dir)
@@ -1366,14 +1021,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         break;
         
     case ewSword:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewSWORD);
-	}
-	else LOADGFX(ewSWORD);
-        
+        LOADGFX(ewSWORD);
         
         if(get_bit(quest_rules, qr_OFFSETEWPNCOLLISIONFIX))
         {
@@ -1411,13 +1059,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         
     case wRefMagic:
     case ewMagic:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewMAGIC);
-	}
-	else LOADGFX(ewMAGIC);
+        LOADGFX(ewMAGIC);
         
         if(get_bit(quest_rules, qr_OFFSETEWPNCOLLISIONFIX))
         {
@@ -1461,25 +1103,9 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
     case ewFlame:
     case ewFlame2:
         if(id==ewFlame)
-	{
-		if ( parentid > -1 )
-		{
-			sprite *e = (sprite *)pool->getFromUID(parentid);
-			if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-			else LOADGFX(ewFLAME);
-		}
-		else LOADGFX(ewFLAME);
-	}
+            LOADGFX(ewFLAME);
         else
-	{
-		if ( parentid > -1 )
-		{
-			sprite *e = (sprite *)pool->getFromUID(parentid);
-			if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-			else LOADGFX(ewFLAME2);
-		}
-		else LOADGFX(ewFLAME2);
-	}
+            LOADGFX(ewFLAME2);
             
         if(dir==255)
         {
@@ -1519,14 +1145,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         break;
         
     case ewFireTrail:
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewFIRETRAIL);
-	}
-	else LOADGFX(ewFIRETRAIL);
-
+        LOADGFX(ewFIRETRAIL);
         step=0;
         dir=-1;
         
@@ -1552,18 +1171,10 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
 			hxofs=hyofs=0;
 			hxsz=hysz=16;
 		}
-	if ( parentid > -1 )
-	{
-		sprite *e = (sprite *)pool->getFromUID(parentid);
-		if ( guysbuf[e->id].wpnsprite > 0 ) LOADGFX(guysbuf[e->id].wpnsprite);
-		else LOADGFX(ewWIND);
-	}
-	else LOADGFX(ewWIND);
-
+		
+        LOADGFX(ewWIND);
         clk=0;
-	if (power > 0) step = itemsbuf[parentid].misc2; //!Dimentio: Add a check here.
-		//! ZoriaRPG: Explain why this is here. 
-        else step=3;
+        step=3;
         break;
         
     case wPhantom:
@@ -1571,7 +1182,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
         {
         case pDINSFIREROCKET:
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1ROCKETUP,(int)x);
+                sfx(WAV_ZN1ROCKETUP,(int)x);
                 
             LOADGFX(itemsbuf[parentitem].wpn);
             step = 4;
@@ -1579,7 +1190,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
             
         case pDINSFIREROCKETRETURN:
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1ROCKETDOWN,(int)x);
+                sfx(WAV_ZN1ROCKETDOWN,(int)x);
                 
             LOADGFX(itemsbuf[parentitem].wpn2);
             step = 4;
@@ -1601,7 +1212,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
             LOADGFX(itemsbuf[parentitem].wpn);
             
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1ROCKETUP,(int)x);
+                sfx(WAV_ZN1ROCKETUP,(int)x);
                 
             step = 4;
             drawstyle=itemsbuf[parentitem].flags & ITEM_FLAG2 ? 1 : 0;
@@ -1611,7 +1222,7 @@ weapon::weapon(fix X,fix Y,fix Z,int Id,int Type,int pow,int Dir, int Parentitem
             LOADGFX(itemsbuf[parentitem].wpn2);
             
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1ROCKETDOWN,(int)x);
+                sfx(WAV_ZN1ROCKETDOWN,(int)x);
                 
             step = 4;
             drawstyle=itemsbuf[parentitem].flags & ITEM_FLAG2 ? 1 : 0;
@@ -1693,33 +1304,90 @@ bool weapon::Dead()
 
 bool weapon::clip()
 {
-    if(x < minX)
+    int c[4];
+    int d2=isdungeon();
+    int nb1 = get_bit(quest_rules,qr_NOBORDER) ? 16 : 0;
+    int nb2 = get_bit(quest_rules,qr_NOBORDER) ? 8 : 0;
+    
+    if(id>wEnemyWeapons && id!=ewBrang)
+    {
+        c[0] = d2?32:(16-nb1);
+        c[1] = d2?128:(144+nb1);
+        c[2] = d2?32:(16-nb1);
+        c[3] = d2?208:(224+nb1);
+    }
+    else if(id==wHookshot||id==wHSChain)
+    {
+        c[0] = d2?8:0;
+        c[1] = d2?152:160;
+        c[2] = d2?8:0;
+        c[3] = d2?248:256;
+    }
+    else
+    {
+        c[0] = d2?18:2;
+        c[1] = d2?144:160;
+        c[2] = d2?20:4;
+        c[3] = d2?220:236;
+    }
+    
+    if(id==wSSparkle || id==wFSparkle)
+    {
+        c[0] = 0;
+        c[1] = 176;
+        c[2] = 0;
+        c[3] = 256;
+    }
+    
+    if(id==ewFlame)
+    {
+        c[0] = d2?32:(16-nb1);
+        c[1] = d2?128:(144+nb1);
+        c[2] = d2?32:(16-nb1);
+        c[3] = d2?208:(224+nb1);
+    }
+    
+    if(id==ewFireTrail)
+    {
+        c[0] = d2?32:(16-nb1);
+        c[1] = d2?128:(144+nb1);
+        c[2] = d2?32:(16-nb1);
+        c[3] = d2?208:(224+nb1);
+    }
+    
+    if(id==ewWind)
+    {
+        c[0] = d2?32:(16-nb1);
+        c[1] = d2?128:(144+nb1);
+        c[2] = d2?32:(16-nb1);
+        c[3] = d2?208:(224+nb1);
+    }
+    
+    if(x < c[2])
         if(dir==left || dir==l_up || dir==l_down)
             return true;
             
-    if(x > maxX)
+    if(x > c[3])
         if(dir==right || dir==r_up || dir==r_down)
             return true;
             
-    if(y < minY)
+    if(y < c[0])
         if(dir==up || dir==l_up || dir==r_up)
             return true;
             
-    if(y > maxY)
+    if(y > c[1])
         if(dir==down || dir==l_down || dir==r_down)
             return true;
             
     if(id>wEnemyWeapons)
     {
-		int border = get_bit(quest_rules, qr_NOBORDER) ? 8 : 0;
-		if ((x<(8 - border) && dir == left) || // Not checking diagonals?
-			(y<(8 - border) && dir == up) ||
-			(x>(232 + border) && dir == right) ||
-			(y>(168 + border) && dir == down))
+        if((x<(8-nb2) && dir==left)
+                || (y<(8-nb2) && dir==up)
+                || (x>(232+nb2) && dir==right)
+                || (y>(168+nb2) && dir==down))
             return true;
     }
     
-	// This doesn't do anything useful, does it?
     if(x<0||y<0||x>240||y>176)
         return true;
         
@@ -1879,92 +1547,6 @@ bool weapon::animate(int)
             //case l_down:y+=.354; x-=.354; break;
             //case r_down:y+=.354; x+=.354; break;
         }
-	
-	//! Dimentio Wand Stuff
-	
-	if (itemsbuf[parentitem].family == itype_wand && (id != wWand ||itemsbuf[parentitem].flags & ITEM_FLAG2))
-	{ //!Dimentio: So this handles the movement of the wand's movement effect. Uses offsets to do this, so unfortunately,
-	  //!Dimentio: no setting offsets via script while one of these is active. Could change this if need be, though it'd
-	  //!Dimentio: be a bit odd.
-		//! ZoriaRPG: Scripts MUST NOT conflict. Please look into this. 
-		
-		switch(itemsbuf[parentitem].misc5)
-		{
-			case 1: 
-			{
-				this->count1 += itemsbuf[parentitem].misc7;
-				this->count1 %= 360;
-				switch (this->count3)
-				{
-					case up: 
-					case down:
-					{
-						hxofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-						xofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-						break;
-					}
-					case left: 
-					case right: 
-					{
-						hyofs = itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174);
-						yofs = (itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174)) + playing_field_offset;
-						break;
-					}
-				}
-				break;
-			}
-			case 2: 
-			{
-				this->count1 += itemsbuf[parentitem].misc7;
-				this->count1 %= 360;
-				switch (this->count3)
-				{
-					case up: 
-					case down:
-					{
-						hyofs = itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174);
-						yofs = (itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174)) + playing_field_offset;
-						break;
-					}
-					case left: 
-					case right: 
-					{
-						hxofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-						xofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-					break;
-					}
-				}
-				break;
-			}
-			case 3: 
-			{
-				this->count1 += itemsbuf[parentitem].misc7;
-				this->count1 %= 360;
-				xofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-				yofs = (itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174)) + playing_field_offset;
-				hxofs = itemsbuf[parentitem].misc6*cos(this->count1 * 0.0174);
-				hyofs = itemsbuf[parentitem].misc6*sin(this->count1 * 0.0174);
-				break;
-			}
-			default: break;
-		}
-	}
-	
-	if (itemsbuf[parentitem].family == itype_book && (itemsbuf[parentitem].misc4 >= 3 && itemsbuf[parentitem].misc4 <= 8) && type == 2) //Is this the weapon?
-	{
-		if ((this->count4 - 1) % 4 == 0) //If the death counter's evenly divideable by 4...
-		{
-			Lwpns.add(new weapon(x + ((rand() % 32) - 16),y + ((rand() % 32) - 16),z,itemsbuf[parentitem].misc2,1,itemsbuf[parentitem].misc1*DAMAGE_MULTIPLIER,0,parentitem,parentitem)); //Make 3 randomly placed weapons around this weapon
-			Lwpns.add(new weapon(x + ((rand() % 32) - 16),y + ((rand() % 32) - 16),z,itemsbuf[parentitem].misc2,1,itemsbuf[parentitem].misc1*DAMAGE_MULTIPLIER,0,parentitem,parentitem));
-			Lwpns.add(new weapon(x + ((rand() % 32) - 16),y + ((rand() % 32) - 16),z,itemsbuf[parentitem].misc2,1,itemsbuf[parentitem].misc1*DAMAGE_MULTIPLIER,0,parentitem,parentitem));
-			//sfx(itemsbuf[parentitem].usesound,pan(x)); //Play sound
-		}
-		if (this->count4 >= ((itemsbuf[parentitem].misc6 * 4) - 3))
-		{ 
-			dead = 0;
-		}
-		++this->count4;
-	}
         
     switch(id)
     {
@@ -2015,19 +1597,15 @@ bool weapon::animate(int)
         z = LinkZ();
         
         if(parentitem>-1)
-            Backend::sfx->loop(itemsbuf[parentitem].usesound,int(x));
+            sfx(itemsbuf[parentitem].usesound,pan(int(x)),true,false);
     }
     break;
     
     case wBeam:
-    case wRefBeam: //More Dimentio Wand stuff
-		if (clk==94 && itemsbuf[parentitem].family == itype_book && (dir < 0 || step <= 0))
-		{
-			dead = 23;
-		}
-        for(int i2=0; ((i2<=zc_min(type-1,3) && itemsbuf[parentitem].family != itype_wand) || (itemsbuf[parentitem].family == itype_wand && i2 <= zc_min(itemsbuf[parentitem].fam_type - 1, 3))) && dead!=23; i2++)
+    case wRefBeam:
+        for(int i2=0; i2<=zc_min(type-1,3) && dead!=23; i2++)
         {
-            if(findentrance(x,y,mfSWORDBEAM+i2,true)) dead=23; //!Dimentio: Alright, now this checks to see if it's fired from a wand.
+            if(findentrance(x,y,mfSWORDBEAM+i2,true)) dead=23;
         }
         
         if(blocked())
@@ -2290,11 +1868,11 @@ bool weapon::animate(int)
         }
         else if(LinkAction() !=inwind && ((dir==right && x>=240) || (dir==down && y>=160) || (dir==left && x<=0) || (dir==up && y<=0)))
         {
-            Backend::sfx->stop(WAV_ZN1WHIRLWIND);
+            stop_sfx(WAV_ZN1WHIRLWIND);
             dead=1;
         }
         else if(get_bit(quest_rules,qr_MORESOUNDS))
-            Backend::sfx->loop(WAV_ZN1WHIRLWIND,int(x));
+            sfx(WAV_ZN1WHIRLWIND,pan(int(x)),true,false);
             
         if(get_bit(quest_rules,qr_WHIRLWINDMIRROR))
             goto mirrors;
@@ -2339,15 +1917,14 @@ bool weapon::animate(int)
             {
                 findentrance(x,y,mfBCANDLE,true);
                 
-		    //Dimentio wand
-                if((type>0 && itemsbuf[parentitem].family!=itype_wand) || (itemsbuf[parentitem].family==itype_wand && itemsbuf[parentitem].fam_type>=2)) //!Dimentio: Blue Fire fired from wand was triggering red fire, so have to make this check more specific.
+                if(type>0)
                 {
                     findentrance(x,y,mfRCANDLE,true);
                 }
                 
-                if((type>2 && itemsbuf[parentitem].family!=itype_wand) || (itemsbuf[parentitem].family==itype_wand && itemsbuf[parentitem].fam_type>=4))   
+                if(type>2)
                 {
-                    findentrance(x,y,mfDINSFIRE,true); 
+                    findentrance(x,y,mfDINSFIRE,true);
                 }
             }
         }                                                     //wand fire
@@ -2413,8 +1990,8 @@ bool weapon::animate(int)
         
         if(clk==(misc-1) && step==0)
     {
-            Backend::sfx->play((id>=wEnemyWeapons || parentitem<0) ? WAV_BOMB :
-                itemsbuf[parentitem].usesound,int(x));
+            sfx((id>=wEnemyWeapons || parentitem<0) ? WAV_BOMB :
+                itemsbuf[parentitem].usesound,pan(int(x)));
                 
             if(id==wSBomb || id==wLitSBomb || id==ewSBomb || id==ewLitSBomb)
             {
@@ -2537,12 +2114,6 @@ bool weapon::animate(int)
         {
             dead=4;
         }
-	
-	//2.6 ZScript lw->Range -Z
-	if(scriptrange>0 && clk > scriptrange)
-        {
-            dead=4; //if it exceeds its range, kill it. 
-        }
         
         if(findentrance(x,y,mfSTRIKE,true))
         {
@@ -2554,8 +2125,7 @@ bool weapon::animate(int)
             dead=4;
         }
         
-	//Dimentio Wand stuff
-        if((current_item(itype_arrow)>1 && itemsbuf[parentitem].family != itype_wand) || (itemsbuf[parentitem].family == itype_wand && itemsbuf[parentitem].fam_type > 1)) //!Dimentio: Okay, the wand's level can also serve as the level of the arrow.
+        if(current_item(itype_arrow)>1)
         {
             if(findentrance(x,y,mfSARROW,true))
             {
@@ -2563,7 +2133,7 @@ bool weapon::animate(int)
             }
         }
         
-        if((current_item(itype_arrow)>=3 && itemsbuf[parentitem].family != itype_wand) || (itemsbuf[parentitem].family == itype_wand && itemsbuf[parentitem].fam_type >= 3)) //!Dimentio: So now Arrows fired from the wand can trigger higher leveled arrow secrets.
+        if(current_item(itype_arrow)>=3)
         {
             if(findentrance(x,y,mfGARROW,true))
             {
@@ -2611,9 +2181,8 @@ bool weapon::animate(int)
             dead=23;
         }
         
-	//!Dimentio: What's this? Hardcoded bait values? Nononono, screw this. 
-        if(((parentitem>-1 && itemsbuf[parentitem].family != itype_wand) && clk>=itemsbuf[parentitem].misc1) || (itemsbuf[parentitem].family == itype_wand && clk>=itemsbuf[parentitem].power))
-        { //!Dimentio: Ah, much better.
+        if(parentitem>-1 && clk>=itemsbuf[parentitem].misc1)
+        {
             dead=1;
         }
         
@@ -2623,7 +2192,7 @@ bool weapon::animate(int)
     {
         if(dead==0)  // Set by ZScript
         {
-            Backend::sfx->stop(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound);
+            stop_sfx(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound);
             break;
         }
         
@@ -2634,8 +2203,8 @@ bool weapon::animate(int)
         
         int deadval=(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].flags & ITEM_FLAG3)?-2:1;
         
-        for(int i=0; ((i<=zc_min(current_item(itype_brang)-1,2) && itemsbuf[parentitem].family != itype_wand) || (itemsbuf[parentitem].family == itype_wand && i <= zc_min(itemsbuf[parentitem].fam_type - 1, 3))); i++)
-        { //!Dimentio: If you have a wand, use misc 4. Otherwise, use the canon boomerang.
+        for(int i=0; i<current_item(itype_brang); i++)
+        {
             if(findentrance(x,y,mfBRANG+i,true)) dead=deadval;
         }
         
@@ -2648,16 +2217,7 @@ bool weapon::animate(int)
         }
         
         ++clk2;
-	
-        //scriptrange is now -1
         int range = itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].misc1;
-	if ( scriptrange < 0 ) scriptrange =  itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].misc1;
-	else if ( scriptrange >= 0 ) {
-		range = scriptrange; 
-	}
-	
-	//This sets zscript l->Range to the editor value if it is still the default (-1)
-	//If the user write to l->Range, it updates.
         
         if(range && clk2>=range)
         {
@@ -2687,7 +2247,7 @@ bool weapon::animate(int)
         if(clk==0)                                            // delay a frame
         {
             ++clk;
-            Backend::sfx->loop(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound,int(x));
+            sfx(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound,pan(int(x)),true);
             return false;
         }
         
@@ -2739,8 +2299,8 @@ bool weapon::animate(int)
                     CatchBrang();
                 }
                 
-                if (Lwpns.idCount(wBrang) <= 1 && (!get_bit(quest_rules, qr_MORESOUNDS) || !Ewpns.idCount(ewBrang)))
-                    Backend::sfx->stop(itemsbuf[parentitem > -1 ? parentitem : current_item_id(itype_brang)].usesound);
+                if(Lwpns.idCount(wBrang)<=1 && (!get_bit(quest_rules, qr_MORESOUNDS) || !Ewpns.idCount(ewBrang)))
+                    stop_sfx(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound);
                     
                 /*if (dummy_bool[0])
                 {
@@ -2758,15 +2318,13 @@ bool weapon::animate(int)
             seekLink();
         }
         
-        Backend::sfx->loop(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound,int(x));
+        sfx(itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_brang)].usesound,pan(int(x)),true,false);
         
         break;
     }
     
     case wHookshot:
     {
-	    //for lw->Range -Z
-	int  maxlength = parentitem>-1 ? 2*itemsbuf[parentitem].misc1 : 0; //2* value seems to match the desired range. 
         if(dead==0)  // Set by ZScript
         {
             hookshot_used = false;
@@ -2777,85 +2335,22 @@ bool weapon::animate(int)
             }
         }
         
-	//Set the range based on defaults, item editor, and script ofverrides. -Z
-	if ( scriptrange < 0 ) scriptrange =  maxlength; //scriptrange inits at -1
-	else if ( scriptrange > -1 ) { maxlength = scriptrange; } //20JAN17, was >= 0 before. 
-		//If the user sets it, change it.
-	
-	//Diagonal hookshot set-up. -Z
-	
-	//Check the item editor flag to see if it is allowed to be diagonal. 
-	if ( (itemsbuf[parentitem>-1 ? parentitem : current_item_id(itype_hookshot)].flags&ITEM_FLAG2) && misc2 == 0 ) {
-	    if(Up())
-	    {
-		dir=up;
-		
-		if(Left() )  dir=l_up;
-		
-		if(Right() ) dir=r_up;
-		    misc2 = 1; //to prevent wagging it all over the screen, we set it once. 
-	    }
-	    else if(Down())
-	    {
-		dir=down;
-		
-		if(Left() )  dir=l_down;
-		
-		if(Right() ) dir=r_down;
-		     misc2 = 1; //to prevent wagging it all over the screen, we set it once. 
-	    }
-	    else if(Left())
-	    {
-		dir=left;
-		if(Up() )  dir=l_up;
-		if(Down() )  dir=l_down;
-		     misc2 = 1; //to prevent wagging it all over the screen, we set it once. 
-		
-	    }
-	    else if(Right())
-	    {
-		dir=right;
-		if(Up() )  dir=r_up;
-		if(Down() )  dir=r_down;
-		     misc2 = 1; //to prevent wagging it all over the screen, we set it once. 
-	    }
-	}
-	
         // Hookshot grab and retract code
         if(misc==0)
         {
-		
-	    //If the hookshot has extended to maxlength, retract it.
+            int maxlength=parentitem>-1 ? 16*itemsbuf[parentitem].misc1 : 0;
+            
             if((abs(LinkX()-x)>maxlength)||(abs(LinkY()-y)>maxlength))
             {
-                dead=1;  //causes it to retract.
+                dead=1;
             }
             
-	    //If it hits a block object, retract it.
             if(findentrance(x,y,mfSTRIKE,true)) dead=1;
             
             if(findentrance(x,y,mfHOOKSHOT,true)) dead=1;
             
-	    
-	    //Look for grab combos based on direction.
-	    //...but where is the support for diagonal and angular? Oh, right, no-one ever thought of this.
-	    // /sarcasm -Z
-	    
-	    //This is the issue with weapons that predate angular movement, in general.
-	    
-	    /*
-	    int tempdir = dir;
-	    
-	    if ( key[KEY_LEFT] && key[KEY_UP] ) tempdir = l_up;
-	    if ( key[KEY_LEFT] && key[KEY_DOWN] ) tempdir = l_down;
-	    if ( key[KEY_RIGHT] && key[KEY_UP] ) tempdir = r_up;
-	    if ( key[KEY_RIGHT] && key[KEY_DOWN] ) tempdir = r_down;
-	    */
-	    
             if(dir==up)
             {
-		    //It would have been nice to comment these coordinates... 
-		    //...so that we know *why* the values were used.
                 if((combobuf[MAPCOMBO(x+2,y+7)].type==cHSGRAB))
                 {
                     hooked=true;
@@ -2864,7 +2359,6 @@ bool weapon::animate(int)
                 if(get_bit(quest_rules, qr_HOOKSHOTLAYERFIX))
                     hooked = hooked || (combobuf[MAPCOMBO2(0,x+2,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+2,y+7)].type==cHSGRAB);
                     
-		//Retracts if the hookshot hits illegal spaces, solid spaces, and such.
                 if(!hooked && _walkflag(x+2,y+7,1) && !ishookshottable((int)x+2,(int)y+7))
                 {
                     dead=1;
@@ -2889,8 +2383,6 @@ bool weapon::animate(int)
             
             if(dir==left)
             {
-		    //this is why it would be nice to know the specific reasons for the values
-		    //.., old rules grabbed at a higher y position
                 if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
                 {
                     if(combobuf[MAPCOMBO(x+6,y+7)].type==cHSGRAB)
@@ -2914,7 +2406,6 @@ bool weapon::animate(int)
             
             if(dir==right)
             {
-		    
                 if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
                 {
                     if(combobuf[MAPCOMBO(x+9,y+7)].type==cHSGRAB)
@@ -2935,142 +2426,6 @@ bool weapon::animate(int)
                     dead=1;
                 }
             }
-	    
-	    /*
-	    if ( dir == angular ) {} //Diagonal or angular
-	    
-	    */ 
-
-	    //in 2.50.x, if the user sets the hookshot direction to a diagonal, it flat-out refuses to grab. -Z
-	    
-		//! -Z Diagonal Hookshot Movement and Grab Code: Will need bugtesting galore. 
-		if ( dir == r_down ) //Diagonal hookshot, right-down -Z
-		{
-			if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
-			{	//right						//down
-				if( (combobuf[MAPCOMBO(x+9,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO(x+12,y+12)].type==cHSGRAB) )
-				{
-					hooked=true;
-				}
-			}
-
-					//right						//down
-			else if( ( (combobuf[MAPCOMBO(x+9,y+13)].type==cHSGRAB)) || (combobuf[MAPCOMBO(x+12,y+12)].type==cHSGRAB) )
-			{
-				hooked=true;
-			}
-
-			if(get_bit(quest_rules, qr_HOOKSHOTLAYERFIX))			//right
-			{
-				hooked = hooked || (combobuf[MAPCOMBO2(0,x+9,y+13)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+9,y+13)].type==cHSGRAB ) || 
-				//down
-				(combobuf[MAPCOMBO2(0,x+12,y+12)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+12,y+12)].type==cHSGRAB);
-			}
-                    
-			//right
-			if(!hooked &&  ( ( ( _walkflag(x+9,y+13,1) && !ishookshottable((int)x+9,(int)y+13)) ) ||
-				//down
-				(_walkflag(x+12,y+12,1) && !ishookshottable((int)x+12,(int)y+12)) ) )
-			{
-			    dead=1;
-			}
-		    
-		    
-		}
-		if ( dir == l_down ) //Diagonal hookshot, left-down -Z
-		{
-			if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
-			{	//left						//down
-				if( (combobuf[MAPCOMBO(x+6,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO(x+12,y+12)].type==cHSGRAB) )
-				{
-					hooked=true;
-				}
-			}
-			
-
-					//left						//down
-			else if( ( (combobuf[MAPCOMBO(x+6,y+13)].type==cHSGRAB)) || (combobuf[MAPCOMBO(x+12,y+12)].type==cHSGRAB) )
-			{
-				hooked=true;
-			}
-
-			if(get_bit(quest_rules, qr_HOOKSHOTLAYERFIX))
-			{
-							//left
-				hooked = hooked || (combobuf[MAPCOMBO2(0,x+6,y+13)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+6,y+13)].type==cHSGRAB) || 
-					//down
-				(combobuf[MAPCOMBO2(0,x+12,y+12)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+12,y+12)].type==cHSGRAB);
-			}
-			//left
-			if(!hooked && ( ( ( _walkflag(x+6,y+13,1) && !ishookshottable((int)x+6,(int)y+13)) ) ||
-				//down
-				(_walkflag(x+12,y+12,1) && !ishookshottable((int)x+12,(int)y+12)) ) )
-			{
-				dead=1;
-			}
-		    
-		    
-		}
-		if ( dir == r_up ) //Diagonal hookshot, right-up -Z
-		{
-		        if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
-			{	//right						//up
-			    if( (combobuf[MAPCOMBO(x+9,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO(x+2,y+7)].type==cHSGRAB) )
-				{
-					hooked=true;
-				}
-			}
-
-					//right						//up
-			else if( ( (combobuf[MAPCOMBO(x+9,y+13)].type==cHSGRAB)) || (combobuf[MAPCOMBO(x+2,y+7)].type==cHSGRAB) )
-			{
-				hooked=true;
-			}
-
-			if(get_bit(quest_rules, qr_HOOKSHOTLAYERFIX))			//right
-			{
-				hooked = hooked || (combobuf[MAPCOMBO2(0,x+9,y+13)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+9,y+13)].type==cHSGRAB ) || 
-				//up
-				(combobuf[MAPCOMBO2(0,x+2,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+2,y+7)].type==cHSGRAB);
-			}
-			//right
-			if(!hooked &&  ( ( ( _walkflag(x+9,y+13,1) && !ishookshottable((int)x+9,(int)y+13)) ) ||
-				//up
-				(_walkflag(x+2,y+7,1) && !ishookshottable((int)x+2,(int)y+7)) ) )
-			{
-				dead=1;
-			}
-		}
-		if ( dir == l_up ) //Diagonal hookshot, left-up -Z
-		{
-		        if(get_bit(quest_rules, qr_OLDHOOKSHOTGRAB))
-			{	//left						//up
-				if( (combobuf[MAPCOMBO(x+6,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO(x+2,y+7)].type==cHSGRAB) )
-				{
-					hooked=true;
-				}
-			}
-
-					//left						//up
-			else if( ( (combobuf[MAPCOMBO(x+6,y+13)].type==cHSGRAB)) || (combobuf[MAPCOMBO(x+2,y+7)].type==cHSGRAB) )
-			{
-				hooked=true;
-			}
-
-			if(get_bit(quest_rules, qr_HOOKSHOTLAYERFIX))			//left
-			{
-				hooked = hooked || (combobuf[MAPCOMBO2(0,x+6,y+13)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+6,y+13)].type==cHSGRAB) || 
-				//up
-				(combobuf[MAPCOMBO2(0,x+2,y+7)].type==cHSGRAB) || (combobuf[MAPCOMBO2(1,x+2,y+7)].type==cHSGRAB);
-			}
-							//left
-			if(!hooked && ( ( ( _walkflag(x+6,y+13,1) && !ishookshottable((int)x+6,(int)y+13)) ) ||
-				//up
-				(_walkflag(x+2,y+7,1) && !ishookshottable((int)x+2,(int)y+7)) ) )
-			{
-				dead=1;
-			}
-		}
         }
         
         if(hooked==true)
@@ -3088,7 +2443,7 @@ bool weapon::animate(int)
             
             if(parentitem>-1)
             {
-                Backend::sfx->loop(itemsbuf[parentitem].usesound,int(x));
+                sfx(itemsbuf[parentitem].usesound,pan(int(x)),true);
             }
             
             return false;
@@ -3121,7 +2476,7 @@ bool weapon::animate(int)
                 
                 if(parentitem>-1)
                 {
-                    Backend::sfx->stop(itemsbuf[parentitem].usesound);
+                    stop_sfx(itemsbuf[parentitem].usesound);
                 }
                 
                 if(dragging!=-1)
@@ -3135,7 +2490,7 @@ bool weapon::animate(int)
         
         if(parentitem>-1)
         {
-            Backend::sfx->loop(itemsbuf[parentitem].usesound,int(x));
+            sfx(itemsbuf[parentitem].usesound,pan(int(x)),true,false);
         }
         
         if(blocked())
@@ -3677,7 +3032,7 @@ mirrors:
             if(get_bit(quest_rules,qr_MORESOUNDS))
             {
                 //if (step!=0)
-                Backend::sfx->loop(WAV_BRANG, int(x));
+                sfx(WAV_BRANG, pan(int(x)), true);
                 //else
                 ;//stop_sfx(WAV_BRANG);
             }
@@ -3741,7 +3096,7 @@ mirrors:
                 {
                     if(get_bit(quest_rules,qr_MORESOUNDS) && !Lwpns.idCount(wBrang) && Ewpns.idCount(ewBrang)<=1)
                     {
-                        Backend::sfx->stop(WAV_BRANG);
+                        stop_sfx(WAV_BRANG);
                     }
                     
                     return true;
@@ -3793,7 +3148,7 @@ mirrors:
         {
             if(get_bit(quest_rules,qr_MORESOUNDS) && !Lwpns.idCount(wBrang) && Ewpns.idCount(ewBrang)<=1)
             {
-                Backend::sfx->stop(WAV_BRANG);
+                stop_sfx(WAV_BRANG);
             }
             
             dead = 1;
@@ -4112,20 +3467,13 @@ offscreenCheck:
         
     case wRefMagic:
     case wMagic:
-    //!Dimentio: Hey, let's add changing the book fire to other weapons, too!
-    {
-	if (itemsbuf[parentitem].family == itype_book && (x<272 && x>-17 && y<272 && y>-17)) break;
-	dead=1; //remove the dead part to make the wand only die when clipped
-		bookfirecreate();
-
-	break; //!Over already? What a shame.
-    }
+        dead=1; //remove the dead part to make the wand only die when clipped
         
         if(((id==wMagic && current_item(itype_book) &&
                 (itemsbuf[current_item_id(itype_book)].flags&ITEM_FLAG1))) && Lwpns.idCount(wFire)<2)
         {
             Lwpns.add(new weapon(x,y,z,wFire,2,1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1));
-            Backend::sfx->play(WAV_FIRE,x);
+            sfx(WAV_FIRE,pan(x));
         }
         
         break;
@@ -4251,7 +3599,7 @@ void weapon::draw(BITMAP *dest)
     case wSword:
     case wHammer:
         if(get_bit(quest_rules,qr_LINKFLICKER)&&((getClock()||LinkHClk())&&(frame&1)) ||
-                Link->getDontDraw() || tmpscr->flags3&fINVISLINK)
+                Link.getDontDraw() || tmpscr->flags3&fINVISLINK)
             return;
             
     case wBeam:
@@ -4300,15 +3648,10 @@ void weapon::draw(BITMAP *dest)
         {
             id2=wBOOM;
             
-           if(parentitem>-1 && itemsbuf[parentitem].family != itype_wand) //!Dimentio: Yet another exception, for bombs.
+            if(parentitem>-1)
             {
-                id2=itemsbuf[parentitem].wpn2; //This sets the explosion sprite, but because it is linked to itemdata
-						//it may not work with script generated explosions. -Z
-		    //Perhaps it would be better to add a special case to createlweapon and createeweapon to 
-		    //use a usesprite value with wpns.add
+                id2=itemsbuf[parentitem].wpn2;
             }
-	    else if (itemsbuf[parentitem].family == itype_wand) id2=itemsbuf[parentitem].wpn4;
-		
             
             break;
         }
@@ -4503,70 +3846,6 @@ void putweapon(BITMAP *dest,int x,int y,int weapon_id, int type, int dir, int &a
     temp.draw(dest);
     aclk=temp.clk2;
     aframe=temp.aframe;
-}
-
-void weapon::bookfirecreate()
-{
-	int bookmagicmaxcount = 2; //!Dimentio: BOOKMAGICHANDLER
-	if (itemsbuf[current_item_id(itype_book)].misc3 > 0)
-	{
-		bookmagicmaxcount = itemsbuf[current_item_id(itype_book)].misc3;
-	}
-	else if (itemsbuf[parentitem].misc8 > 0)
-	{
-		bookmagicmaxcount = (itemsbuf[parentitem].misc8 + 1) * 2;
-	}
-	else bookmagicmaxcount = 2;
-	if(((itemsbuf[parentitem].family == itype_wand && current_item(itype_book) && (itemsbuf[current_item_id(itype_book)].flags&ITEM_FLAG1))) && Lwpns.idCount(itemsbuf[current_item(itype_book)].misc2)<bookmagicmaxcount)
-	{
-		switch(itemsbuf[current_item_id(itype_book)].misc4)
-		{
-			
-			case 3:
-			{
-				Lwpns.add(new weapon(x,y,z,wBomb,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1)); //Let's make an explosion...
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1)); //And here's the dummy info holder
-				break;
-			}
-			case 4:
-			{
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1));
-				break;
-			}
-			case 5:
-			{
-				Lwpns.add(new weapon(x,y,z,wBomb,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1)); //Let's make an explosion...
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1)); //And here's the dummy info holder
-				break;
-			}
-			case 6:
-			{
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1));
-				break;
-			}
-			case 7:
-			{
-				Lwpns.add(new weapon(x,y,z,wBomb,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1)); //Let's make an explosion...
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1)); //And here's the dummy info holder
-				break;
-			}
-			case 8:
-			{
-				Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item(itype_book),-1));
-				break;
-			}
-			default:
-			{
-				//!Dimentio: Making sure this isn't null
-				//! ZoriaRPG: I need a detailed explanantion of what this is doing as a code comment. 
-				if (itemsbuf[current_item_id(itype_book)].misc2 <= 0) Lwpns.add(new weapon(x,y,z,wFire,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1));
-				//!Dimentio: here's the default behavior.
-				else Lwpns.add(new weapon(x,y,z,itemsbuf[current_item_id(itype_book)].misc2,2,itemsbuf[current_item_id(itype_book)].misc1*DAMAGE_MULTIPLIER,0,current_item_id(itype_book),-1));
-				break;
-			}
-		}
-		Backend::sfx->play(WAV_FIRE,x); // sfx() is deprecated. -Z
-	}
 }
 
 /*** end of weapons.cpp ***/

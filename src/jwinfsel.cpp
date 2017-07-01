@@ -51,8 +51,6 @@
 #include "jwinfsel.h"
 #include "zsys.h"
 #include "zc_malloc.h"
-#include "gui.h"
-#include "backend/AllBackends.h"
 
 extern FONT *lfont_l;
 
@@ -61,15 +59,15 @@ extern FONT *lfont_l;
 #endif
 
 
-int fs_edit_proc(int, DIALOG *, int);
-int fs_flist_proc(int, DIALOG *, int);
-int fs_elist_proc(int, DIALOG *, int);
+static int fs_edit_proc(int, DIALOG *, int);
+static int fs_flist_proc(int, DIALOG *, int);
+static int fs_elist_proc(int, DIALOG *, int);
 static const char *fs_flist_getter(int, int *);
 static const char *fs_elist_getter(int, int *);
 
 #ifdef HAVE_DIR_LIST
 
-int fs_dlist_proc(int, DIALOG *, int);
+static int fs_dlist_proc(int, DIALOG *, int);
 static const char *fs_dlist_getter(int, int *);
 #endif
 
@@ -128,10 +126,10 @@ static DIALOG file_selector[] =
     { jwin_win_proc,        0,    0,    305,  161,  0,    0,    0,    D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
     { jwin_button_proc,     208,  107,  81,   17,   0,    0,    0,    D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
     { jwin_button_proc,     208,  129,  81,   17,   0,    0,    27,   D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
-    { fs_edit_proc,         16,   28,   272,  8,    0,    0,    0,    0,       79,   0,    NULL,                      NULL,  (void *)file_selector },
-    { fs_elist_proc,        16,   154,  176,  16,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_elist__getter,  NULL, (void *)file_selector },
-    { fs_flist_proc,        16,   46,   177,  100,  0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_flist__getter,  NULL,  (void *)file_selector },
-    { fs_dlist_proc,        208,  46,   81,   52,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_dlist__getter,  NULL,  (void *)file_selector },
+    { fs_edit_proc,         16,   28,   272,  8,    0,    0,    0,    0,       79,   0,    NULL,                      NULL, NULL  },
+    { fs_elist_proc,        16,   154,  176,  16,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_elist__getter,  NULL, NULL },
+    { fs_flist_proc,        16,   46,   177,  100,  0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_flist__getter,  NULL, NULL  },
+    { fs_dlist_proc,        208,  46,   81,   52,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_dlist__getter,  NULL, NULL  },
     { d_yield_proc,         0,    0,    0,    0,    0,    0,    0,    0,       0,    0,    NULL,                      NULL, NULL  },
     
 #else
@@ -140,9 +138,9 @@ static DIALOG file_selector[] =
     { jwin_win_proc,        0,    0,    305,  189,  0,    0,    0,    D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
     { jwin_button_proc,     64,   160,  81,   17,   0,    0,    0,    D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
     { jwin_button_proc,     160,  160,  81,   17,   0,    0,    27,   D_EXIT,  0,    0,    NULL,                      NULL, NULL  },
-    { fs_edit_proc,         16,   28,   272,  8,    0,    0,    0,    0,       79,   0,    NULL,                      NULL, (void *)file_selector },
-    { fs_elist_proc,        16,   154,  176,  16,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_elist__getter,  NULL, (void *)file_selector },
-    { fs_flist_proc,        16,   46,   273,  100,  0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_flist__getter,  NULL, (void *)file_selector },
+    { fs_edit_proc,         16,   28,   272,  8,    0,    0,    0,    0,       79,   0,    NULL,                      NULL, NULL  },
+    { fs_elist_proc,        16,   154,  176,  16,   0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_elist__getter,  NULL, NULL },
+    { fs_flist_proc,        16,   46,   273,  100,  0,    0,    0,    D_EXIT,  0,    0, (void *) &fs_flist__getter,  NULL, NULL  },
     { d_yield_proc,         0,    0,    0,    0,    0,    0,    0,    0,       0,    0,    NULL,                      NULL, NULL  },
 #endif
     
@@ -236,10 +234,9 @@ static const char *fs_dlist_getter(int index, int *list_size)
 /* fs_dlist_proc:
   *  Dialog procedure for the file selector disk list.
   */
-int fs_dlist_proc(int msg, DIALOG *d, int c)
+static int fs_dlist_proc(int msg, DIALOG *d, int c)
 {
-	DIALOG *parent = (DIALOG *)d->dp3;
-    char *s = (char *)parent[FS_EDIT].dp;
+    char *s = (char *) file_selector[FS_EDIT].dp;
     int ret, i, temp;
     
     if(msg == MSG_START)
@@ -271,10 +268,10 @@ int fs_dlist_proc(int msg, DIALOG *d, int c)
         s += usetc(s, OTHER_PATH_SEPARATOR);
         usetc(s, 0);
         
-        object_message(parent +FS_FILES, MSG_START, 0);
-        object_message(parent +FS_FILES, MSG_DRAW, 0);
-        object_message(parent +FS_EDIT, MSG_START, 0);
-        object_message(parent +FS_EDIT, MSG_DRAW, 0);
+        object_message(file_selector+FS_FILES, MSG_START, 0);
+        object_message(file_selector+FS_FILES, MSG_DRAW, 0);
+        object_message(file_selector+FS_EDIT, MSG_START, 0);
+        object_message(file_selector+FS_EDIT, MSG_DRAW, 0);
         
         return ret - D_CLOSE + D_O_K;
     }
@@ -284,18 +281,13 @@ int fs_dlist_proc(int msg, DIALOG *d, int c)
 
 #else
 
-int fs_dlist_proc(int msg, DIALOG *d, int c)
-{
-	return D_O_K;
-}
-
 #define FS_YIELD        6
 #endif                                                      /* HAVE_DIR_LIST */
 
 /* fs_edit_proc:
   *  Dialog procedure for the file selector editable string.
   */
-int fs_edit_proc(int msg, DIALOG *d, int c)
+static int fs_edit_proc(int msg, DIALOG *d, int c)
 {
     char *s = (char *) d->dp;
     int size = (d->d1 + 1) * uwidth_max(U_CURRENT);           /* of s (in bytes) */
@@ -304,8 +296,6 @@ int fs_edit_proc(int msg, DIALOG *d, int c)
     char b[1024], tmp[16];
     int ch, attr;
     int i;
-
-	DIALOG *parent = (DIALOG *)d->dp3;
     
     if(msg == MSG_START)
     {
@@ -336,7 +326,7 @@ int fs_edit_proc(int msg, DIALOG *d, int c)
                 return D_CLOSE;
         }
         
-        object_message(parent +FS_FILES, MSG_START, 0);
+        object_message(file_selector+FS_FILES, MSG_START, 0);
         
         /* did we `cd ..' ? */
         if(ustrlen(updir))
@@ -346,15 +336,15 @@ int fs_edit_proc(int msg, DIALOG *d, int c)
             {
                 if(!ustrcmp(updir, flist->name[i]))                 /* we got it ! */
                 {
-					parent[FS_FILES].d1 = i;
+                    file_selector[FS_FILES].d1 = i;
                     /* we have to know the number of visible lines in the filelist */
                     /* -1 to avoid an off-by-one problem */
-                    list_size = (parent[FS_FILES].h-4) / text_height(font) - 1;
+                    list_size = (file_selector[FS_FILES].h-4) / text_height(font) - 1;
                     
                     if(i>list_size)
-						parent[FS_FILES].d2 = i-list_size;
+                        file_selector[FS_FILES].d2 = i-list_size;
                     else
-						parent[FS_FILES].d2 = 0;
+                        file_selector[FS_FILES].d2 = 0;
                         
                     found = 1;
                     break;                                            /* ok, our work is done... */
@@ -364,13 +354,13 @@ int fs_edit_proc(int msg, DIALOG *d, int c)
             /* by some strange reason, we didn't find the old directory... */
             if(!found)
             {
-				parent[FS_FILES].d1 = 0;
-				parent[FS_FILES].d2 = 0;
+                file_selector[FS_FILES].d1 = 0;
+                file_selector[FS_FILES].d2 = 0;
             }
         }
         
         /* and continue... */
-        object_message(parent +FS_FILES, MSG_DRAW, 0);
+        object_message(file_selector+FS_FILES, MSG_DRAW, 0);
         object_message(d, MSG_START, 0);
         object_message(d, MSG_DRAW, 0);
         
@@ -577,18 +567,16 @@ static int build_attrb_flag(attrb_state_t state)
 /* fs_flist_proc:
   *  Dialog procedure for the file selector list.
   */
-int fs_flist_proc(int msg, DIALOG *d, int c)
+static int fs_flist_proc(int msg, DIALOG *d, int c)
 {
-	DIALOG *parent = (DIALOG *)d->dp3;
     static int recurse_flag = 0;
-    char *s = (char *)parent[FS_EDIT].dp;
+    char *s = (char *) file_selector[FS_EDIT].dp;
     char tmp[32];
     /* of s (in bytes) */
-    int size = (parent[FS_EDIT].d1 + 1) * uwidth_max(U_CURRENT);
+    int size = (file_selector[FS_EDIT].d1 + 1) * uwidth_max(U_CURRENT);
     int sel = d->d1;
     int i, ret;
     int ch, count;
-	
     
     if(msg == MSG_START)
     {
@@ -683,11 +671,11 @@ int fs_flist_proc(int msg, DIALOG *d, int c)
             usetc(updir, 0);
         }
         
-        object_message(parent +FS_EDIT, MSG_START, 0);
-        object_message(parent +FS_EDIT, MSG_DRAW, 0);
+        object_message(file_selector+FS_EDIT, MSG_START, 0);
+        object_message(file_selector+FS_EDIT, MSG_DRAW, 0);
         
         if(ret == D_CLOSE)
-            return object_message(parent +FS_EDIT, MSG_KEY, 0);
+            return object_message(file_selector+FS_EDIT, MSG_KEY, 0);
     }
     
     return ret;
@@ -897,39 +885,40 @@ static void stretch_dialog(DIALOG *d, int width, int height, int show_extlist)
 /* enlarge_file_selector:
  * Enlarges the dialog for Large Mode. -L
  */
-DIALOG *enlarge_file_selector(int width, int height)
+void enlarge_file_selector(int width, int height)
 {
-    bool show_extlist = file_selector[FS_TYPES].proc != fs_dummy_proc;
-	stretch_dialog(file_selector, width, height, 1);
-
-	DIALOG *newd = resizeDialog(file_selector, 1.5);
-	
-	jwin_center_dialog(newd);
-    if(is_large())
+    if(file_selector[0].d1==0)
     {
+        stretch_dialog(file_selector, width, height, 1);
+    }
+    
+    jwin_center_dialog(file_selector);
+    bool show_extlist = file_selector[FS_TYPES].proc != fs_dummy_proc;
+    
+    if(is_large)
+    {
+        large_dialog(file_selector);
         int bottom =
 #ifndef HAVE_DIR_LIST
-			newd[FS_OK].y;
+            file_selector[FS_OK].y;
 #else
-			newd[FS_WIN].y+ newd[FS_WIN].h-8;
+            file_selector[FS_WIN].y+file_selector[FS_WIN].h-8;
 #endif
-		newd[FS_FILES].dp2=NULL;
-		newd[FS_TYPES].y = bottom- newd[FS_TYPES].h-5;
-		newd[FS_FILES].h=show_extlist ? 152 : 168;
-		newd[FS_FILES].y = (show_extlist ? newd[FS_TYPES].y:bottom)-(newd[FS_FILES].h+5);
-		newd[FS_EDIT].y = newd[FS_FILES].y-26;
-        ((ListData *)newd[FS_FILES].dp)->font = &lfont_l;
-		newd[FS_TYPES].dp2=NULL;
-		newd[FS_TYPES].h=20;
-        ((ListData *)newd[FS_TYPES].dp)->font = &lfont_l;
+        file_selector[FS_FILES].dp2=NULL;
+        file_selector[FS_TYPES].y = bottom-file_selector[FS_TYPES].h-5;
+        file_selector[FS_FILES].h=show_extlist ? 152 : 168;
+        file_selector[FS_FILES].y = (show_extlist ? file_selector[FS_TYPES].y:bottom)-(file_selector[FS_FILES].h+5);
+        file_selector[FS_EDIT].y = file_selector[FS_FILES].y-26;
+        ((ListData *)file_selector[FS_FILES].dp)->font = &lfont_l;
+        file_selector[FS_TYPES].dp2=NULL;
+        file_selector[FS_TYPES].h=20;
+        ((ListData *)file_selector[FS_TYPES].dp)->font = &lfont_l;
 #ifdef HAVE_DIR_LIST
-		newd[FS_DISKS].dp2=NULL;
-		newd[FS_DISKS].h=20;
-        ((ListData *)newd[FS_DISKS].dp)->font = &lfont_l;
+        file_selector[FS_DISKS].dp2=NULL;
+        file_selector[FS_DISKS].h=20;
+        ((ListData *)file_selector[FS_DISKS].dp)->font = &lfont_l;
 #endif
     }
-
-	return newd;
 }
 
 /* jwin_file_select_ex:
@@ -1011,16 +1000,13 @@ int jwin_file_select_ex(AL_CONST char *message, char *path, AL_CONST char *ext, 
     
     do
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
     }
-    while(Backend::mouse->anyButtonClicked());
+    while(gui_mouse_b());
     
     file_selector[FS_TYPES].proc = fs_dummy_proc;
-    DIALOG *selector_cpy = enlarge_file_selector(width, height);
-    ret = popup_zqdialog(selector_cpy, FS_EDIT);
-	delete[] selector_cpy;
-
+    enlarge_file_selector(width, height);
+    ret = popup_zqdialog(file_selector, FS_EDIT);
+    
     if(fext)
     {
         zc_free(fext);
@@ -1084,17 +1070,15 @@ static const char *fs_elist_getter(int index, int *list_size)
 /* fs_elist_proc:
   *  Dialog procedure for the file selector disk list.
   */
-int fs_elist_proc(int msg, DIALOG *d, int c)
+static int fs_elist_proc(int msg, DIALOG *d, int c)
 {
     int ret;
     int sel = d->d1;
     char *s, *tok;
     char tmp[80], ext[80];
     static char ext_tokens[] = " ,;";
-
-	DIALOG *parent = (DIALOG *)d->dp3;
     
-    s = (char *)parent[FS_EDIT].dp;
+    s = (char *) file_selector[FS_EDIT].dp;
     
     if(msg == MSG_START)
     {
@@ -1132,13 +1116,15 @@ int fs_elist_proc(int msg, DIALOG *d, int c)
                 replace_filename(s, flist->dir, "", 256);
         }
         
-        SEND_MESSAGE(parent +FS_FILES, MSG_START, 0);
-        SEND_MESSAGE(parent +FS_FILES, MSG_DRAW, 0);
-        SEND_MESSAGE(parent +FS_EDIT, MSG_START, 0);
-        SEND_MESSAGE(parent +FS_EDIT, MSG_DRAW, 0);
+        scare_mouse();
+        SEND_MESSAGE(file_selector+FS_FILES, MSG_START, 0);
+        SEND_MESSAGE(file_selector+FS_FILES, MSG_DRAW, 0);
+        SEND_MESSAGE(file_selector+FS_EDIT, MSG_START, 0);
+        SEND_MESSAGE(file_selector+FS_EDIT, MSG_DRAW, 0);
+        unscare_mouse();
         
         if(ret & D_CLOSE)
-            return (ret | SEND_MESSAGE(parent +FS_EDIT, MSG_KEY, 0)) & ~D_CLOSE;
+            return (ret | SEND_MESSAGE(file_selector+FS_EDIT, MSG_KEY, 0)) & ~D_CLOSE;
     }
     
     return ret;
@@ -1219,17 +1205,12 @@ int jwin_dfile_select_ex(AL_CONST char *message, char *path, AL_CONST char *ext,
     
     do
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
     }
-    while(Backend::mouse->anyButtonClicked());
+    while(gui_mouse_b());
     
     file_selector[FS_TYPES].proc = fs_dummy_proc;
-    DIALOG *file_selector_cpy = enlarge_file_selector(width, height);
-
-    ret = popup_zqdialog(file_selector_cpy, FS_EDIT);
-
-	delete[] file_selector_cpy;
+    enlarge_file_selector(width, height);
+    ret = popup_zqdialog(file_selector, FS_EDIT);
     
     if(fext)
     {
@@ -1343,20 +1324,13 @@ int jwin_file_browse_ex(AL_CONST char *message, char *path, EXT_LIST *list, int 
     
     do
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
     }
-    while(Backend::mouse->anyButtonClicked());
+    while(gui_mouse_b());
     
     file_selector[FS_TYPES].proc = fs_elist_proc;
-    DIALOG *file_selector_cpy = enlarge_file_selector(width,height);
-
-	ret = popup_zqdialog(file_selector_cpy, FS_EDIT);
-	int sel = file_selector_cpy[FS_TYPES].d1;
-
-	delete[] file_selector_cpy;
-
-
+    enlarge_file_selector(width,height);
+    ret = popup_zqdialog(file_selector, FS_EDIT);
+    
     if(fext)
     {
         zc_free(fext);
@@ -1372,7 +1346,7 @@ int jwin_file_browse_ex(AL_CONST char *message, char *path, EXT_LIST *list, int 
     if((ret == FS_CANCEL) || (ret == FS_WIN) || (!ugetc(get_filename(path))))
         return FALSE;
         
-    *list_sel = sel;
+    *list_sel = file_selector[FS_TYPES].d1;
     
     p = get_extension(path);
     

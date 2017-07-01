@@ -17,12 +17,12 @@
 #include "zdefs.h"
 #include "zeldadat.h"
 #include "zc_malloc.h"
-#include "backend/AllBackends.h"
 
 extern DATAFILE* data;
-extern int joystick_index;
 
-int virtualScreenScale();
+extern bool sbig;
+extern int screen_scale;
+extern int joystick_index;
 
 
 static void SetCols(RGB* pal)
@@ -125,7 +125,7 @@ int aglogo(BITMAP *frame, BITMAP *firebuf, int resx, int resy)
     PALETTE pal;
     SetCols(pal);
     PALETTE workpal;
-    Backend::palette->setPalette(black_palette);
+    set_palette(black_palette);
     clear_bitmap(frame);
     clear_bitmap(firebuf);
     clear_bitmap(screen);
@@ -146,13 +146,12 @@ int aglogo(BITMAP *frame, BITMAP *firebuf, int resx, int resy)
         CopyAvg(firebuf);
         blit(firebuf,frame,8,0,0,0,320,198);
         draw_rle_sprite(frame,(RLE_SPRITE*)data[RLE_AGTEXT].dat,24,90);
+        vsync();
         
-
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
-        
-        
-        stretch_blit(frame,screen, 0,0,320,198, (resx-(320*virtualScreenScale() ))>>1, (resy-(198* virtualScreenScale()))>>1, 320* virtualScreenScale(),198* virtualScreenScale());
+        if(sbig)
+            stretch_blit(frame,screen, 0,0,320,198, (resx-(320*screen_scale))>>1, (resy-(198*screen_scale))>>1, 320*screen_scale,198*screen_scale);
+        else
+            blit(frame,screen, 0,0,(resx-320)>>1, (resy-198)>>1, 320,198);
             
         poll_joystick();
         
@@ -164,17 +163,17 @@ int aglogo(BITMAP *frame, BITMAP *firebuf, int resx, int resy)
             if(fadecnt<64) //I get some problems here when fade_interpolate takes invalid parameters.
             {
                 if(!(++fadecnt < 0))
-                    Backend::palette->interpolatePalettes(black_palette,pal,fadecnt,0,255, workpal);
+                    fade_interpolate(black_palette,pal,workpal,fadecnt,0,255);
                     
-                Backend::palette->setPalette(workpal);
+                set_palette_range(workpal,0,255,false);
             }
         }
         else
         {
             if(!(--fadecnt < 0))
-                Backend::palette->interpolatePalettes(black_palette,pal,fadecnt,0,255, workpal);
+                fade_interpolate(black_palette,pal,workpal,fadecnt,0,255);
                 
-            Backend::palette->setPalette(workpal);
+            set_palette_range(workpal,0,255,false);
         }
     }
     while(fadecnt>0);

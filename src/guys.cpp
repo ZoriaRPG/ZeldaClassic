@@ -1,5 +1,4 @@
 //--------------------------------------------------------
-//--------------------------------------------------------
 //  Zelda Classic
 //  by Jeremy Craner, 1999-2000
 //
@@ -21,11 +20,12 @@
 #include "link.h"
 #include "subscr.h"
 #include "ffscript.h"
+#include "gamedata.h"
 #include "defdata.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
+#include "zscriptversion.h"
 
-extern LinkClass   *Link;
+extern LinkClass   Link;
 extern sprite_list  guys, items, Ewpns, Lwpns, Sitems, chainlinks, decorations;
 extern zinitdata    zinit;
 
@@ -163,8 +163,8 @@ int count_layer_enemies()
 
 int link_on_wall()
 {
-    int lx = Link->getX();
-    int ly = Link->getY();
+    int lx = Link.getX();
+    int ly = Link.getY();
     
     if(lx>=48 && lx<=192)
     {
@@ -263,7 +263,7 @@ bool m_walkflag(int dx,int dy,int special, int x=-1000, int y=-1000)
 
   */
 
-enemy::enemy(fix X, fix Y, int Id, int Clk) : sprite(*pool)
+enemy::enemy(fix X,fix Y,int Id,int Clk) : sprite()
 {
     x=X;
     y=Y;
@@ -293,7 +293,7 @@ enemy::enemy(fix X, fix Y, int Id, int Clk) : sprite(*pool)
     dp=d->dp;
     wdp=d->wdp;
     wpn=d->weapon;
-    wpnsprite = d-> wpnsprite; //2.6 -Z
+    
     rate=d->rate;
     hrate=d->hrate;
     dstep=d->step;
@@ -316,7 +316,7 @@ enemy::enemy(fix X, fix Y, int Id, int Clk) : sprite(*pool)
     
     for(int i=0; i<edefLAST; i++)
         defense[i]=d->defense[i];
-	
+        
     bgsfx=d->bgsfx;
     hitsfx=d->hitsfx;
     deadsfx=d->deadsfx;
@@ -329,7 +329,7 @@ enemy::enemy(fix X, fix Y, int Id, int Clk) : sprite(*pool)
     
     if(bgsfx>-1)
     {
-        Backend::sfx->loop(bgsfx,128);
+        cont_sfx(bgsfx);
     }
     
     if(get_bit(quest_rules,qr_NEWENEMYTILES))
@@ -367,26 +367,6 @@ enemy::enemy(fix X, fix Y, int Id, int Clk) : sprite(*pool)
     canfreeze = count_enemy = true;
     mainguy = !(flags & guy_doesntcount);
     dir = rand()&3;
-    
-    //2.6 Enemy Editor Hit and TIle Sizes
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_HEIGHT) != 0) && d->txsz > 0 ) { txsz = d->txsz; if ( txsz > 1 ) extend = 3; } //! Don;t forget to set extend if the tilesize is > 1. 
-    //al_trace("->txsz:%i\n", d->txsz); Verified that this is setting the value. -Z
-   // al_trace("Enemy txsz:%i\n", txsz);
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_WIDTH) != 0) && d->tysz > 0 ) { tysz = d->tysz; if ( tysz > 1 ) extend = 3; }
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) != 0) && d->hxsz >= 0 ) hxsz = d->hxsz;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) != 0) && d->hysz >= 0 ) hysz = d->hysz;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_Z_HEIGHT) != 0) && d->hzsz >= 0  ) hzsz = d->hzsz;
-    if ( (d->SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) != 0 ) hxofs = d->hxofs;
-    if (  (d->SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) != 0 ) hyofs = d->hyofs;
-//    if ( (d->SIZEflags&guyflagOVERRIDEHITZOFFSET) != 0 ) hzofs = d->hzofs;
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_X_OFFSET) != 0 ) xofs = (int)d->xofs;
-    if ( (d->SIZEflags&guyflagOVERRIDE_DRAW_Y_OFFSET) != 0 ) 
-    {
-	    yofs = (int)d->yofs; //This seems to be setting to +48 or something with any value set?! -Z
-	    yofs += 56 ; //this offset fixes yofs not plaing properly. -Z
-    }
-  
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_Z_OFFSET) != 0 ) zofs = (int)d->zofs;
     
     if((wpn==ewBomb || wpn==ewSBomb) && family!=eeOTHER && family!=eeFIRE && (family!=eeWALK || dmisc2 != e2tBOMBCHU))
         wpn = 0;
@@ -540,15 +520,21 @@ void enemy::stop_bgsfx(int index)
     if(bgsfx<=0)
         return;
         
-    Backend::sfx->unloop(bgsfx);
+    // Look for other enemies with the same bgsfx
+    for(int i=0; i<guys.Count(); i++)
+    {
+        if(i!=index && ((enemy*)guys.spr(i))->bgsfx==bgsfx)
+            return;
+    }
+    
+    stop_sfx(bgsfx);
 }
 
 
 // to allow for different sfx on defeating enemy
 void enemy::death_sfx()
 {
-    if(deadsfx > 0) 
-        Backend::sfx->play(deadsfx,x);
+    if(deadsfx > 0) sfx(deadsfx,pan(int(x)));
 }
 
 void enemy::move(fix dx,fix dy)
@@ -648,7 +634,7 @@ void enemy::FireBreath(bool seeklink)
     }
     
     addEwpn(wx,wy,z,wpn,2,wdp,seeklink ? 0xFF : wdir, getUID());
-    Backend::sfx->play(wpnsfx(wpn),int(x));
+    sfx(wpnsfx(wpn),pan(int(x)));
     
     int i=Ewpns.Count()-1;
     weapon *ew = (weapon*)(Ewpns.spr(i));
@@ -701,20 +687,20 @@ void enemy::FireWeapon()
         //fallthrough
     default:
         Ewpns.add(new weapon(x,y,z,wpn,2+(dmisc1==e1t3SHOTSFAST || dmisc1==e1tFAST ? 4:0),wdp,wpn==ewFireball2 || wpn==ewFireball ? 0:dir,-1, getUID(),false));
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
         break;
         
     case e1tSLANT:
     {
         int slant = 0;
         
-        if(((Link->x-x) < -8 && dir==up) || ((Link->x-x) > 8 && dir==down) || ((Link->y-y) < -8 && dir==left) || ((Link->y-y) > 8 && dir==right))
+        if(((Link.x-x) < -8 && dir==up) || ((Link.x-x) > 8 && dir==down) || ((Link.y-y) < -8 && dir==left) || ((Link.y-y) > 8 && dir==right))
             slant = left;
-        else if(((Link->x-x) > 8 && dir==up) || ((Link->x-x) < -8 && dir==down) || ((Link->y-y) > 8 && dir==left) || ((Link->y-y) < -8 && dir==right))
+        else if(((Link.x-x) > 8 && dir==up) || ((Link.x-x) < -8 && dir==down) || ((Link.y-y) > 8 && dir==left) || ((Link.y-y) < -8 && dir==right))
             slant = right;
             
         Ewpns.add(new weapon(x,y,z,wpn,2+(((dir^slant)+1)<<3),wdp,wpn==ewFireball2 || wpn==ewFireball ? 0:dir,-1, getUID(),false));
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
         break;
     }
     
@@ -730,7 +716,7 @@ void enemy::FireWeapon()
         Ewpns.add(new weapon(x,y,z,wpn,0,wdp,down,-1, getUID(),false));
         Ewpns.add(new weapon(x,y,z,wpn,0,wdp,left,-1, getUID(),false));
         Ewpns.add(new weapon(x,y,z,wpn,0,wdp,right,-1, getUID(),false));
-        Backend::sfx->play(wpnsfx(wpn), int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
         break;
         
     case e1tSUMMON: // Bat Wizzrobe
@@ -758,7 +744,7 @@ void enemy::FireWeapon()
                     ((enemy*)guys.spr(kids+i))->count_enemy = false;
             }
             
-            Backend::sfx->play(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,int(x));
+            sfx(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,pan(int(x)));
         }
         
         break;
@@ -789,7 +775,7 @@ void enemy::FireWeapon()
                     x2=16*((rand()%12)+2);
                     y2=16*((rand()%7)+2);
                     
-                    if((!m_walkflag(x2,y2,0))&&((abs(x2-Link->getX())>=32)||(abs(y2-Link->getY())>=32)))
+                    if((!m_walkflag(x2,y2,0))&&((abs(x2-Link.getX())>=32)||(abs(y2-Link.getY())>=32)))
                     {
                         if(addenemy(x2,y2,get_bit(quest_rules,qr_ENEMIESZAXIS) ? 64 : 0,id2,-10))
                             ((enemy*)guys.spr(kids+i))->count_enemy = false;
@@ -802,7 +788,7 @@ void enemy::FireWeapon()
             
             if(summoned)
             {
-                Backend::sfx->play(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,int(x));
+                sfx(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,pan(int(x)));
             }
         }
         
@@ -810,80 +796,6 @@ void enemy::FireWeapon()
     }
     }
 }
-
-//! Weapon Editor for 2.6
-//To hell with this. I'm writing new functions to resolve weapon type and defence. -Z
-
-int enemy::getWeaponID(weapon *w){
-	int wpnID; 
-	
-	if ( w->parentitem == -1 ) {
-		//al_trace("enemy::getWeaponID(*w), Step 1B, checking parentitem; parentitem == -1, eturning w->id: %d\n", w->id);
-		//Z_message("enemy::getWeaponID(*w), Step 1B, checking parentitem; parentitem == -1, eturning w->id: %d\n", w->id);
-		return w->id;
-		
-	}
-	if ( w->parentitem > -1 ) {
-		//al_trace("enemy::getWeaponID(*w), Step 1B, checking parentitem; parentitem > -1, and is: %d\n", w->parentitem);
-		//Z_message("enemy::getWeaponID(*w), Step 1B, checking parentitem; parentitem > -1, and is: %d\n", w->parentitem);
-	
-		int usewpn = itemsbuf[w->parentitem].useweapon;
-		//al_trace("enemy::getWeaponID(*w), Step 2, getting itemsbuf[w->parentitem].useweapon; usewpn is: %d\n", usewpn);
-		//Z_message("enemy::getWeaponID(*w), Step 2, getting itemsbuf[w->parentitem].useweapon; usewpn is: %d\n", usewpn);
-	
-		if ( usewpn > 0 ) { 
-			
-			wpnID = usewpn; //Not forwarding to the weapon sprite?
-			//al_trace("enemy::getWeaponID(*w), Step 3A, useweapon > 0; setting wpnID = useweapon; wpnID is: %d\n", wpnID);
-			//Z_message("enemy::getWeaponID(*w), Step 3A, useweapon > 0; setting wpnID = useweapon; wpnID is: %d\n", wpnID);
-		}
-		else {
-			wpnID = w->id;
-			//al_trace("enemy::getWeaponID(*w), Step 3A, useweapon !> 0; setting wpnID = w->id; wpnID is: %d\n", wpnID);
-			//Z_message("enemy::getWeaponID(*w), Step 3A, useweapon !> 0; setting wpnID = w->id; wpnID is: %d\n", wpnID);
-			
-		}
-		return wpnID;
-	}
-	else {
-		return w->id;
-	}
-
-}
-
-int enemy::resolveEnemyDefence(weapon *w){
-	int weapondef = -1; //To suppress compiler warnings. 
-	//al_trace("enemy::resolveEnemyDefence(), Step 0, initial weapondef should be -1, and is: %d\n", weapondef);
-	//Z_message("enemy::resolveEnemyDefence(), Step 0, initial weapondef should be -1, and is: %d\n", weapondef);
-	int wid = getWeaponID(w);
-	//al_trace("enemy::resolveEnemyDefence(), Step 1, initial wid: %d\n", wid);
-	//Z_message("enemy::resolveEnemyDefence(), Step 1, initial wid: %d\n", wid);
-	
-	if ( w->parentitem > -1 ) {
-		int usedef = itemsbuf[w->parentitem].usedefence;
-		
-		//al_trace("enemy::resolveEnemyDefence(), Step 2, reading itemsbuf[itm].usedefence: %d\n", usedef);
-		//Z_message("enemy::resolveEnemyDefence(), Step 2, reading itemsbuf[itm].usedefence: %d\n", usedef);
-		
-		//al_trace("enemy::resolveEnemyDefence(), Step 3, reading defense[wid]: %d\n", defense[wid]);
-		//Z_message("enemy::resolveEnemyDefence(), Step 3, reading defense[wid]: %d\n", defense[wid]);
-		
-		if ( defense[weaponToDefence(wid)] == 0 ) {
-			weapondef = usedef;
-			//al_trace("enemy::resolveEnemyDefence(), Step 4A, defense[wid] == 0; edef = usedef; edef is: %d\n", weapondef);
-			//Z_message("enemy::resolveEnemyDefence(), Step 4A, defense[wid] == 0; edef = usedef; edef is: %d\n", weapondef);
-		}
-		else weapondef = defense[weaponToDefence(wid)]; //defense] is not in the same order as weapon id enum, is it?
-		//al_trace("enemy::resolveEnemyDefence(), Step 4A, defense[wid] != 0; edef = defense[wid]; edef is: %d\n", weapondef);
-		//Z_message("enemy::resolveEnemyDefence(), Step 4A, defense[wid] != 0; edef = defense[wid]; edef is: %d\n", weapondef);
-		return weapondef;
-	}
-	//al_trace("enemy::resolveEnemyDefence(), Step 5, returning defense[wid]: %d\n", defense[wid]);
-	//Z_message("enemy::resolveEnemyDefence(), Step 5, returning defense[wid]: %d\n", defense[wid]);
-	return defense[weaponToDefence(wid)];
-}
-
-
 
 
 // Hit the shield(s)?
@@ -904,66 +816,6 @@ bool enemy::hitshield(int wpnx, int wpny, int xdir)
     
     return ret;
 }
-
-//converts a wqeapon ID to its defence index. 
-int enemy::weaponToDefence(int wid){
-	switch(wid)
-	{
-		case wNone: return -1;
-		case wSword: return edefSWORD;
-		case wBeam: return edefBEAM;
-		case wBrang: return edefBRANG;
-		case wBomb: return edefBOMB;
-		case wSBomb: return edefSBOMB;
-		case wLitBomb: return edefBOMB;
-		case wLitSBomb: return edefSBOMB;
-		case wArrow: return edefARROW;
-		case wFire: return edefFIRE;
-		case wWhistle: return edefSONIC;
-		case wBait: return edefBAIT;
-		case wWand: return edefWAND;
-		case wMagic: return edefMAGIC;
-		case wCatching: return -1;
-		case wWind: return edefWIND;
-		case wRefMagic: return edefREFMAGIC;
-		case wRefFireball: return edefREFBALL;
-		case wRefRock: return edefREFROCK;
-		case wHammer: return edefHAMMER;
-		case wHookshot: return edefHOOKSHOT;
-		case wHSHandle: return edefHOOKSHOT;
-		case wHSChain: return edefHOOKSHOT;
-		case wSSparkle: return edefSPARKLE;
-		case wFSparkle:  return edefSPARKLE;
-		case wSmack: return -1; // is this the candle object?
-		case wPhantom:  return -1; //engine created visual effects. 
-		case wCByrna: return edefBYRNA;
-		case wRefBeam:  return edefREFBEAM;
-		case wStomp: return edefSTOMP;
-		case wScript1:  return edefSCRIPT01;
-		case wScript2:  return edefSCRIPT02;
-		case wScript3:  return edefSCRIPT03;
-		case wScript4: return edefSCRIPT04;
-		case wScript5:  return edefSCRIPT05;
-		case wScript6:  return edefSCRIPT06;
-		case wScript7:  return edefSCRIPT07;
-		case wScript8: return edefSCRIPT08;
-		case wScript9:  return edefSCRIPT09;
-		case wScript10:  return edefSCRIPT10;
-		case wIce:  return edefICE;
-		case wSound: return edefSONIC;
-		case wThrowRock: return edefTHROWNROCK;
-		case wPot: return edefPOT;
-		case wLitZap: return edefELECTRIC;
-		case wZ3Sword: return edefZ3SWORD;
-		case wLASWord: return edefLASWORD;
-		case wSpinAttk: return edefSPINATTK;
-		case wShield: return edefSHIELD;
-		case wTrowel: return edefTROWEL;
-		
-		default: return -1;
-	}
-}
-	
 
 // Check defenses without actually acting on them.
 bool enemy::candamage(int power, int edef)
@@ -1003,232 +855,9 @@ bool enemy::candamage(int power, int edef)
 // -1: do damage
 int enemy::defend(int wpnId, int *power, int edef)
 {
-	/*
-		switch ( wpnId ){
-		    case wBrang:
-			al_trace("enemy::defend(), wpnID input is: LW_BRANG: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: BLW_BRANG: %d\n", wpnId);
-			break;
-			
-		    case wHookshot:
-			al_trace("enemy::defend(), wpnID input is: LW_HOOKSHOT: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_HOOKSHOT: %d\n", wpnId);
-			break;
-			
-			// Anyway...
-		    case wBomb:
-			al_trace("enemy::defend(), wpnID input is: LW_BOMB: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_BOMB: %d\n", wpnId);
-			break;
-			
-		    case wSBomb:
-			al_trace("enemy::defend(), wpnID input is: LW_SBOMB: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_SBOMB: %d\n", wpnId);;
-			break;
-			
-		    case wArrow:
-			al_trace("enemy::defend(), wpnID input is: LW_ARROW: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_ARROW: %d\n", wpnId);
-			break;
-			
-		    case wFire:
-			al_trace("enemy::defend(), wpnID input is: LW_FIRE: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_FIRE: %d\n", wpnId);
-			break;
-			
-		    case wWand:
-			al_trace("enemy::defend(), wpnID input is: LW_WAND: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_WAND: %d\n", wpnId);
-			break;
-			
-		    case wMagic:
-			al_trace("enemy::defend(), wpnID input is: LW_MAGIC: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_MAGIC: %d\n", wpnId);
-			break;
-			
-		    case wHammer:
-			al_trace("enemy::defend(), wpnID input is: LW_HAMMER: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_HAMMER: %d\n", wpnId);
-			break;
-			
-		    case wSword:
-			al_trace("enemy::defend(), wpnID input is: LW_SWORD: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_SWORD: %d\n", wpnId);
-			break;
-			
-		    case wBeam:
-			al_trace("enemy::defend(), wpnID input is: LW_BEAM: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_BEAM: %d\n", wpnId);
-			break;
-			
-		    case wRefBeam:
-			al_trace("enemy::defend(), wpnID input is: LW_REFBEAM: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_REFBEAM: %d\n", wpnId);
-			break;
-			
-		    case wRefMagic:
-			al_trace("enemy::defend(), wpnID input is: LW_REFMAGIC: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_REFMAGIC: %d\n", wpnId);
-			break;
-			
-		    case wRefFireball:
-			al_trace("enemy::defend(), wpnID input is: LW_REFFIREBALL: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_REFFIREBALL: %d\n", wpnId);
-			break;
-			
-		    case wRefRock:
-			al_trace("enemy::defend(), wpnID input is: LW_REFROCK: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_REFROCK: %d\n", wpnId);
-			break;
-			
-		    case wStomp:
-			al_trace("enemy::defend(), wpnID input is: LW_STOMP: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: LW_STOMP: %d\n", wpnId);
-			break;
-			
-		    case wCByrna:
-			al_trace("enemy::defend(), wpnID input is: LW_BYRNA: %d\n", wpnId);
-			Z_message("enemy::defend(), wpnID input is: L: %d\n", wpnId);
-			break;
-			
-			
-		    case wScript1:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT1: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT1: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript2:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT2: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT2: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript3:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT3: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT3: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript4:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT4: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT4: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript5:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT5: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT5: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript6:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT6: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT6: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript7:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT7: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT7: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript8:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT8: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT8: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript9:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT9: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT9: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break;
-		    
-		    case wScript10:
-			    if(QHeader.zelda_version > 0x250) {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT10: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version > 0x250; wpnID input is: LW_SCRIPT10: %d\n", wpnId);
-			    }
-			    else {
-				    al_trace("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			           Z_message("enemy::defend(), SCRIPT WEAPON, Quest Header Version !> 0x250; wpnID input is: LW_SCRIPT: %d\n", wpnId);
-			    }
-			break; 
-		    
-		
-		}
-		*/
-	//Weapon Editor, Default Defence if set aqnd npc defence is none. 
-	//otherwise, use enemy editor definitions.  -Z
-	int the_defence;
-	
-	//al_trace("enemy::defend(), Step 1, checking defense[edef]: %d\n", defense[edef]);
-	//Z_message("enemy::defend(), Step 1, checking defense[edef]: %d\n", defense[edef]);
-	if ( defense[edef] > 0 ) 
-	{ 
-	    the_defence = defense[edef]; 
-	   // al_trace("enemy::defend(), Step 2, defense[edef] > 0, setting defence: %d\n", defence);
-	    //Z_message("enemy::defend(), Step 2, defense[edef] > 0, setting defence: %d\n", defence);
-	
-	} 
-	else 
-	{
-	    the_defence = edef; //itemsbuf[id].usedefense;
-	    //al_trace("enemy::defend(), Step 3, defense[edef] !> 0, setting defence: %d\n", edef);
-	    //Z_message("enemy::defend(), Step 2, defense[edef] !> 0, setting defence: %d\n", edef);
-	}
     if(shieldCanBlock)
     {
-	   // al_trace("enemy::defend(), shieldCanBlock, doing switch(defence) using a case of: %d\n", defence);
-	  //  Z_message("enemy::defend(), shieldCanBlock, doing switch(defence) using a case of: %d\n", defence);
-        switch(the_defence)
+        switch(defense[edef])
         {
         case edIGNORE:
             return 0;
@@ -1238,18 +867,16 @@ int enemy::defend(int wpnId, int *power, int edef)
                 return 0;
         }
         
-        Backend::sfx->play(WAV_CHINK,int(x));
+        sfx(WAV_CHINK,pan(int(x)));
         return 1;
     }
     
-   // al_trace("enemy::defend(), !shieldCanBlock, doing switch(defence) using a case of: %d\n", defence);
-    //Z_message("enemy::defend(), !shieldCanBlock, doing switch(defence) using a case of: %d\n", defence);
-    switch(the_defence)
+    switch(defense[edef])
     {
     case edSTUNORCHINK:
         if(*power <= 0)
         {
-            Backend::sfx->play(WAV_CHINK,int(x));
+            sfx(WAV_CHINK,pan(int(x)));
             return 1;
         }
         
@@ -1258,13 +885,11 @@ int enemy::defend(int wpnId, int *power, int edef)
             return 0;
             
     case edSTUNONLY:
-        if((wpnId==wFire || wpnId==wBomb || wpnId==wSBomb || wpnId==wHookshot || wpnId==wSword) && stunclk>=159){
-	    //al_trace("enemy::defend(), edSTUNONLY found a weapon of type FIRE, BOMB, SBOMB, HOOKSHOT, or SWORD:, with wpnId:  \n", wpnId);
-	   // Z_message("enemy::defend(), edSTUNONLY found a weapon of type FIRE, BOMB, SBOMB, HOOKSHOT, or SWORD:, with wpnId:  \n", wpnId);
+        if((wpnId==wFire || wpnId==wBomb || wpnId==wSBomb || wpnId==wHookshot || wpnId==wSword) && stunclk>=159)
             return 1;
-	}
+            
         stunclk=160;
-        Backend::sfx->play(WAV_EHIT,int(x));
+        sfx(WAV_EHIT,pan(int(x)));
         return 1;
         
     case edCHINKL1:
@@ -1281,12 +906,9 @@ int enemy::defend(int wpnId, int *power, int edef)
         
     case edCHINKL8:
         if(*power >= 8*DAMAGE_MULTIPLIER) break;
-    
-    case edCHINKL10:
-        if(*power >= 10*DAMAGE_MULTIPLIER) break;
         
     case edCHINK:
-        Backend::sfx->play(WAV_CHINK,int(x));
+        sfx(WAV_CHINK,pan(int(x)));
         return 1;
         
     case edIGNOREL1:
@@ -1299,59 +921,6 @@ int enemy::defend(int wpnId, int *power, int edef)
         *power = hp;
         return -2;
         
-    case edTRIGGERSECRETS:
-	    hidden_entrance(0, true, false, -4);
-	break;
-        
-    case ed2x:
-    {
-	    *power = zc_max(1,*power*2);
-	//int pow = *power;
-        //*power = vbound((pow*2),0,214747);
-	return -1; 
-    }
-    case ed3x:
-    {
-	    *power = zc_max(1,*power*3);
-	//int pow = *power;
-        //*power = vbound((pow*3),0,214747);
-	return -1;
-    }
-    
-    case ed4x:
-    {
-	    *power = zc_max(1,*power*4);
-	//int pow = *power;
-        //*power = vbound((pow*4),0,214747);
-	return -1;
-    }
-    
-    
-    case edHEAL:
-    { //Probably needs its own function, or  routine in the damage functuon to heal if power is negative. 
-	//int pow = *power;
-        //*power = vbound((pow*-1),0,214747);
-	//break;
-	    *power = zc_min(0,*power*-1);
-	    return -1;
-    }
-    /*
-    case edLEVELDAMAGE: 
-    {
-	int pow = *power;
-	int lvl  = *level;
-        *power = vbound((pow*lvl),0,214747);
-	break;
-    }
-    case edLEVELREDUCTION:
-    {
-	int pow = *power;
-	int lvl  = *level;
-        *power = vbound((pow/lvl),0,214747);
-	break;
-    }
-    */
-    
     case edQUARTDAMAGE:
         *power = zc_max(1,*power/2);
         
@@ -1364,152 +933,107 @@ int enemy::defend(int wpnId, int *power, int edef)
     return -1;
 }
 
-
-
 // Defend against a particular item class.
-int enemy::defenditemclass(int wpnId, int *power, weapon *w)
-//int useDefense, int weapon_override)
+int enemy::defenditemclass(int wpnId, int *power)
 {
-	int def=-1;
-	
-	//Weapon Editor -Z
-	//if ( weapon_override > 0 ) wpnId = weapon_override; //Weapon editor override. 
-	//int wpn = 
-	//if ( useDefense > 0 ) {
-		//THis would work if we want to override the defence, but we also only want to do it if
-		//the enemy defence is 'NONE' for this weapon type, so we ead that in enemy::defend()
-
-		//def = defend(getWeaponID(w), power, resolveEnemyDefence(w));
-	//}
-	
-	int wid = getWeaponID(w);
-	
-	
-        //al_trace("enemy::defenditemclass(), Step 1, getting weapon ID; wid = getWeaponID. wid is: %d\n", wid);
-        //Z_message("enemy::defenditemclass(), Step 1, getting weapon ID; wid = getWeaponID. wid is: %d\n", wid);
-			    
-    //else {
+    int def=-1;
     
-	    switch(wid)
-	    {
-		// These first 2 are only used by Gohma... enemy::takehit() has complicated stun-calculation code for these.
-	    case wBrang:
-	    case wBomb:
-	    case wHookshot:
-	    case wSBomb:
-	    case wArrow:
-	    case wFire:
-	    case wWand:
-	    case wMagic:
-	    case wHammer:
-	    case wSword:
-	    case wBeam:
-	    case wRefBeam:
-	    case wRefMagic:
-	    case wRefFireball:
-	    case wRefRock:
-	    case wStomp:
-	    case wCByrna:
-	    {
-		def = defend(wid, power, resolveEnemyDefence(w));
-		    //al_trace("enemy::defenditemclass(), Step 2A, wid is NOT a script type, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-		    //Z_message("enemy::defenditemclass(), Step 2A, wid is NOT a script type, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-	    }
-		break;
-		
-	    
-	   
-		
-		
-	    case wScript1:
-
-	    case wScript2:
-
-	    case wScript3:
-
-	    case wScript4:
-
-	    case wScript5:
+    switch(wpnId)
+    {
+        // These first 2 are only used by Gohma... enemy::takehit() has complicated stun-calculation code for these.
+    case wBrang:
+        def = defend(wpnId, power, edefBRANG);
+        break;
+        
+    case wHookshot:
+        def = defend(wpnId, power, edefHOOKSHOT);
+        break;
+        
+        // Anyway...
+    case wBomb:
+        def = defend(wpnId, power, edefBOMB);
+        break;
+        
+    case wSBomb:
+        def = defend(wpnId, power, edefSBOMB);
+        break;
+        
+    case wArrow:
+        def = defend(wpnId, power, edefARROW);
+        break;
+        
+    case wFire:
+        def = defend(wpnId, power, edefFIRE);
+        break;
+        
+    case wWand:
+        def = defend(wpnId, power, edefWAND);
+        break;
+        
+    case wMagic:
+        def = defend(wpnId, power, edefMAGIC);
+        break;
+        
+    case wHammer:
+        def = defend(wpnId, power, edefHAMMER);
+        break;
+        
+    case wSword:
+        def = defend(wpnId, power, edefSWORD);
+        break;
+        
+    case wBeam:
+        def = defend(wpnId, power, edefBEAM);
+        break;
+        
+    case wRefBeam:
+        def = defend(wpnId, power, edefREFBEAM);
+        break;
+        
+    case wRefMagic:
+        def = defend(wpnId, power, edefREFMAGIC);
+        break;
+        
+    case wRefFireball:
+        def = defend(wpnId, power, edefREFBALL);
+        break;
+        
+    case wRefRock:
+        def = defend(wpnId, power, edefREFROCK);
+        break;
+        
+    case wStomp:
+        def = defend(wpnId, power, edefSTOMP);
+        break;
+        
+    case wCByrna:
+        def = defend(wpnId, power, edefBYRNA);
+        break;
+        
+    default:
+        if(wpnId>=wScript1 && wpnId<=wScript10)
+        {
+            def = defend(wpnId, power, edefSCRIPT);
+        }
+        
+        break;
+    }
     
-	    case wScript6:
-   
-	    case wScript7:
-
-	    case wScript8:
-
-	    case wScript9:
-
-	    case wScript10:
-	    {
-		    if(QHeader.zelda_version > 0x250) 
-		    {
-			def = defend(wid, power,  resolveEnemyDefence(w));
-			//al_trace("enemy::defenditemclass(), Step 2B, wid IS a SCRIPT TYPE and Quest Header Version > 0x250, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-			//Z_message("enemy::defenditemclass(), Step 2B, wid IS a SCRIPT TYPE and Quest Header Version > 0x250, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-			   
-			    
-		    }
-		    else 
-		    {
-			def = defend(wid, power,  edefSCRIPT);
-			//al_trace("enemy::defenditemclass(), Step 2B, wid IS a SCRIPT TYPE and Quest Header Version !> 0x250, doing defend(wid, power, edefSCRIPT; def is: %d\n", def);
-			//Z_message("enemy::defenditemclass(), Step 2B, wid IS a SCRIPT TYPE and Quest Header Version !> 0x250, doing defend(wid, power, edefSCRIPT(w); def is: %d\n", def);
-		    }
-	    }
-		break;
-	    
-	    
-	    //!ZoriaRPG : We need some special cases here, to ensure that old script defs don;t break. 
-	    //Probably best to do this from the qest file, loading the values of Script(generic) into each
-	    //of the ten if the quest version is lower than N. 
-	    //Either that, or we need a boolean flag to set int he enemy editor, or by ZScript that changes this behaviour. 
-	    //such as bool UseSeparatedScriptDefences. hah.
-	    default:
-		    def = defend(wid, power,  resolveEnemyDefence(w));
-	            //al_trace("enemy::defenditemclass(), reached DEFAULT, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-		    //Z_message("enemy::defenditemclass(), reached DEFAULT, doing defend(wid, power, resolveEnemyDefence(w); def is: %d\n", def);
-			   
-		//if(wpnId>=wScript1 && wpnId<=wScript10)
-		//{
-		 //   def = defend(wpnId, power, edefSCRIPT);
-		//}
-		//}
-		
-		break;
-	    }
-	    
-	    return def;
-    //}
+    return def;
 }
 
 // take damage or ignore it
 // -1: damage (if any) dealt
 // 1: blocked
 // 0: weapon passes through unhindered
-// 2: heal enemy? -ZoriaRPG
 int enemy::takehit(weapon *w)
 {
-	
-    int wpnId;
-    int trueID = w->id; //The true ID of the weapon, based on its type. -Z
+    int wpnId = w->id;
     int power = w->power;
     int wpnx = w->x;
     int wpny = w->y;
-    int wpnDir;
     int enemyHitWeapon = w->parentitem;
-	
-	//Weapon Editor. 
-	if ( enemyHitWeapon > -1 ) {
-		
-		if ( itemsbuf[enemyHitWeapon].useweapon > 0 ) { wpnId =	itemsbuf[enemyHitWeapon].useweapon; }
-		//The defined weapon type to use for enemy and combo interaction. -Z
-		else wpnId = w->id; //if we are using s special weapon type, use the attributes from that weapon. 
-	}
-   
-	
-	//Weapon Editor -Z
-	byte def_overide = w->usedefence;
-	byte wpn_override = w->useweapon;
+    int wpnDir;
     
     // If it's a boomerang that just bounced, use the opposite direction;
     // otherwise, it might bypass a shield. This probably won't handle
@@ -1565,8 +1089,8 @@ int enemy::takehit(weapon *w)
             // Weapons which shields protect against
         case wSword:
         case wWand:
-            if(Link->getCharging()>0)
-                Link->setAttackClk(Link->getAttackClk()+1); //Cancel charging
+            if(Link.getCharging()>0)
+                Link.setAttackClk(Link.getAttackClk()+1); //Cancel charging
                 
             //fallthrough
         case wHookshot:
@@ -1771,7 +1295,7 @@ fsparkle:
     default:
         // Work out the defenses!
     {
-        int def = defenditemclass(wpnId, &power, w);
+        int def = defenditemclass(wpnId, &power);
         
         if(def >= 0)
             return def;
@@ -1812,13 +1336,13 @@ hitclock:
         fading=fade_blue_poof;
     }
     
-    Backend::sfx->play(WAV_EHIT, int(x));
+    sfx(WAV_EHIT, pan(int(x)));
     
     if(hitsfx > 0)
-        Backend::sfx->play(hitsfx, int(x));
+        sfx(hitsfx, pan(int(x)));
         
     if(family==eeGUY)
-        Backend::sfx->play(WAV_EDEAD, int(x));
+        sfx(WAV_EDEAD, pan(int(x)));
         
     // Penetrating weapons
     if((wpnId==wArrow || wpnId==wBeam) && !cannotpenetrate())
@@ -2979,8 +2503,8 @@ void enemy::floater_walk(int newrate,int newclk,fix s)
 // at as compared to enemy. Returns -1 if not lined up. Range is inclusive.
 int enemy::lined_up(int range, bool dir8)
 {
-    int lx = Link->getX();
-    int ly = Link->getY();
+    int lx = Link.getX();
+    int ly = Link.getY();
     
     if(abs(lx-int(x))<=range)
     {
@@ -3037,16 +2561,16 @@ int enemy::lined_up(int range, bool dir8)
 // returns true if Link is within 'range' pixels of the enemy
 bool enemy::LinkInRange(int range)
 {
-    int lx = Link->getX();
-    int ly = Link->getY();
+    int lx = Link.getX();
+    int ly = Link.getY();
     return abs(lx-int(x))<=range && abs(ly-int(y))<=range;
 }
 
 // place the enemy in line with Link (red wizzrobes)
 void enemy::place_on_axis(bool floater, bool solid_ok)
 {
-    int lx=zc_min(zc_max(int(Link->getX())&0xF0,32),208);
-    int ly=zc_min(zc_max(int(Link->getY())&0xF0,32),128);
+    int lx=zc_min(zc_max(int(Link.getX())&0xF0,32),208);
+    int ly=zc_min(zc_max(int(Link.getY())&0xF0,32),128);
     int pos2=rand()%23;
     int tried=0;
     bool last_resort,placed=false;
@@ -3830,7 +3354,7 @@ waves2:
     case a4FRM8EYE:
     {
         tilerows = 2;
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         int lookat=rand()&15;
         
         if((ddir<=(((-5)*PI)/8))&&(ddir>(((-7)*PI)/8)))
@@ -4473,7 +3997,7 @@ void guy::draw(BITMAP *dest)
 eFire::eFire(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
 {
     clk4=0;
-    shield= (flags&(inv_left | inv_right | inv_back |inv_front)) != 0;
+    shield=(bool)(flags&(inv_left | inv_right | inv_back |inv_front));
     
     // Spawn type
     if(flags & guy_fadeflicker)
@@ -4564,7 +4088,7 @@ void eFire::break_shield()
 eOther::eOther(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
 {
     clk4=0;
-    shield= (flags&(inv_left | inv_right | inv_back |inv_front)) != 0;
+    shield=(bool)(flags&(inv_left | inv_right | inv_back |inv_front));
     
     // Spawn type
     if(flags & guy_fadeflicker)
@@ -4680,7 +4204,7 @@ void enemy::removearmos(int ax,int ay)
         tmpscr->data[cd] = tmpscr->secretcombo[sSTAIRS];
         tmpscr->cset[cd] = tmpscr->secretcset[sSTAIRS];
         tmpscr->sflag[cd]=tmpscr->secretflag[sSTAIRS];
-        Backend::sfx->play(tmpscr->secretsfx,128);
+        sfx(tmpscr->secretsfx);
     }
     
     if(f == mfARMOS_ITEM || f2 == mfARMOS_ITEM)
@@ -4688,7 +4212,7 @@ void enemy::removearmos(int ax,int ay)
         if(!getmapflag())
         {
             additem(ax,ay,tmpscr->catchall, (ipONETIME2 + ipBIGRANGE) | ((tmpscr->flags3&fHOLDITEM) ? ipHOLDUP : 0));
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
     }
     
@@ -5593,7 +5117,7 @@ bool eTrap::animate(int index)
     {
         ox = x;
         oy = y;
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         
         if((ddir<=(((-1)*PI)/4))&&(ddir>(((-3)*PI)/4)))
         {
@@ -5947,7 +5471,7 @@ bool eTrap2::animate(int index)
             }
             
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1TAP,int(x));
+                sfx(WAV_ZN1TAP,pan(int(x)));
                 
             dir=dir^1;
         }
@@ -5959,7 +5483,7 @@ bool eTrap2::animate(int index)
         if(!trapmove(dir) || clip())
         {
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(WAV_ZN1TAP,int(x));
+                sfx(WAV_ZN1TAP,pan(int(x)));
                 
             dir=dir^1;
         }
@@ -6023,28 +5547,8 @@ eRock::eRock(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
     clk=0;
     mainguy=false;
     clk2=-14;
-	
-	//Enemy Editor Size Tab
-	if (  (d->SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) != 0 ) hxofs = d->hxofs;
-	else hxofs = -2;
-	if (  (d->SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) != 0 ) hyofs = d->hyofs;
-	else hyofs = -2;
-	if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) != 0) && d->hxsz >= 0 ) hxsz = d->hxsz;
-	else hxsz = 20;
-	if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) != 0) && d->hysz >= 0 ) hysz = d->hysz;
-	else hysz=20;
-	
-	if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_HEIGHT) != 0) && d->txsz > 0 ) { txsz = d->txsz; if ( txsz > 1 ) extend = 3; } //! Don;t forget to set extend if the tilesize is > 1. 
-        if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_WIDTH) != 0) && d->tysz > 0 ) { tysz = d->tysz; if ( tysz > 1 ) extend = 3; }
-        if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_Z_HEIGHT) != 0) && d->hzsz >= 0  ) hzsz = d->hzsz;    
-        if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_X_OFFSET) != 0 ) xofs = (int)d->xofs;
-        if ( (d->SIZEflags&guyflagOVERRIDE_DRAW_Y_OFFSET) != 0 ) 
-        {
-	    yofs = (int)d->yofs; //This seems to be setting to +48 or something with any value set?! -Z
-	    yofs += 56 ; //this offset fixes yofs not plaing properly. -Z
-        }
-  
-        if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_Z_OFFSET) != 0 ) zofs = (int)d->zofs;																
+    hxofs=hyofs=-2;
+    hxsz=hysz=20;
     //nets+1640;
 }
 
@@ -6159,29 +5663,9 @@ eBoulder::eBoulder(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
     clk=0;
     mainguy=false;
     clk2=-14;
-	
-    if ( (d->SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) != 0 ) hxofs = d->hxofs;
-    else hxofs= -10; 
-    if (  (d->SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) != 0 ) hyofs = d->hyofs;
-    else hyofs=-10;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) != 0) && d->hxsz >= 0 ) hxsz = d->hxsz;
-    else hxsz=36;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) != 0) && d->hysz >= 0 ) hysz = d->hysz;
-    else hysz=36;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_Z_HEIGHT) != 0) && d->hzsz >= 0  ) hzsz = d->hzsz;
-    else hzsz=16; //can't be jumped
-	
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_HEIGHT) != 0) && d->txsz > 0 ) { txsz = d->txsz; if ( txsz > 1 ) extend = 3; } //! Don;t forget to set extend if the tilesize is > 1. 
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_WIDTH) != 0) && d->tysz > 0 ) { tysz = d->tysz; if ( tysz > 1 ) extend = 3; }
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) != 0) && d->hxsz >= 0 ) hxsz = d->hxsz;
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_X_OFFSET) != 0 ) xofs = (int)d->xofs;
-    if ( (d->SIZEflags&guyflagOVERRIDE_DRAW_Y_OFFSET) != 0 ) 
-    {
-	    yofs = (int)d->yofs; //This seems to be setting to +48 or something with any value set?! -Z
-	    yofs += 56 ; //this offset fixes yofs not plaing properly. -Z
-    }
-  
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_Z_OFFSET) != 0 ) zofs = (int)d->zofs;
+    hxofs=hyofs=-10;
+    hxsz=hysz=36;
+    hzsz=16; //can't be jumped
     //nets+1680;
 }
 
@@ -6334,7 +5818,7 @@ bool eProjectile::animate(int index)
         removearmos(x,y);
     }
     
-    double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+    double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
     
     if((ddir<=(((-1)*PI)/4))&&(ddir>(((-3)*PI)/4)))
     {
@@ -6450,7 +5934,7 @@ bool eNPC::animate(int index)
     {
     case 0:
     {
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         
         if((ddir<=(((-1)*PI)/4))&&(ddir>(((-3)*PI)/4)))
         {
@@ -6518,42 +6002,39 @@ eSpinTile::eSpinTile(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
 
 void eSpinTile::facelink()
 {
-    if(Link->x-x==0)
+    if(Link.x-x==0)
     {
-		if (Link->y + 8 < y)
-			dir = up;
-		else
-			dir = down;
+        dir=(Link.y+8<y)?up:down;
     }
     else
     {
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         
-        if((ddir <= -5.0*PI/8.0) && (ddir > -7.0*PI/8.0))
+        if((ddir<=(((-5)*PI)/8))&&(ddir>(((-7)*PI)/8)))
         {
             dir=l_down;
         }
-        else if ((ddir <= -3.0*PI / 8.0) && (ddir > -5.0*PI / 8.0))
+        else if((ddir<=(((-3)*PI)/8))&&(ddir>(((-5)*PI)/8)))
         {
             dir=down;
         }
-        else if ((ddir <= -1.0*PI / 8.0) && (ddir > -3.0*PI / 8.0))
+        else if((ddir<=(((-1)*PI)/8))&&(ddir>(((-3)*PI)/8)))
         {
             dir=r_down;
         }
-        else if ((ddir <= 1.0*PI / 8.0) && (ddir > -1.0*PI / 8.0))
+        else if((ddir<=(((1)*PI)/8))&&(ddir>(((-1)*PI)/8)))
         {
             dir=right;
         }
-        else if ((ddir <= 3.0*PI / 8.0) && (ddir > 1.0*PI / 8.0))
+        else if((ddir<=(((3)*PI)/8))&&(ddir>(((1)*PI)/8)))
         {
             dir=r_up;
         }
-        else if ((ddir <= 5.0*PI / 8.0) && (ddir > 3.0*PI / 8.0))
+        else if((ddir<=(((5)*PI)/8))&&(ddir>(((3)*PI)/8)))
         {
             dir=up;
         }
-        else if ((ddir <= 7.0*PI / 8.0) && (ddir > 5.0*PI / 8.0))
+        else if((ddir<=(((7)*PI)/8))&&(ddir>(((5)*PI)/8)))
         {
             dir=l_up;
         }
@@ -6563,7 +6044,6 @@ void eSpinTile::facelink()
         }
     }
 }
-
 
 bool eSpinTile::animate(int index)
 {
@@ -6582,7 +6062,7 @@ bool eSpinTile::animate(int index)
     if(misc==96)
     {
         facelink();
-        double ddir=atan2(double((Link->y)-y),double(Link->x-x));
+        double ddir=atan2(double((Link.y)-y),double(Link.x-x));
         angular=true;
         angle=ddir;
         step=(dstep/100.0);
@@ -6630,13 +6110,13 @@ eZora::eZora(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,0)
 
 void eZora::facelink()
 {
-    if(Link->x-x==0)
+    if(Link.x-x==0)
     {
-        dir=(Link->y+8<y)?up:down;
+        dir=(Link.y+8<y)?up:down;
     }
     else
     {
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         
         if((ddir<=(((-5)*PI)/8))&&(ddir>(((-7)*PI)/8)))
         {
@@ -6731,7 +6211,7 @@ bool eZora::animate(int index)
     case 35:
         if(!get_bit(quest_rules,qr_NEWENEMYTILES))
         {
-            dir=(Link->y+8<y)?up:down;
+            dir=(Link.y+8<y)?up:down;
         }
         
         hxofs=0;
@@ -6740,7 +6220,7 @@ bool eZora::animate(int index)
 //    case 35+19: addEwpn(x,y,z,ewFireball,0,d->wdp,0); break;
     case 35+19:
         addEwpn(x,y,z,wpn,2,wdp,dir,getUID());
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
         break;
         
     case 35+66:
@@ -6769,7 +6249,7 @@ eStalfos::eStalfos(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
     multishot= timer = fired = dashing = 0;
     haslink = false;
     dummy_bool[0]=false;
-    shield= (flags&(inv_left | inv_right | inv_back |inv_front)) != 0;
+    shield=(bool)(flags&(inv_left | inv_right | inv_back |inv_front));
     
     if(dmisc9==e9tARMOS && rand()&1)
     {
@@ -6805,7 +6285,7 @@ bool eStalfos::animate(int index)
     {
         if(haslink)
         {
-            Link->setEaten(0);
+            Link.setEaten(0);
             haslink=false;
         }
         
@@ -6846,7 +6326,7 @@ bool eStalfos::animate(int index)
                 addEwpn(x,y,z,wpn2,0,dmisc4,r_up, getUID());
                 addEwpn(x,y,z,wpn2,0,dmisc4,l_down, getUID());
                 addEwpn(x,y,z,wpn2,0,dmisc4,r_down, getUID());
-                Backend::sfx->play(wpnsfx(wpn2),int(x));
+                sfx(wpnsfx(wpn2),pan(int(x)));
             }
         }
         
@@ -6875,12 +6355,12 @@ bool eStalfos::animate(int index)
         
         if(haslink)
         {
-            Link->setEaten(0);
+            Link.setEaten(0);
             haslink=false;
         }
         
         if(deadsfx > 0 && dmisc2==e2tSPLIT)
-            Backend::sfx->play(deadsfx,int(x));
+            sfx(deadsfx,pan(int(x)));
             
         return true;
     }
@@ -6907,8 +6387,8 @@ bool eStalfos::animate(int index)
         
     if(haslink)
     {
-        Link->setX(x);
-        Link->setY(y);
+        Link.setX(x);
+        Link.setY(y);
         ++clk2;
         
         if(clk2==(dmisc8==0 ? 95 : dmisc8))
@@ -7041,7 +6521,7 @@ bool eStalfos::animate(int index)
                 
                 //if not in midair, and Link's swinging sword is nearby, jump.
                 /*if (dmisc9==e9tZ3STALFOS && z==0 && (!(tmpscr->flags7&fSIDEVIEW) || !_walkflag(x,y+16,0))
-                  && Link->getAttackClk()==5 && Link->getAttack()==wSword && distance(x,y,Link->getX(),Link->getY())<32)
+                  && Link.getAttackClk()==5 && Link.getAttack()==wSword && distance(x,y,Link.getX(),Link.getY())<32)
                     {
                       facelink(false);
                       sclk=16+((dir^1)<<8);
@@ -7151,7 +6631,7 @@ bool eStalfos::animate(int index)
     if(wpn && dmisc1==e1tEACHTILE && clk2==1 && !hclk)
     {
         addEwpn(x,y,z,wpn,0,wdp,dir, getUID());
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
         
         int i=Ewpns.Count()-1;
         weapon *ew = (weapon*)(Ewpns.spr(i));
@@ -7173,13 +6653,13 @@ bool eStalfos::animate(int index)
         {
             int ndir=dir;
             
-            if(Link->x-x==0)
+            if(Link.x-x==0)
             {
-                ndir=(Link->y+8<y)?up:down;
+                ndir=(Link.y+8<y)?up:down;
             }
             else //turn to face Link
             {
-                double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+                double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
                 
                 if((ddir<=(((-2)*PI)/8))&&(ddir>(((-6)*PI)/8)))
                 {
@@ -7228,7 +6708,7 @@ bool eStalfos::animate(int index)
                 if(!fired&&(clk5>=38))
                 {
                     Ewpns.add(new weapon(x,y,z, wpn, 0, wdp, dir, -1,getUID(),false));
-                    Backend::sfx->play(wpnsfx(wpn),int(x));
+                    sfx(wpnsfx(wpn),pan(int(x)));
                     fired=true;
                 }
             }
@@ -7304,7 +6784,7 @@ bool eStalfos::animate(int index)
         
         if(haslink)
         {
-            Link->setEaten(0);
+            Link.setEaten(0);
             haslink=false;
         }
         
@@ -7530,21 +7010,21 @@ void eStalfos::vire_hop()
 
 void eStalfos::eatlink()
 {
-    if(!haslink && Link->getEaten()==0 && Link->getAction() != hopping && Link->getAction() != swimming)
+    if(!haslink && Link.getEaten()==0 && Link.getAction() != hopping && Link.getAction() != swimming)
     {
         haslink=true;
         y=floor_y;
         z=0;
         
-        if(Link->isSwimming())
+        if(Link.isSwimming())
         {
-            Link->setX(x);
-            Link->setY(y);
+            Link.setX(x);
+            Link.setY(y);
         }
         else
         {
-            x=Link->getX();
-            y=Link->getY();
+            x=Link.getX();
+            y=Link.getY();
         }
         
         clk2=0;
@@ -7584,7 +7064,7 @@ void eStalfos::KillWeapon()
     
     if(wpn==ewBrang && !Ewpns.idCount(ewBrang))
     {
-        Backend::sfx->stop(WAV_BRANG);
+        stop_sfx(WAV_BRANG);
     }
 }
 
@@ -7606,38 +7086,10 @@ eKeese::eKeese(fix X,fix Y,int Id,int Clk) : enemy(X,Y,Id,Clk)
     step=0;
     movestatus=1;
     c=0;
-	
-	
-   
-
-    if ( !(SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) ) hxofs=2;
-    if ( (d->SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) != 0 ) hxofs = d->hxofs;
-	
-    if ( !(d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) ) hxsz=12;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_WIDTH) != 0) && d->hxsz >= 0 ) hxsz = d->hxsz;
-	
-    if ( !(SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) ) hyofs=4;
-    if (  (d->SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) != 0 ) hyofs = d->hyofs;
-	
-    if ( !(d->SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) ) hysz=8;
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) != 0) && d->hysz >= 0 ) hysz = d->hysz;
-	
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_HEIGHT) != 0) && d->txsz > 0 ) { txsz = d->txsz; if ( txsz > 1 ) extend = 3; } //! Don;t forget to set extend if the tilesize is > 1. 
-    //al_trace("->txsz:%i\n", d->txsz); Verified that this is setting the value. -Z
-   // al_trace("Enemy txsz:%i\n", txsz);
-    if ( ((d->SIZEflags&guyflagOVERRIDE_TILE_WIDTH) != 0) && d->tysz > 0 ) { tysz = d->tysz; if ( tysz > 1 ) extend = 3; }
-    
-    
-    if ( ((d->SIZEflags&guyflagOVERRIDE_HIT_Z_HEIGHT) != 0) && d->hzsz >= 0  ) hzsz = d->hzsz;
-    
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_X_OFFSET) != 0 ) xofs = (int)d->xofs;
-    if ( (d->SIZEflags&guyflagOVERRIDE_DRAW_Y_OFFSET) != 0 ) 
-    {
-	    yofs = (int)d->yofs; //This seems to be setting to +48 or something with any value set?! -Z
-	    yofs += 56 ; //this offset fixes yofs not plaing properly. -Z
-    }
-  
-    if (  (d->SIZEflags&guyflagOVERRIDE_DRAW_Z_OFFSET) != 0 ) zofs = (int)d->zofs;
+    hxofs=2;
+    hxsz=12;
+    hyofs=4;
+    hysz=8;
     clk4=0;
     //nets;
     dummy_int[1]=0;
@@ -7799,7 +7251,7 @@ bool eWizzrobe::animate(int index)
                             y=((rand()%9)+1)*16;
                         }
                         
-                        if(!m_walkflag(x,y,spw_door)&&((abs(x-Link->getX())>=32)||(abs(y-Link->getY())>=32)))
+                        if(!m_walkflag(x,y,spw_door)&&((abs(x-Link.getX())>=32)||(abs(y-Link.getY())>=32)))
                         {
                             placed=true;
                         }
@@ -7807,9 +7259,9 @@ bool eWizzrobe::animate(int index)
                         ++t;
                     }
                     
-                    if(abs(x-Link->getX())<abs(y-Link->getY()))
+                    if(abs(x-Link.getX())<abs(y-Link.getY()))
                     {
-                        if(y<Link->getY())
+                        if(y<Link.getY())
                         {
                             dir=down;
                         }
@@ -7820,7 +7272,7 @@ bool eWizzrobe::animate(int index)
                     }
                     else
                     {
-                        if(x<Link->getX())
+                        if(x<Link.getX())
                         {
                             dir=right;
                         }
@@ -7886,7 +7338,7 @@ void eWizzrobe::wizzrobe_attack_for_real()
     if(dmisc2 == 0)  //normal weapon
     {
         addEwpn(x,y,z,wpn,0,wdp,dir,getUID());
-        Backend::sfx->play(WAV_WAND,int(x));
+        sfx(WAV_WAND,pan(int(x)));
     }
     else if(dmisc2 == 1) // ring of fire
     {
@@ -7898,7 +7350,7 @@ void eWizzrobe::wizzrobe_attack_for_real()
         addEwpn(x,y,z,wpn,0,wdp,r_up,getUID());
         addEwpn(x,y,z,wpn,0,wdp,l_down,getUID());
         addEwpn(x,y,z,wpn,0,wdp,r_down,getUID());
-        Backend::sfx->play(WAV_FIRE,int(x));
+        sfx(WAV_FIRE,pan(int(x)));
     }
     else if(dmisc2==2)  // summons specific enemy
     {
@@ -7924,7 +7376,7 @@ void eWizzrobe::wizzrobe_attack_for_real()
                     ((enemy*)guys.spr(kids+i))->count_enemy = false;
             }
             
-            Backend::sfx->play(WAV_FIRE,int(x));
+            sfx(WAV_FIRE,pan(int(x)));
         }
     }
     else if(dmisc2==3)  //summon from layer
@@ -7952,7 +7404,7 @@ void eWizzrobe::wizzrobe_attack_for_real()
                     x2=16*((rand()%12)+2);
                     y2=16*((rand()%7)+2);
                     
-                    if(!m_walkflag(x2,y2,0) && (abs(x2-Link->getX())>=32 || abs(y2-Link->getY())>=32))
+                    if(!m_walkflag(x2,y2,0) && (abs(x2-Link.getX())>=32 || abs(y2-Link.getY())>=32))
                     {
                         if(addenemy(x2,y2,get_bit(quest_rules,qr_ENEMIESZAXIS) ? 64 : 0,id2,-10))
                             ((enemy*)guys.spr(kids+i))->count_enemy = false;
@@ -7965,7 +7417,7 @@ void eWizzrobe::wizzrobe_attack_for_real()
             
             if(summoned)
             {
-                Backend::sfx->play(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,int(x));
+                sfx(get_bit(quest_rules,qr_MORESOUNDS) ? WAV_ZN1SUMMON : WAV_FIRE,pan(int(x)));
             }
         }
     }
@@ -8286,7 +7738,7 @@ int eDodongo::takehit(weapon *w)
     case wSword:
         if(stunclk)
         {
-            Backend::sfx->play(WAV_EHIT,int(x));
+            sfx(WAV_EHIT,pan(int(x)));
             hp=0;
             item_set = (misc==wSBomb) ? isSBOMB100 : isBOMB100;
             fading=0;                                           // don't flash
@@ -8294,7 +7746,7 @@ int eDodongo::takehit(weapon *w)
         }
         
     default:
-        Backend::sfx->play(WAV_CHINK,int(x));
+        sfx(WAV_CHINK,pan(int(x)));
     }
     
     return 1;
@@ -8463,7 +7915,7 @@ int eDodongo2::takehit(weapon *w)
     case wSword:
         if(stunclk)
         {
-            Backend::sfx->play(WAV_EHIT,int(x));
+            sfx(WAV_EHIT,pan(int(x)));
             hp=0;
             item_set = (misc==wSBomb) ? isSBOMB100 : isBOMB100;
             fading=0;                                           // don't flash
@@ -8471,7 +7923,7 @@ int eDodongo2::takehit(weapon *w)
         }
         
     default:
-        Backend::sfx->play(WAV_CHINK,int(x));
+        sfx(WAV_CHINK,pan(int(x)));
     }
     
     return 1;
@@ -8534,7 +7986,7 @@ bool eAquamentus::animate(int index)
         addEwpn(fbx,y,z,wpn,2,wdp,up,getUID());
         addEwpn(fbx,y,z,wpn,2,wdp,8,getUID());
         addEwpn(fbx,y,z,wpn,2,wdp,down,getUID());
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
     }
     
     if(clk3<-80 && !(rand()&63))
@@ -8705,15 +8157,15 @@ bool eGohma::animate(int index)
             addEwpn(x,y+2,z,wpn,3,wdp,left,getUID());
             addEwpn(x,y+2,z,wpn,3,wdp,8,getUID());
             addEwpn(x,y+2,z,wpn,3,wdp,right,getUID());
-            Backend::sfx->play(wpnsfx(wpn),int(x));
+            sfx(wpnsfx(wpn),pan(int(x)));
             break;
             
         default:
             if(dmisc1 != 1 && dmisc1 != 2)
             {
                 addEwpn(x,y+2,z,wpn,3,wdp,8,getUID());
-                Backend::sfx->play(wpnsfx(wpn),int(x));
-                Backend::sfx->play(wpnsfx(wpn),int(x));
+                sfx(wpnsfx(wpn),pan(int(x)));
+                sfx(wpnsfx(wpn),pan(int(x)));
             }
             
             break;
@@ -8827,13 +8279,13 @@ int eGohma::takehit(weapon *w)
     int power = w->power;
     int wpnx = w->x;
     int wpnDir = w->dir;
-    int def = defenditemclass(wpnId, &power, w);
+    int def = defenditemclass(wpnId, &power);
     
     if(def < 0)
     {
         if(!((wpnDir==up || wpnDir==l_up || wpnDir==r_up) && abs(int(x)-wpnx)<=8 && clk3>=16 && clk3<116))
         {
-            Backend::sfx->play(WAV_CHINK,int(x));
+            sfx(WAV_CHINK,pan(int(x)));
             return 1;
         }
     }
@@ -8989,7 +8441,7 @@ bool eBigDig::animate(int index)
         
         stop_bgsfx(index);
         
-        if(deadsfx > 0) Backend::sfx->play(deadsfx,int(x));
+        if(deadsfx > 0) sfx(deadsfx,pan(int(x)));
         
         return true;
     }
@@ -9116,7 +8568,7 @@ bool eGanon::animate(int index)
         if(++clk2>72 && !(rand()&3))
         {
             addEwpn(x,y,z,wpn,3,wdp,dir,getUID());
-            Backend::sfx->play(wpnsfx(wpn),int(x));
+            sfx(wpnsfx(wpn),pan(int(x)));
             clk2=0;
         }
         
@@ -9158,11 +8610,11 @@ bool eGanon::animate(int index)
         hxofs=1000;
         loadpalset(9,pSprite(spPILE));
         music_stop();
-        Backend::sfx->stop(WAV_ROAR);
+        stop_sfx(WAV_ROAR);
         
-        if(deadsfx>0) Backend::sfx->play(deadsfx,int(x));
+        if(deadsfx>0) sfx(deadsfx,pan(int(x)));
         
-        Backend::sfx->play(WAV_GANON,128);
+        sfx(WAV_GANON);
         items.add(new item(x+8,y+8,(fix)0,iPile,ipDUMMY,0));
         break;
         
@@ -9179,7 +8631,7 @@ bool eGanon::animate(int index)
                 return true;
             }
             
-            Backend::sfx->play(WAV_CLEARED,128);
+            sfx(WAV_CLEARED);
             items.add(new item(x+8,y+8,(fix)0,iBigTri,ipBIGTRI,0));
             setmapflag();
         }
@@ -9219,9 +8671,9 @@ int eGanon::takehit(weapon *w)
             hp=guysbuf[id&0xFFF].hp;                              //16*DAMAGE_MULTIPLIER;
         }
         
-        Backend::sfx->play(WAV_EHIT,int(x));
+        sfx(WAV_EHIT,pan(int(x)));
         
-        if(hitsfx>0) Backend::sfx->play(hitsfx,int(x));
+        if(hitsfx>0) sfx(hitsfx,pan(int(x)));
         
         return 1;
         
@@ -9313,7 +8765,7 @@ void getBigTri(int id2)
       200 top SHUTTER opens
       209 bottom SHUTTER opens
       */
-    Backend::sfx->play(itemsbuf[id2].playsound,128);
+    sfx(itemsbuf[id2].playsound);
     guys.clear();
     
     if(itemsbuf[id2].flags & ITEM_GAMEDATA)
@@ -9365,7 +8817,7 @@ void getBigTri(int id2)
     
     if(itemsbuf[id2].flags & ITEM_FLAG1 && currscr < 128)
     {
-        Link->dowarp(1,0); //side warp
+        Link.dowarp(1,0); //side warp
     }
 }
 
@@ -10081,11 +9533,11 @@ int eManhandla::takehit(weapon *w)
         
     case wHookshot:
     case wBrang:
-        Backend::sfx->play(WAV_CHINK,int(x));
+        sfx(WAV_CHINK,pan(int(x)));
         break;
         
     default:
-        Backend::sfx->play(WAV_EHIT,int(x));
+        sfx(WAV_EHIT,pan(int(x)));
         
     }
     
@@ -10260,7 +9712,7 @@ bool esManhandla::animate(int index)
     if(!(rand()&127))
     {
         addEwpn(x,y,z,wpn,3,wdp,dir,getUID());
-        Backend::sfx->play(wpnsfx(wpn),int(x));
+        sfx(wpnsfx(wpn),pan(int(x)));
     }
     
     return enemy::animate(index);
@@ -10425,9 +9877,9 @@ bool eGleeok::animate(int index)
                 hp -= 1000 - head->hp;
                 hclk = 33;
                 
-                if(hitsfx>0) Backend::sfx->play(hitsfx,int(head->x));
+                if(hitsfx>0) sfx(hitsfx,pan(int(head->x)));
                 
-                Backend::sfx->play(WAV_EHIT,int(head->x));
+                sfx(WAV_EHIT,pan(int(head->x)));
             }
             
             head->hclk = 0;
@@ -10450,7 +9902,7 @@ bool eGleeok::animate(int index)
             int i=rand()%misc;
             enemy *head = ((enemy*)guys.spr(index+i+1));
             addEwpn(head->x,head->y,head->z,wpn,3,wdp,dir,getUID());
-            Backend::sfx->play(wpnsfx(wpn),int(x));
+            sfx(wpnsfx(wpn),pan(int(x)));
             clk2=0;
         }
     }
@@ -11019,7 +10471,7 @@ bool ePatra::animate(int index)
         if(!(rand()&127))
         {
             addEwpn(x,y,z,wpn,3,wdp,dir,getUID());
-            Backend::sfx->play(wpnsfx(wpn),int(x));
+            sfx(wpnsfx(wpn),pan(int(x)));
         }
     }
     
@@ -11082,7 +10534,7 @@ bool ePatra::animate(int index)
                     if(!(rand()&127))
                     {
                         addEwpn(guys.spr(i)->x,guys.spr(i)->y,guys.spr(i)->z,wpn,3,wdp,dir,getUID());
-                        Backend::sfx->play(wpnsfx(wpn),int(x));
+                        sfx(wpnsfx(wpn),pan(int(x)));
                     }
                 }
                 
@@ -11412,7 +10864,7 @@ void ePatraBS::draw(BITMAP *dest)
     
     if(get_bit(quest_rules,qr_NEWENEMYTILES))
     {
-        double ddir=atan2(double(y-(Link->y)),double(Link->x-x));
+        double ddir=atan2(double(y-(Link.y)),double(Link.x-x));
         
         if((ddir<=(((-5)*PI)/8))&&(ddir>(((-7)*PI)/8)))
         {
@@ -11729,8 +11181,8 @@ bool CarryLink()
         {
             if(((eWallM*)guys.spr(i))->haslink)
             {
-                Link->x=guys.spr(i)->x;
-                Link->y=guys.spr(i)->y;
+                Link.x=guys.spr(i)->x;
+                Link.y=guys.spr(i)->y;
                 return ((eWallM*)guys.spr(i))->misc > 0;
             }
         }
@@ -11741,8 +11193,8 @@ bool CarryLink()
         {
           if(((eLikeLike*)guys.spr(i))->haslink)
           {
-            Link->x=guys.spr(i)->x;
-            Link->y=guys.spr(i)->y;
+            Link.x=guys.spr(i)->x;
+            Link.y=guys.spr(i)->y;
             return (true);
           }
         }*/
@@ -12390,15 +11842,15 @@ void loadguys()
                 blockpath=true;
                 
             if(currscr<128)
-                Backend::sfx->play(WAV_SCALE,128);
+                sfx(WAV_SCALE);
                 
             addguy(120,64,Guy, (dlevel||BSZ)?-15:startguy[rand()&7], true);
-            Link->Freeze();
+            Link.Freeze();
         }
     }
     else if(Guy==gFAIRY)  // The only Guy that somewhat ignores the "Guys In Caves Only" DMap flag
     {
-        Backend::sfx->play(WAV_SCALE,128);
+        sfx(WAV_SCALE);
         addguy(120,62,gFAIRY,-14,false);
     }
     
@@ -13541,7 +12993,7 @@ void setupscreen()
     }
     else
     {
-        Link->unfreeze();
+        Link.unfreeze();
     }
 }
 
@@ -13639,7 +13091,7 @@ bool parsemsgcode()
         return true;
         
     case MSGC_SFX:
-        Backend::sfx->play((int)grab_next_argument(),128);
+        sfx((int)grab_next_argument(),128);
         return true;
         
     case MSGC_MIDI:
@@ -13962,7 +13414,7 @@ void putmsg()
                         cursor_x=0;
                     }
                     
-                    Backend::sfx->play(MsgStrings[msgstr].sfx,128);
+                    sfx(MsgStrings[msgstr].sfx);
                     textprintf_ex(msgbmpbuf,msgfont,cursor_x+8,cursor_y+8,msgcolour,-1,
                                   "%c",MsgStrings[msgstr].s[msgptr]);
                     cursor_x += msgfont->vtable->char_length(msgfont, MsgStrings[msgstr].s[msgptr]);
@@ -14048,7 +13500,7 @@ breakout:
                 //if(space) s3[0]=0;
             }
             
-            Backend::sfx->play(MsgStrings[msgstr].sfx,128);
+            sfx(MsgStrings[msgstr].sfx);
             textprintf_ex(msgbmpbuf,msgfont,cursor_x+8,cursor_y+8,msgcolour,-1,
                           "%c",MsgStrings[msgstr].s[msgptr]);
             cursor_x += msgfont->vtable->char_length(msgfont, MsgStrings[msgstr].s[msgptr]);
@@ -14119,7 +13571,7 @@ breakout:
             {
 disappear:
                 msg_active = false;
-                Link->finishedmsg();
+                Link.finishedmsg();
             }
             
             if(repaircharge)
@@ -14137,7 +13589,7 @@ disappear:
                     game->set_magicdrainrate(1);
                     
                 adjustmagic = false;
-                Backend::sfx->play(WAV_SCALE,128);
+                sfx(WAV_SCALE);
                 setmapflag();
             }
             
@@ -14145,7 +13597,7 @@ disappear:
             {
                 game->set_canslash(1);
                 learnslash = false;
-                Backend::sfx->play(WAV_SCALE,128);
+                sfx(WAV_SCALE);
                 setmapflag();
             }
         }
@@ -14275,12 +13727,12 @@ void check_collisions()
                             {
                                 if(itemsbuf[items.spr(j)->id].collect_script)
                                 {
-									run_script(SCRIPT_ITEM, itemsbuf[items.spr(j)->id].collect_script, items.spr(j)->id & 0xFFF);
+                                    ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[items.spr(j)->id].collect_script, items.spr(j)->id & 0xFFF);
                                 }
                                 
                                 //getitem(items.spr(j)->id);
                                 //items.del(j);
-                                Link->checkitems(j);
+                                Link.checkitems(j);
                                 //--j;
                             }
                         }

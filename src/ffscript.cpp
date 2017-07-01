@@ -10,27 +10,20 @@
 #include <sstream>
 #include <math.h>
 #include <cstdio>
-#include "scripting/ZASMdefs.h"
-#include "scripting/bindings/IEnemy.h"
-#include "scripting/bindings/IItem.h"
-#include "scripting/bindings/IWeapon.h"
-#include "ffasm.h"
-#include "zc_sys.h"
+
 #include "zc_math.h"
 #include "zc_array.h"
 #include "ffscript.h"
 #include "zelda.h"
 #include "link.h"
 #include "guys.h"
+#include "gamedata.h"
 #include "zc_init.h"
 #include "zsys.h"
 #include "title.h"
 #include "mem_debug.h"
+#include "zscriptversion.h"
 #include "rendertarget.h"
-#include "backend/AllBackends.h"
-#include "pal.h"
-#include "zdefs.h"
-#include "zq_class.h"
 
 #ifdef _FFDEBUG
 #include "ffdebug.h"
@@ -39,6 +32,12 @@
 #include "debug.h"
 
 #define zc_max(a,b)  ((a)>(b)?(a):(b))
+/*template <typename T>
+T zc_max(T a, T b)
+{
+	return (a > b) ? a : b;
+}*/
+
 #define zc_min(a,b)  ((a)<(b)?(a):(b))
 
 #ifdef _MSC_VER
@@ -49,23 +48,16 @@
 using std::string;
 
 extern sprite_list particles;
-extern LinkClass *Link;
+extern LinkClass Link;
 extern char *guy_string[];
 extern int skipcont;
 extern std::map<int, std::pair<string,string> > ffcmap;
-extern std::map<int, std::pair<string,string> > itemmap;
-extern std::map<int, std::pair<string,string> > globalmap;
-extern GameScripts scripts;
-
-PALETTE tempgreypal; //Palettes go here. This is used for Greyscale() / Monochrome()
-
-int virtualScreenScale();
 
 //We gain some speed by not passing as arguments
 long sarg1 = 0;
 long sarg2 = 0;
 refInfo *ri = NULL;
-ZAsmScript *curscript = NULL;
+ffscript *curscript = NULL;
 
 static int numInstructions; // Used to detect hangs
 static bool scriptCanSave = true;
@@ -88,19 +80,18 @@ long item_stack[256];
 long ffmisc[32][16];
 refInfo ffcScriptData[32];
 
-
-
-
-int FFScript::getrule(int rule){
-	return -1;
+void clear_ffc_stack(const byte i)
+{
+    memset(ffc_stack[i], 0, 256 * sizeof(long));
 }
 
-void FFScript::setrule(int rule, bool state){
-	
+void clear_global_stack()
+{
+    memset(global_stack, 0, 256 * sizeof(long));
 }
 
 //ScriptHelper
-class SH : public FFScript
+class SH
 {
 
 ///-----------------------------//
@@ -304,11 +295,6 @@ public:
         return checkBounds(a, 0, 15, str);
     }
     
-    static INLINE int checkMisc32(const long a, const char * const str)
-    {
-        return checkBounds(a, 0, 31, str);
-    }
-    
     static INLINE int checkMessage(const long ID, const char * const str)
     {
         return checkBounds(ID, 0, msg_strings_size-1, str);
@@ -366,7 +352,7 @@ public:
     
     static INLINE int checkSFXID(const long ID, const char * const str)
     {
-        return checkBounds(ID, 0, Backend::sfx->numSlots()-1, str);
+        return checkBounds(ID, 0, WAV_COUNT-1, str);
     }
     
     static INLINE int checkBounds(const long n, const long boundlow, const long boundup, const char * const funcvar)
@@ -404,7 +390,7 @@ class GuyH : public SH
 public:
     static int loadNPC(const long eid, const char * const funcvar)
     {
-		tempenemy = IEnemy(*pool, eid).getPtr();
+        tempenemy = (enemy *) guys.getByUID(eid);
         
         if(tempenemy == NULL)
         {
@@ -437,7 +423,7 @@ public:
         
         return -1;
     }
-    //Fized the size of this array. There are 15 total attribs, [0] to [14], not [0] to [9]. -Z
+    
     static long getNPCDMisc(const byte a)
     {
         switch(a)
@@ -477,15 +463,6 @@ public:
             
         case 11:
             return tempenemy->dmisc12;
-        
-	case 12:
-            return tempenemy->dmisc13;
-        
-	case 13:
-            return tempenemy->dmisc14;
-        
-	case 14:
-            return tempenemy->dmisc15;
         }
         
         return 0;
@@ -537,7 +514,7 @@ class ItemH : public SH
 public:
     static int loadItem(const long iid, const char * const funcvar)
     {
-        tempitem = IItem(*pool, iid).getPtr();
+        tempitem = (item *) items.getByUID(iid);
         
         if(tempitem == NULL)
         {
@@ -577,7 +554,7 @@ class LwpnH : public SH
 public:
     static int loadWeapon(const long wid, const char * const funcvar)
     {
-        tempweapon = IWeapon(*pool, wid).getPtr();
+        tempweapon = (weapon *) Lwpns.getByUID(wid);
         
         if(tempweapon == NULL)
         {
@@ -617,7 +594,7 @@ class EwpnH : public SH
 public:
     static int loadWeapon(const long wid, const char * const funcvar)
     {
-        tempweapon = IWeapon(*pool, wid).getPtr();
+        tempweapon = (weapon *) Ewpns.getByUID(wid);
         
         if(tempweapon == NULL)
         {
@@ -661,8 +638,6 @@ void clearScriptHelperData()
 ///---------------------------------------------//
 //           Array Helper Functions           //
 ///---------------------------------------------//
-
-//THis would be better if 't'were in a header. -Z
 
 //Array Helper
 class ArrayH : public SH
@@ -890,11 +865,32 @@ public:
     }
 };
 
-
+// Called when leaving a screen; deallocate arrays created by FFCs that aren't carried over
+void deallocateArray(const long ptrval)
+{
+    if(ptrval<=0 || ptrval >= MAX_ZCARRAY_SIZE)
+        Z_scripterrlog("Script tried to deallocate memory at invalid address %ld\n", ptrval);
+    else
+    {
+        arrayOwner[ptrval] = 255;
+        
+        if(localRAM[ptrval].Size() == 0)
+            Z_scripterrlog("Script tried to deallocate memory that was not allocated at address %ld\n", ptrval);
+        else
+        {
+            word size = localRAM[ptrval].Size();
+            localRAM[ptrval].Clear();
+            
+            // If this happens once per frame, it can drown out every other message. -L
+            //Z_eventlog("Deallocated local array with address %ld, size %d\n", ptrval, size);
+            size = size;
+        }
+    }
+}
 
 item *checkItem(long iid)
 {
-    item *s = IItem(*pool, iid).getPtr();
+    item *s = (item *)items.getByUID(iid);
     
     if(s == NULL)
     {
@@ -915,7 +911,7 @@ item *checkItem(long iid)
 
 weapon *checkLWpn(long eid, const char *what)
 {
-    weapon *s = IWeapon(*pool, eid).getPtr();
+    weapon *s = (weapon *)Lwpns.getByUID(eid);
     
     if(s == NULL)
     {
@@ -937,7 +933,7 @@ weapon *checkLWpn(long eid, const char *what)
 
 weapon *checkEWpn(long eid, const char *what)
 {
-    weapon *s = IWeapon(*pool, eid).getPtr();
+    weapon *s = (weapon *)Ewpns.getByUID(eid);
     
     if(s == NULL)
     {
@@ -958,12 +954,41 @@ weapon *checkEWpn(long eid, const char *what)
 }
 
 
+int get_screen_d(long index1, long index2)
+{
+    if(index2 < 0 || index2 > 7)
+    {
+        Z_scripterrlog("You were trying to reference an out-of-bounds array index for a screen's D[] array (%ld); valid indices are from 0 to 7.\n", index1);
+        return 0;
+    }
+    
+    return game->screen_d[index1][index2];
+}
 
+void set_screen_d(long index1, long index2, int val)
+{
+    if(index2 < 0 || index2 > 7)
+    {
+        Z_scripterrlog("You were trying to reference an out-of-bounds array index for a screen's D[] array (%ld); valid indices are from 0 to 7.\n", index1);
+        return;
+    }
+    
+    game->screen_d[index1][index2] = val;
+}
 
+// If scr is currently being used as a layer, return that layer no.
+int whichlayer(long scr)
+{
+    for(int i = 0; i < 6; i++)
+    {
+        if(scr == (tmpscr->layermap[i] - 1) * MAPSCRS + tmpscr->layerscreen[i])
+            return i;
+    }
+    
+    return -1;
+}
 
 sprite *s;
-
-
 
 
 
@@ -1005,9 +1030,6 @@ long get_register(const long arg)
         
     case YD:
         ret = tmpscr->ffydelta[ri->ffcref];
-        break;
-    case FFCID:
-        ret=(ri->ffcref*10000)+10000;
         break;
         
     case XD2:
@@ -1067,28 +1089,28 @@ long get_register(const long arg)
 ///----------------------------------------------------------------------------------------------------//
 //Link's Variables
     case LINKX:
-        ret = long(Link->getX()) * 10000;
+        ret = long(Link.getX()) * 10000;
         break;
         
     case LINKY:
-        ret = long(Link->getY()) * 10000;
+        ret = long(Link.getY()) * 10000;
         break;
         
     case LINKZ:
-        ret = long(Link->getZ()) * 10000;
+        ret = long(Link.getZ()) * 10000;
         break;
         
     case LINKJUMP:
         // -fall/100*10000, but doing it that way screwed up the result
-        ret = long(-Link->getFall()) * 100;
+        ret = long(-Link.getFall()) * 100;
         break;
         
     case LINKDIR:
-        ret=(int)(Link->dir)*10000;
+        ret=(int)(Link.dir)*10000;
         break;
         
     case LINKHITDIR:
-        ret=(int)(Link->getHitDir())*10000;
+        ret=(int)(Link.getHitDir())*10000;
         break;
         
     case LINKHP:
@@ -1108,11 +1130,11 @@ long get_register(const long arg)
         break;
         
     case LINKACTION:
-        ret=(int)(Link->getAction())*10000;
+        ret=(int)(Link.getAction())*10000;
         break;
         
     case LINKHELD:
-        ret = (int)(Link->getHeldItem())*10000;
+        ret = (int)(Link.getHeldItem())*10000;
         break;
         
     case LINKITEMD:
@@ -1124,133 +1146,85 @@ long get_register(const long arg)
         break;
         
     case LINKINVIS:
-        ret = (int)(Link->getDontDraw())*10000;
+        ret = (int)(Link.getDontDraw())*10000;
         break;
         
     case LINKINVINC:
-        ret = (int)(Link->scriptcoldet)*10000;
+        ret = (int)(Link.scriptcoldet)*10000;
         break;
         
     case LINKLADDERX:
-        ret=(int)(Link->getLadderX())*10000;
+        ret=(int)(Link.getLadderX())*10000;
         break;
         
     case LINKLADDERY:
-        ret=(int)(Link->getLadderY())*10000;
+        ret=(int)(Link.getLadderY())*10000;
         break;
         
     case LINKSWORDJINX:
-        ret = (int)(Link->getSwordClk())*10000;
+        ret = (int)(Link.getSwordClk())*10000;
         break;
         
     case LINKITEMJINX:
-        ret = (int)(Link->getItemClk())*10000;
+        ret = (int)(Link.getItemClk())*10000;
         break;
         
     case LINKDRUNK:
-        ret = (int)(Link->DrunkClock())*10000;
+        ret = (int)(Link.DrunkClock())*10000;
         break;
         
     case LINKMISCD:
-        ret = (int)(Link->miscellaneous[vbound(ri->d[0]/10000,0,31)]);
+        ret = (int)(Link.miscellaneous[vbound(ri->d[0]/10000,0,15)]);
         break;
         
     case LINKHXOFS:
-        ret = (int)(Link->hxofs)*10000;
+        ret = (int)(Link.hxofs)*10000;
         break;
         
     case LINKHYOFS:
-        ret = (int)(Link->hyofs)*10000;
+        ret = (int)(Link.hyofs)*10000;
         break;
         
     case LINKXOFS:
-        ret = (int)(Link->xofs)*10000;
+        ret = (int)(Link.xofs)*10000;
         break;
         
     case LINKYOFS:
-        ret = (int)(Link->yofs-playing_field_offset)*10000;
+        ret = (int)(Link.yofs-playing_field_offset)*10000;
         break;
         
     case LINKZOFS:
-        ret = (int)(Link->zofs)*10000;
+        ret = (int)(Link.zofs)*10000;
         break;
         
     case LINKHXSZ:
-        ret = (int)(Link->hxsz)*10000;
+        ret = (int)(Link.hxsz)*10000;
         break;
         
     case LINKHYSZ:
-        ret = (int)(Link->hysz)*10000;
+        ret = (int)(Link.hysz)*10000;
         break;
         
     case LINKHZSZ:
-        ret = (int)(Link->hzsz)*10000;
+        ret = (int)(Link.hzsz)*10000;
         break;
         
     case LINKTXSZ:
-        ret = (int)(Link->txsz)*10000;
+        ret = (int)(Link.txsz)*10000;
         break;
         
     case LINKTYSZ:
-        ret = (int)(Link->tysz)*10000;
+        ret = (int)(Link.tysz)*10000;
         break;
         
     case LINKTILE:
-        ret = (int)(Link->tile)*10000;
+        ret = (int)(Link.tile)*10000;
         break;
         
     case LINKFLIP:
-        ret = (int)(Link->flip)*10000;
-        break;
-    
-    case LINKINVFRAME:
-	ret = (int)Link->getHClk()*10000;
-	break;
-    
-    case LINKCANFLICKER:
-        ret= Link->getCanLinkFlicker()?10000:0;
-        break;
-    case LINKHURTSFX:
-	ret = (int)Link->getHurtSFX()*10000;
-	break;
-    
-    
-    case LINKUSINGITEM:
-	ret = (int)Link->getDirectItem()*10000;
-        break;
-    
-    case LINKUSINGITEMA:
-	ret = (int)Link->getDirectItemA()*10000;
-        break;
-    
-    case LINKUSINGITEMB:
-	ret = (int)Link->getDirectItemB()*10000;
+        ret = (int)(Link.flip)*10000;
         break;
         
-    case LINKEATEN:
-	ret=(int)Link->getEaten()*10000;
-	break;
-        
-        
-    case LINKITEMB:
-	    //Link->setBButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-	ret = Bwpn*10000;
-	break;
-    
-    case LINKITEMA:
-	    //Link->setBButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-	ret = Awpn *10000;
-	break;
-    
-    case LINKDIAG:
-	ret=Link->getDiagMove()?10000:0;
-	break;
-    
-    case LINKBIGHITBOX:
-	ret=Link->getBigHitbox()?10000:0;
-	break;
-    
-    
 ///----------------------------------------------------------------------------------------------------//
 //Input States
     case INPUTSTART:
@@ -1327,28 +1301,24 @@ long get_register(const long arg)
         
     case INPUTMOUSEX:
     {
-        int leftOffset=(Backend::graphics->virtualScreenW()/2)-(128* virtualScreenScale());
-        ret=((Backend::mouse->getVirtualScreenX()-leftOffset)/ virtualScreenScale())*10000;
+        int leftOffset=(resx/2)-(128*screen_scale);
+        ret=((gui_mouse_x()-leftOffset)/screen_scale)*10000;
         break;
     }
     
     case INPUTMOUSEY:
     {
-        int topOffset=(Backend::graphics->virtualScreenH()/2)-((112-playing_field_offset)*virtualScreenScale());
-        ret=((Backend::mouse->getVirtualScreenY()-topOffset)/ virtualScreenScale())*10000;
+        int topOffset=(resy/2)-((112-playing_field_offset)*screen_scale);
+        ret=((gui_mouse_y()-topOffset)/screen_scale)*10000;
         break;
     }
     
     case INPUTMOUSEZ:
-        ret=(Backend::mouse->getWheelPosition())*10000;
+        ret=(gui_mouse_z())*10000;
         break;
         
     case INPUTMOUSEB:
-        ret=(
-			(Backend::mouse->leftButtonClicked() ? 1 : 0)
-			+ (Backend::mouse->rightButtonClicked() ? 2 : 0)
-			+ (Backend::mouse->middleButtonClicked() ? 4 : 0)
-			)*10000;
+        ret=(gui_mouse_b())*10000;
         break;
         
     case INPUTPRESSSTART:
@@ -1423,60 +1393,6 @@ long get_register(const long arg)
         ret=button_press[17]?10000:0;
         break;
         
-    case BUTTONPRESS:
-		// DUkey, DDkey, DLkey, DRkey, Akey, Bkey, Skey, Lkey, Rkey, Pkey, Exkey1, Exkey2, Exkey3, Exkey4 };
-	{
-		//Read-only
-		int button = vbound((ri->d[0]/10000),0,17);
-		ret = button_press[button]?10000:0;
-		
-	}
-	break;
-
-	case BUTTONINPUT:
-	{
-		//Read-only
-		int button = vbound((ri->d[0]/10000),0,17);
-		ret=control_state[button]?10000:0;
-		
-	}
-	break;
-
-	case BUTTONHELD:
-	{
-		//Read-only
-		int button = vbound((ri->d[0]/10000),0,17);
-		ret = button_hold[button]?10000:0;
-	}
-	break;
-
-	case KEYPRESS:
-	{	//Game->KeyPressed[], read-only
-		//if ( !keypressed() ) break; //Don;t return values set by setting Link->Input/Press
-		//hmm...no, this won;t return properly for modifier keys. 
-		int keyid = ri->d[0]/10000;
-		//key = vbound(key,0,n);
-		bool pressed = key[keyid] != 0;
-		ret = pressed?10000:0;
-	}
-	break;
-
-	case READKEY:
-	{
-		//Game->ReadKey(int key), also clears it. 
-		int keyid = ri->d[0]/10000;
-		bool pressed = ReadKey(keyid);
-		ret = pressed?10000:0;
-	}
-	break;
-
-	case JOYPADPRESS:
-	{
-		//Checks if a press is from the joypad, not keyboard. 
-		int button = ri->d[0]/10000;
-		ret = joybtn(button)?10000:0;
-	}
-	break;
         
 ///----------------------------------------------------------------------------------------------------//
 //Item Variables
@@ -1711,87 +1627,13 @@ long get_register(const long arg)
     case ITEMMISCD:
         if(0!=(s=checkItem(ri->itemref)))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             ret=(((item*)(s))->miscellaneous[a]);
             break;
         }
         
 ///----------------------------------------------------------------------------------------------------//
 //Itemdata Variables
-	
-	
-    case IDATAUSEWPN:
-        ret=(itemsbuf[ri->idata].useweapon)*10000;
-        break;
-    case IDATAUSEDEF:
-        ret=(itemsbuf[ri->idata].usedefence)*10000;
-        break;
-    case IDATAWRANGE:
-        ret=(itemsbuf[ri->idata].weaprange)*10000;
-        break;
-    case IDATAUSEMVT:
-    {
-	long a = vbound((ri->d[0] / 10000),0,(ITEM_MOVEMENT_PATTERNS-1));
-	    
-        ret=(itemsbuf[ri->idata].weap_pattern[a])*10000;
-        
-    }
-    break;
-    
-    case IDATADURATION:
-        ret=(itemsbuf[ri->idata].weapduration)*10000;
-        break;
-    
-    case IDATADUPLICATES:
-        ret=(itemsbuf[ri->idata].duplicates)*10000;
-        break;
-    case IDATADRAWLAYER:
-        ret=(itemsbuf[ri->idata].drawlayer)*10000;
-        break;
-    case IDATACOLLECTFLAGS:
-        ret=(itemsbuf[ri->idata].collectflags)*10000;
-        break;
-    case IDATAWEAPONSCRIPT:
-        ret=(itemsbuf[ri->idata].weaponscript)*10000;
-        break;
-    case IDATAMISCD:
-    {
-	    
-	int a = vbound((ri->d[0] / 10000),0,31);
-        ret=(itemsbuf[ri->idata].wpn_misc_d[a])*10000;
-    }
-    break;
-    case IDATAWPNINITD:
-    {
-	    
-	int a = vbound((ri->d[0] / 10000),0,7);
-        ret=(itemsbuf[ri->idata].weap_initiald[a])*10000;
-    }
-    break;
-    case IDATAWEAPHXOFS:
-        ret=(itemsbuf[ri->idata].weap_hxofs)*10000;
-        break;
-    case IDATAWEAPHYOFS:
-        ret=(itemsbuf[ri->idata].weap_yxofs)*10000;
-        break;
-    case IDATAWEAPHXSZ:
-        ret=(itemsbuf[ri->idata].weap_hxsz)*10000;
-        break;
-    case IDATAWEAPHYSZ:
-        ret=(itemsbuf[ri->idata].weap_hysz)*10000;
-        break;
-    case IDATAWEAPHZSZ:
-        ret=(itemsbuf[ri->idata].weap_hzsz)*10000;
-        break;
-    case IDATAWEAPXOFS:
-        ret=(itemsbuf[ri->idata].weap_xofs)*10000;
-        break;
-    case IDATAWEAPYOFS:
-        ret=(itemsbuf[ri->idata].weap_yofs)*10000;
-        break;
-    
-    
-    
     case IDATAFAMILY:
         ret=(itemsbuf[ri->idata].family)*10000;
         break;
@@ -1828,177 +1670,6 @@ long get_register(const long arg)
         ret=(itemsbuf[ri->idata].power)*10000;
         break;
         
-    //2.54
-	//Get the ID of an item.
-        case IDATAID:
-        ret=ri->idata*10000;
-        break;
-    
-	//Get the script assigned to an item (active)
-    case IDATASCRIPT:
-        ret=(itemsbuf[ri->idata].script)*10000;
-        break;
-    //Get the ->Attributes[] of an item
-    case IDATAATTRIB:
-    {
-	    int index = vbound(ri->d[0]/10000,0,9);
-		switch(index){
-		    case 0:
-			ret=(itemsbuf[ri->idata].misc1)*10000;
-		    break;
-		    case 1:
-			ret=(itemsbuf[ri->idata].misc2)*10000; break;
-		    case 2:
-			ret=(itemsbuf[ri->idata].misc3)*10000; break;
-		    case 3:
-			ret=(itemsbuf[ri->idata].misc4)*10000; break;
-		    case 4:
-			ret=(itemsbuf[ri->idata].misc5)*10000; break;
-		    case 5:
-			ret=(itemsbuf[ri->idata].misc6)*10000; break;
-		    case 6:
-			ret=(itemsbuf[ri->idata].misc7)*10000; break;
-		    case 7:
-			ret=(itemsbuf[ri->idata].misc8)*10000; break;
-		    case 8:
-			ret=(itemsbuf[ri->idata].misc9)*10000; break;
-		    case 9:
-			ret=(itemsbuf[ri->idata].misc10)*10000; break;
-		    default: 
-			   ret = -10000; break;
-		}
-		   
-        break;
-	
-	}
-		//Get the ->Sprite[] of an item.
-	case IDATASPRITE: {
-	    int index = vbound(ri->d[0]/10000,0,9);
-		switch(index){
-		    case 0:
-			ret=(itemsbuf[ri->idata].wpn)*10000;
-		    break;
-		    case 1:
-			ret=(itemsbuf[ri->idata].wpn2)*10000; break;
-		    case 2:
-			ret=(itemsbuf[ri->idata].wpn3)*10000; break;
-		    case 3:
-			ret=(itemsbuf[ri->idata].wpn4)*10000; break;
-		    case 4:
-			ret=(itemsbuf[ri->idata].wpn5)*10000; break;
-		    case 5:
-			ret=(itemsbuf[ri->idata].wpn6)*10000; break;
-		    case 6:
-			ret=(itemsbuf[ri->idata].wpn7)*10000; break;
-		    case 7:
-			ret=(itemsbuf[ri->idata].wpn8)*10000; break;
-		    case 8:
-			ret=(itemsbuf[ri->idata].wpn9)*10000; break;
-		    case 9:
-			ret=(itemsbuf[ri->idata].wpn10)*10000; break;
-		    default: 
-			   ret = -10000; break;
-		}
-		   
-		break;
-	}
-	//Link TIle modifier
-    case IDATALTM:
-        ret=(itemsbuf[ri->idata].ltm)*10000;
-        break;
-    //Pickup script
-    case IDATAPSCRIPT:
-        ret=(itemsbuf[ri->idata].collect_script)*10000;
-        break;
-    //Magic cost
-     case IDATAMAGCOST:
-        ret=(itemsbuf[ri->idata].magic)*10000;
-        break;
-     //Min Hearts to Pick Up
-     case IDATAMINHEARTS:
-        ret=(itemsbuf[ri->idata].pickup_hearts)*10000;
-        break;
-     //Tile used by the item
-     case IDATATILE:
-        ret=(itemsbuf[ri->idata].tile)*10000;
-        break;
-     //itemdata->Flash
-     case IDATAMISC:
-        ret=(itemsbuf[ri->idata].misc)*10000;
-        break;
-     //->CSet
-     case IDATACSET:
-        ret=(itemsbuf[ri->idata].csets)*10000;
-        break;
-     //->A.Frames
-     case IDATAFRAMES:
-        ret=(itemsbuf[ri->idata].frames)*10000;
-        break;
-     /*
-     case IDATAFRAME:
-        ret=(itemsbuf[ri->idata].frame)*10000;
-        break;
-    */ 
-     //->A.Speed
-     case IDATAASPEED:
-        ret=(itemsbuf[ri->idata].speed)*10000;
-        break;
-     //->Delay
-     case IDATADELAY:
-        ret=(itemsbuf[ri->idata].delay)*10000;
-        break;
-     // teo of this item upgrades
-      case IDATACOMBINE:
-        ret=(itemsbuf[ri->idata].flags & ITEM_COMBINE)?10000:0;
-        break;
-      //Use item, and get the lower level one
-      case IDATADOWNGRADE:
-        ret=(itemsbuf[ri->idata].flags & ITEM_DOWNGRADE)?10000:0;
-        break;
-      //->Flags[5]
-      case IDATAFLAGS: {
-	    int index = vbound(ri->d[0]/10000,0,4);
-		switch(index){
-		    case 0:
-			ret=(itemsbuf[ri->idata].flags & ITEM_FLAG1)?10000:0;
-		    break;
-		    case 1:
-			ret=(itemsbuf[ri->idata].flags & ITEM_FLAG2)?10000:0; break;
-		    case 2:
-			ret=(itemsbuf[ri->idata].flags & ITEM_FLAG3)?10000:0; break;
-		    case 3:
-			ret=(itemsbuf[ri->idata].flags & ITEM_FLAG4)?10000:0; break;
-		    case 4:
-			ret=(itemsbuf[ri->idata].flags & ITEM_FLAG5)?10000:0; break;
-		   
-		    default: 
-			   ret = 0; break;
-		}
-		   
-		break;
-	}
-		
-	//->Keep Old
-      case IDATAKEEPOLD:
-        ret=(itemsbuf[ri->idata].flags & ITEM_KEEPOLD)?10000:0;
-        break;
-      //Use rupees instead of magic
-      case IDATARUPEECOST:
-        ret=(itemsbuf[ri->idata].flags & ITEM_RUPEE_MAGIC)?10000:0;
-        break;
-      //Can be eaten
-      case IDATAEDIBLE:
-        ret=(itemsbuf[ri->idata].flags & ITEM_EDIBLE)?10000:0;
-        break;
-      //Not int he editor, could become flags[6], but I'm reserving this one for other item uses. 
-      case IDATAFLAGUNUSED:
-        ret=(itemsbuf[ri->idata].flags & ITEM_UNUSED)?10000:0;
-        break;
-      //Gain lower level items when collected
-      case IDATAGAINLOWER:
-        ret=(itemsbuf[ri->idata].flags & ITEM_GAINOLD)?10000:0;
-        break;
-	//Unchanged from master
     case IDATAINITDD:
     {
         int a = ri->d[0] / 10000;
@@ -2056,9 +1727,6 @@ long get_register(const long arg)
         
     case NPCHUNGER:
         GET_NPC_VAR_INT(grumble, "npc->Hunger") break;
-    
-    case NPCWEAPSPRITE:
-        GET_NPC_VAR_INT(wpnsprite, "npc->WeaponSprite") break;
         
     case NPCTYPE:
         GET_NPC_VAR_INT(family, "npc->Type") break;
@@ -2181,84 +1849,36 @@ long get_register(const long arg)
         int a = ri->d[0] / 10000;
         
         if(GuyH::loadNPC(ri->guyref, "npc->Defense") != SH::_NoError ||
-                BC::checkBounds(a, 0, (edefLAST255-1), "npc->Defense") != SH::_NoError)
+                BC::checkBounds(a, 0, edefSCRIPT, "npc->Defense") != SH::_NoError)
             ret = -10000;
         else
             ret = GuyH::getNPC()->defense[a] * 10000;
     }
     break;
     
-    //2.fuure compat.
-    
-    case NPCSCRDEFENSED:
-    {
-        int a = ri->d[0] / 10000;
-        
-        if(GuyH::loadNPC(ri->guyref, "npc->ScriptDefense") != SH::_NoError ||
-                BC::checkBounds(a, 0, edefSCRIPTDEFS_MAX, "npc->ScriptDefense") != SH::_NoError)
-            ret = -10000;
-        else
-            ret = GuyH::getNPC()->defense[a+edefSCRIPT01] * 10000;
-    }
-    break;
-    
-    
     case NPCMISCD:
     {
         int a = ri->d[0] / 10000;
         
         if(GuyH::loadNPC(ri->guyref, "npc->Misc") != SH::_NoError ||
-                BC::checkMisc32(a, "npc->Misc") != SH::_NoError)
+                BC::checkMisc(a, "npc->Misc") != SH::_NoError)
             ret = -10000;
         else
             ret = GuyH::getNPC()->miscellaneous[a];
     }
     break;
     
-    case NPCDD: //Fized the size of this array. There are 15 total attribs, [0] to [14], not [0] to [9]. -Z
+    case NPCDD:
     {
         int a = ri->d[0] / 10000;
         
         if(GuyH::loadNPC(ri->guyref, "npc->Attributes") != SH::_NoError ||
-                BC::checkBounds(a, 0, 15, "npc->Attributes") != SH::_NoError)
+                BC::checkBounds(a, 0, 11, "npc->Attributes") != SH::_NoError)
             ret = -10000;
         else
             ret = GuyH::getNPCDMisc(a) * 10000;
     }
     break;
-    
-        case NPCINVINC:
-        if(GuyH::loadNPC(ri->guyref, "npc->InvFrames") != SH::_NoError)
-            ret = -10000;
-        else
-	ret = (int)GuyH::getNPC()->hclk * 10000;
-            
-        break;
-	
-    case NPCHASITEM:
-        if(GuyH::loadNPC(ri->guyref, "npc->HasItem") != SH::_NoError)
-            ret = 0;
-        else
-	ret = GuyH::getNPC()->itemguy?10000:0;
-            
-        break;
-	
-    case NPCRINGLEAD:
-        if(GuyH::loadNPC(ri->guyref, "npc->Ringleader") != SH::_NoError)
-            ret = 0;
-        else
-	ret = GuyH::getNPC()->leader?10000:0;
-            
-        break;
-	
-	case NPCSUPERMAN:
-        if(GuyH::loadNPC(ri->guyref, "npc->Invincible") != SH::_NoError)
-            ret = -10000;
-        else
-	ret = (int)GuyH::getNPC()->superman * 10000;
-            
-        break;
-    
     
     
 ///----------------------------------------------------------------------------------------------------//
@@ -2326,12 +1946,6 @@ long get_register(const long arg)
     case LWPNPOWER:
         if(0!=(s=checkLWpn(ri->lwpn,"Damage")))
             ret=((weapon*)(s))->power*10000;
-            
-        break;
-	
-    case LWPNRANGE:
-        if(0!=(s=checkLWpn(ri->lwpn,"Range")))
-            ret=((weapon*)(s))->scriptrange*10000;
             
         break;
         
@@ -2480,7 +2094,7 @@ long get_register(const long arg)
     case LWPNMISCD:
         if(0!=(s=checkLWpn(ri->lwpn,"Misc")))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             ret=(((weapon*)(s))->miscellaneous[a]);
         }
         
@@ -2705,7 +2319,7 @@ long get_register(const long arg)
     case EWPNMISCD:
         if(0!=(s=checkEWpn(ri->ewpn,"Misc")))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             ret=(((weapon*)(s))->miscellaneous[a]);
         }
         
@@ -2719,32 +2333,6 @@ long get_register(const long arg)
         
 ///----------------------------------------------------------------------------------------------------//
 //Game Info
-	
-	
-    case GAMESUBSCHEIGHT:
-    {
-	ret = passive_subscreen_height*10000;    
-    }
-    break;
-    
-    case GAMEPLAYFIELDOFS:
-	ret = playing_field_offset*10000;
-    break;
-    
-    case PASSSUBOFS:
-	ret = passive_subscreen_offset * 10000;
-    break;
-
-    
-    case ZELDAVERSION:
-        ret = ZC_VERSION; //Do *not* multiply by 10,000!
-        break;
-    case ZELDABUILD:
-	ret = (int)VERSION_BUILD*10000;
-	break;
-    case ZELDABETA:
-	ret = (int)VERSION_BETA*10000;
-	break;
     case GAMEDEATHS:
         ret=game->get_deaths()*10000;
         break;
@@ -2811,9 +2399,6 @@ long get_register(const long arg)
     case GAMEITEMSD:
         ret=(game->item[(ri->d[0])/10000] ? 10000 : 0);
         break;
-    case DISABLEDITEM:
-	ret = (game->items_off[(ri->d[0])/10000] ? 10000 : 0);
-	break;
         
     case GAMELITEMSD:
         ret=game->lvlitems[(ri->d[0])/10000]*10000;
@@ -2869,13 +2454,6 @@ long get_register(const long arg)
     }
     break;
     
-    case GAMEMAXMAPS:
-	ret = (map_count-1)*10000;
-	break;
-    case GAMENUMMESSAGES:
-	ret = (msg_count-1) * 10000; 
-	break;
-    
     case CURDMAP:
         ret=currdmap*10000;
         break;
@@ -2888,10 +2466,6 @@ long get_register(const long arg)
         ret=disableClickToFreeze?0:10000;
         break;
         
-    
-    case NOACTIVESUBSC:
-	ret=Link->stopSubscreenFalling()?10000:0;
-	break;
         
 ///----------------------------------------------------------------------------------------------------//
 //DMap Information
@@ -2916,9 +2490,6 @@ long get_register(const long arg)
         
     case DMAPCONTINUED:
         GET_DMAP_VAR(cont,    "Game->DMapContinue") break;
-    
-    case DMAPLEVELPAL:
-	GET_DMAP_VAR(color,   "Game->DMapPalette")    break; 
         
     case DMAPOFFSET:
         GET_DMAP_VAR(xoff,    "Game->DMapOffset")   break;
@@ -3029,7 +2600,7 @@ else \
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=tmpscr->data[pos]*10000;
             else if(layr>-1)
@@ -3037,7 +2608,7 @@ else \
             else ret=TheMaps[scr].data[pos]*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
     
@@ -3052,7 +2623,7 @@ else \
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=tmpscr->cset[pos]*10000;
             else if(layr>-1)
@@ -3060,7 +2631,7 @@ else \
             else ret=TheMaps[scr].cset[pos]*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
     
@@ -3075,7 +2646,7 @@ else \
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=tmpscr->sflag[pos]*10000;
             else if(layr>-1)
@@ -3083,7 +2654,7 @@ else \
             else ret=TheMaps[scr].sflag[pos]*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
     
@@ -3098,7 +2669,7 @@ else \
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=combobuf[tmpscr->data[pos]].type*10000;
             else if(layr>-1)
@@ -3107,7 +2678,7 @@ else \
                              TheMaps[scr].data[pos]].type*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
     
@@ -3122,7 +2693,7 @@ else \
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=combobuf[tmpscr->data[pos]].flag*10000;
             else if(layr>-1)
@@ -3130,24 +2701,22 @@ else \
             else ret=combobuf[TheMaps[scr].data[pos]].flag*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
     
     case COMBOSDM:
     {
         int pos = (ri->d[0])/10000;
-        int sc = (ri->d[2]/10000);		
+        int sc = (ri->d[2]/10000);
         int m = (ri->d[1]/10000)-1;
-		if (curscript->version < 2)
-			m++;
         
         if(pos>=0 && pos<176 &&
           sc>=0 && sc<MAPSCRS &&
           m>=0 && m<map_count)
         {
             long scr = m*MAPSCRS+sc;
-            int layr = FFScript::whichlayer(scr);
+            int layr = whichlayer(scr);
             if(scr==(currmap*MAPSCRS+currscr))
                 ret=(combobuf[tmpscr->data[pos]].walk&15)*10000;
             else if(layr>-1)
@@ -3155,134 +2724,30 @@ else \
             else ret=(combobuf[TheMaps[scr].data[pos]].walk&15)*10000;
         }
         else
-            ret = -10000;
+            ret = 10000;
     }
     break;
-    
-    
-    
-    case SETSCREENENEMY:
-    { //void SetScreenEnemy(int map, int screen, int index, int value);
-	
-	    
-		long map     = (ri->d[1] / 10000) - 1; 
-		long scrn  = ri->d[2] / 10000; 
-		long index = ri->d[0] / 10000; 
-		int nn = ri->d[3]/10000; 
-	
-	   // int x;
-	    
-	   // Z_scripterrlog("rid->[3] is (%i), trying to use for '%s'\n", nn, "nn");
-	   // Z_scripterrlog("rid->[2] is (%i), trying to use for '%s'\n", scrn, "scrn");
-	   // Z_scripterrlog("rid->[1] is (%i), trying to use for '%s'\n", map, "map");
-	   // Z_scripterrlog("rid->[0] is (%i), trying to use for '%s'\n", index, "index");
-		
-		if(BC::checkMapID(map, "Game->SetScreenEnemy(...map...)") != SH::_NoError ||
-			BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenEnemy(...screen...)") != SH::_NoError ||
-			BC::checkBounds(index, 0, 9, "Game->SetScreenEnemy(...index...)") != SH::_NoError)
-			return -10000;
-		
-	//	if ( BC::checkBounds(nn, 0, 2, "Game->SetScreenEnemy(...enemy...)") != SH::_NoError) x = 1;
-	//	if ( BC::checkBounds(map, 20, 21, "Game->SetScreenEnemy(...map...)") != SH::_NoError) x = 2;
-		FFScript::set_screenenemy(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-		
-		
-		
-    }
-    break;
-    
-    case SETSCREENDOOR:
-    { //void SetScreenDoor(int map, int screen, int index, int value);
-	long map     = (ri->d[1] / 10000) - 1; 
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-		
-		if(BC::checkMapID(map, "Game->SetScreenDoor(...map...)") != SH::_NoError ||
-			BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenDoor(...screen...)") != SH::_NoError ||
-			BC::checkBounds(index, 0, 3, "Game->SetScreenDoor(...doorindex...)") != SH::_NoError)
-			return -10000;
-      
-		FFScript::set_screendoor(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-		
-    }
-    
     
 ///----------------------------------------------------------------------------------------------------//
 //Screen Information
     case SDD:
     {
         int di = ((get_currdmap())<<7) + get_currscr()-(DMaps[get_currdmap()].type==dmOVERW ? 0 : DMaps[get_currdmap()].xoff);
-        ret=FFScript::get_screen_d(di, ri->d[0]/10000);
+        ret=get_screen_d(di, ri->d[0]/10000);
     }
     break;
     
     case SDDD:
-        ret=FFScript::get_screen_d((ri->d[0])/10000 + ((get_currdmap())<<7), ri->d[1] / 10000);
+        ret=get_screen_d((ri->d[0])/10000 + ((get_currdmap())<<7), ri->d[1] / 10000);
         break;
         
     case SDDDD:
-        ret=FFScript::get_screen_d(ri->d[1] / 10000 + ((ri->d[0]/10000)<<7), ri->d[2] / 10000);
+        ret=get_screen_d(ri->d[1] / 10000 + ((ri->d[0]/10000)<<7), ri->d[2] / 10000);
         break;
         
     case SCRDOORD:
         ret=tmpscr->door[ri->d[0]/10000]*10000;
         break;
-    
-    
-    //These use the same method as GetScreenD -Z
-    case SETSCREENWIDTH:
-        ret=FFScript::get_screenWidth(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENHEIGHT:
-        ret=FFScript::get_screenHeight(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENVIEWX:
-        ret=get_screenViewX(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENVIEWY:
-        ret=get_screenViewY(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENGUY:
-        ret=get_screenGuy(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENSTRING:
-        ret=get_screenString(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENROOM:
-        ret=get_screenRoomtype(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENENTX:
-        ret=get_screenEntryX(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENENTY:
-        ret=get_screenEntryY(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENITEM:
-        ret=get_screenitem(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENUNDCMB:
-        ret=get_screenundercombo(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENUNDCST:
-        ret=get_screenundercset(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
-
-case SETSCREENCATCH:
-        ret=get_screenatchall(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)]);
-        break;
- 
         
     case LIT:
         ret= darkroom ? 0 : 10000;
@@ -3317,19 +2782,19 @@ case SETSCREENCATCH:
         break;
         
     case PUSHBLOCKX:
-        ret = blockmoving ? int(mblock2->x)*10000 : -10000;
+        ret = blockmoving ? int(mblock2.x)*10000 : -10000;
         break;
         
     case PUSHBLOCKY:
-        ret = blockmoving ? int(mblock2->y)*10000 : -10000;
+        ret = blockmoving ? int(mblock2.y)*10000 : -10000;
         break;
         
     case PUSHBLOCKCOMBO:
-        ret = mblock2->bcombo*10000;
+        ret = mblock2.bcombo*10000;
         break;
         
     case PUSHBLOCKCSET:
-        ret = mblock2->cs*10000;
+        ret = mblock2.cs*10000;
         break;
         
     case UNDERCOMBO:
@@ -3339,140 +2804,7 @@ case SETSCREENCATCH:
     case UNDERCSET:
         ret = tmpscr->undercset*10000;
         break;
-    
-    //Creates an lweapon using an iemdata struct values to generate its properties.
-	//Useful in conjunction with the new weapon editor. 
-        case CREATELWPNDX:
-	{
-		//Z_message("Trying to get Link->SetExtend().\n");
-		long ID = (ri->d[0] / 10000);
-		int itemid = (ri->d[1]/10000);
-		itemid = vbound(itemid,0,(MAXITEMS-1));
-		
-		//Z_scripterrlog("GetLinkExtend rid->[2] is (%i), trying to use for '%s'\n", ri->d[2], "ri->d[2]");
-	    //Z_scripterrlog("GetLinkExtend rid->[1] is (%i), trying to use for '%s'\n", state, "state");
-	    //Z_scripterrlog("GetLinkExtend rid->[0] is (%i), trying to use for '%s'\n", dir, "dir");
-	
-		Lwpns.add(new weapon((fix)0,(fix)0,(fix)0,ID,0,0,0,itemid,Link->getUID()));
-		ri->lwpn = Lwpns.spr(Lwpns.Count() - 1)->getUID();
-		
-		/* Z_scripterrlog("CreateLWeaponDx ri->d[0] is (%i), trying to use for '%s'\n", ID, "ID");
-	    Z_scripterrlog("CreateLWeaponDx ri->d[1] is (%i), trying to use for '%s'\n", itemid, "itemid");
-	Z_scripterrlog("CreateLWeaponDx ri->lwpn is (%i), trying to use for '%s'\n", ri->lwpn, "ri->lwpn"); */
-		
-		ret = ri->lwpn; 
-	}
-	break;
-	
-	/*
-	//Screen->CollisionDx(int enemy_index, int lweapon_type, int power, int x, int y, int weapon_dir, int parent_item);
-	//Handles collision between an npc at screen index 'enemy_index', and an arbitrary lweapon that may or may not exist.
-	//Does damage, and returns true a value collision is valid. Returns a different value otherwise. 
-	
-	// take damage or ignore it
-	// -1: damage (if any) dealt
-	// 1: blocked
-	// 0: weapon passes through unhindered
-	// 2: heal enemy? -ZoriaRPG
-	
-	//THis function should automatically check for shields blocking the weapon, and calculate enemy defences.
-	//In theory, scritped swords, and other melee weapons could use this, as coudl any weapon, and it may simplify
-	//collision routines. 
-	case COLLISIONDX:
-	{
-		//Z_message("Trying to get Link->SetExtend().\n");
-		int index = (ri->d[0] / 10000);
-		long lweapon_type = (ri->d[1] / 10000);
-		int power = (ri->d[2]/10000);
-		
-		int wpnx = ri->4[3]/10000, wpny = ri->d[4]/10000;
-		int dir = ri->d[5]/10000;
-		int parentitem = (ri->d[6]/10000);
-		lweapon_type = vbound(lweapon_type,0,40); //Are we at 40, or higher now>
-		parentitem = vbound(itemid,0,255);
-		
-		//Log the stack events:
-		Z_scripterrlog("CollisionDx ri->d[0] is (%i), trying to use for '%s'\n", index, "index");
-		Z_scripterrlog("CollisionDx ri->d[1] is (%i), trying to use for '%s'\n", lweapon_type, "lweapon_type");
-		Z_scripterrlog("CollisionDx ri->d[2] is (%i), trying to use for '%s'\n", power, "power");
-		Z_scripterrlog("CollisionDx ri->d[3] is (%i), trying to use for '%s'\n", wpnx, "wpnx");
-		Z_scripterrlog("CollisionDx ri->d[4] is (%i), trying to use for '%s'\n", wpny, "wpny");
-		Z_scripterrlog("CollisionDx ri->d[5] is (%i), trying to use for '%s'\n", dir, "dir");
-		Z_scripterrlog("CollisionDx ri->d[0] is (%i), trying to use for '%s'\n", parentitem, "parentitem");
-		
-		weapon *w = new weapon((fix)wpnx,(fix)wpny,(fix)0,lweapon_type,0,power,dir,parentitem,-1,false);
-		int retval = ((enemy*)guys.spr(index))->takehit(w); 
-			//TakeHit, as I recall, applies damage and returns the hit status. Gold.
-		delete w;
-		ret = retval;
-	}
-	break;
-	
-	*/
-    case DEBUGREFFFC:
-    {
-	int r = -1;
-	if ( ri->ffcref ) r = ri->ffcref;
-        ret = r * 10000;
-    }
-        break;
         
-    case DEBUGREFITEM:
-    {
-	int r = -1;
-	if ( ri->itemref ) r = ri->itemref;
-        ret = r * 10000;
-    }
-        break;
-        
-    case DEBUGREFITEMDATA:
-    {
-	int r = -1;
-	if ( ri->idata ) r = ri->idata;
-        ret = r * 10000;
-    }
-        break;
-        
-    case DEBUGREFLWEAPON:
-    {
-	int r = -1;
-	if ( ri->lwpn ) r = ri->lwpn;
-        ret = r * 10000;
-    }
-        break;
-        
-    case DEBUGREFEWEAPON:
-    {
-	int r = -1;
-	if ( ri->ewpn ) r = ri->ewpn;
-        ret = r * 10000;
-    }
-        break;
-        
-    case DEBUGREFNPC:
-    {
-	int r = -1;
-	if ( ri->guyref ) r = ri->guyref;
-        ret = r * 10000;
-    }    
-        break;
-        
-    case DEBUGSP:
-    {
-	int r = -1;
-	if ( ri->sp ) r = ri->sp;
-        ret = r * 10000;
-    }   
-        break;
-    case DEBUGGDR:
-    {
-	int a = vbound(ri->d[0]/10000,0,15);
-	int r = -1;
-	if ( game->global_d[a] ) r = game->global_d[a];
-        ret = r * 10000;
-    }
-        break;
-    
 ///----------------------------------------------------------------------------------------------------//
 //Misc./Internal
     case REFFFC:
@@ -3545,22 +2877,14 @@ void set_register(const long arg, const long value)
         tmpscr->ffdata[ri->ffcref] = vbound(value/10000,0,MAXCOMBOS-1);
         break;
         
-     case CHANGEFFSCRIPTR:
-        FFScript::do_changeffcscript(false);
-        break;
-    
-    case CHANGEFFSCRIPTV:
-        FFScript::do_changeffcscript(true);
-        break;
-    
     case FFSCRIPT:
         for(long i = 1; i < MAX_ZCARRAY_SIZE; i++)
         {
             if(arrayOwner[i]==ri->ffcref)
-                FFScript::deallocateZScriptArray(i);
+                deallocateArray(i);
         }
         
-        tmpscr->ffscript[ri->ffcref] = vbound(value/10000, 0, scripts.ffscripts.size()-1);
+        tmpscr->ffscript[ri->ffcref] = vbound(value/10000, 0, NUMSCRIPTFFC-1);
         
         for(int i=0; i<16; i++)
             ffmisc[ri->ffcref][i] = 0;
@@ -3598,10 +2922,6 @@ void set_register(const long arg, const long value)
     case YD:
         tmpscr->ffydelta[ri->ffcref]=value;
         break;
-    
-    case FFCID:
-        ri->ffcref = vbound((value-10000)/10000, 0, 31);
-        break;
         
     case XD2:
         tmpscr->ffxdelta2[ri->ffcref]=value;
@@ -3633,8 +2953,7 @@ void set_register(const long arg, const long value)
         break;
         
     case FFLINK:
-        (tmpscr->fflink[ri->ffcref])=vbound(value/10000, 0, 32); // Allow "ffc->Link = 0" to unlink ffc.
-	//0 is none, setting this before made it impssible to clear it. -Z
+        (tmpscr->fflink[ri->ffcref])=vbound(value/10000, 0, 32); //Needs to be 0 to be able to clear it. 
         break;
         
     case FFMISCD:
@@ -3652,32 +2971,32 @@ void set_register(const long arg, const long value)
 ///----------------------------------------------------------------------------------------------------//
 //Link's Variables
     case LINKX:
-        Link->setX(value/10000);
+        Link.setX(value/10000);
         break;
         
     case LINKY:
-        Link->setY(value/10000);
+        Link.setY(value/10000);
         break;
         
     case LINKZ:
-        Link->setZ(value/10000);
+        Link.setZ(value/10000);
         break;
         
     case LINKJUMP:
-        Link->setFall(fix((-value * (100.0)) / 10000.0));
+        Link.setFall(fix((-value * (100.0)) / 10000.0));
         break;
         
     case LINKDIR:
     {
-        //Link->setDir() calls reset_hookshot(), which removes the sword sprite.. O_o
-        if(Link->getAction() == attacking) Link->dir = (value/10000);
-        else Link->setDir(value/10000);
+        //Link.setDir() calls reset_hookshot(), which removes the sword sprite.. O_o
+        if(Link.getAction() == attacking) Link.dir = (value/10000);
+        else Link.setDir(value/10000);
         
         break;
     }
     
     case LINKHITDIR:
-        Link->setHitDir(value / 10000);
+        Link.setHitDir(value / 10000);
         break;
         
     case LINKHP:
@@ -3697,16 +3016,16 @@ void set_register(const long arg, const long value)
         break;
         
     case LINKACTION:
-        Link->setAction((actiontype)(value/10000));
+        Link.setAction((actiontype)(value/10000));
         break;
         
     case LINKHELD:
-        Link->setHeldItem(vbound(value/10000,0,MAXITEMS-1));
+        Link.setHeldItem(vbound(value/10000,0,MAXITEMS-1));
         break;
         
     case LINKITEMD:
         {
-            int itemID=vbound(ri->d[0]/10000,0,MAXITEMS-1);
+           int itemID=vbound(ri->d[0]/10000,0,MAXITEMS-1);
             
             // If the Cane of Byrna is being removed, cancel its effect.
             if(value==0 && itemID==current_item_id(itype_cbyrna))
@@ -3722,222 +3041,89 @@ void set_register(const long arg, const long value)
         }
         break;
         
-         case LINKEQUIP:
+        /*case LINKEQUIP:
           {
         
         	int setb = ((value/10000)&0xFF00)>>8, seta = (value/10000)&0xFF;
         	if(seta && get_bit(quest_rules,qr_SELECTAWPN) && game->item[seta]){
-			Awpn = value/10000;
+        
         	}
         	if(setb && game->item[setb]){
-			Bwpn = value/10000;
         	}
           }
-         break;
-	  
-	  case SETITEMSLOT:
-	{
-		//ri->d[1] = 1st arg
-		//ri->d[0] = 2nd arg
-		//value = third arg
-		//int item, int slot, int force
-		int itm = ri->d[0]/10000;
-		
-		int slot = ri->d[1]/10000;
-		int force = ri->d[2]/10000;
-		
-	    Z_scripterrlog("SetItemSlot rid->[0] is (%i), trying to use for '%s'\n", itm, "itm");
-	    Z_scripterrlog("SetItemSlot rid->[1] is (%i), trying to use for '%s'\n", slot, "slot");
-		Z_scripterrlog("SetItemSlot rid->[2] is (%i), trying to use for '%s'\n", force, "force");
-		
-		//If we add more item buttons, slot should be an int
-		//and force shuld be an int
-		
-		/*
-			For zScript, 
-				const int ITM_REQUIRE_NONE = 0
-				const int ITM_REQUIRE_INVENTORY = 1
-				const int ITM_REQUIRE_A_SLOT_RULE = 2
-				//Combine as flags
-		
-		
-		*/
-		if ( force == 0 ) {
-			if ( slot == 1 ) {
-				Awpn = itm;
-			}
-			else Bwpn = itm;
-		}
-		if ( force == 1 ) {
-			if(slot == 1 && game->item[itm]){
-				Awpn = itm;
-			}
-			else { 
-				if ( game->item[itm] ) Bwpn = itm;
-			}
-		}
-
-		if ( force == 2 ) {
-			if(slot == 1 && get_bit(quest_rules,qr_SELECTAWPN) ){
-				Awpn = itm;
-			}
-			else { 
-				Bwpn = itm;
-			}
-		}
-		
-		if ( force == 3 ) { //Flag ITM_REQUIRE_INVENTORY + ITM_REQUIRE_SLOT_A_RULE
-			if(slot == 1 && get_bit(quest_rules,qr_SELECTAWPN) && game->item[itm]){
-				Awpn = itm;
-			}
-			else { 
-				if ( game->item[itm] ) Bwpn = itm;
-			}
-		}
-	}
-	break;
-	  
+         break;*/
     case LINKINVIS:
-        Link->setDontDraw(value/10000);
+        Link.setDontDraw(value/10000);
         break;
         
     case LINKINVINC:
-        Link->scriptcoldet=(value/10000);
+        Link.scriptcoldet=(value/10000);
         break;
         
     case LINKSWORDJINX:
-        Link->setSwordClk(value/10000);
+        Link.setSwordClk(value/10000);
         break;
         
     case LINKITEMJINX:
-        Link->setItemClk(value/10000);
+        Link.setItemClk(value/10000);
         break;
         
     case LINKDRUNK:
-        Link->setDrunkClock(value/10000);
+        Link.setDrunkClock(value/10000);
         break;
         
     case LINKMISCD:
-        Link->miscellaneous[vbound(ri->d[0]/10000,0,31)] = value;
+        Link.miscellaneous[vbound(ri->d[0]/10000,0,15)] = value;
         break;
         
     case LINKHXOFS:
-        (Link->hxofs)=(fix)(value/10000);
+        (Link.hxofs)=(fix)(value/10000);
         break;
         
     case LINKHYOFS:
-        (Link->hyofs)=(fix)(value/10000);
+        (Link.hyofs)=(fix)(value/10000);
         break;
         
     case LINKXOFS:
-        (Link->xofs)=(fix)(value/10000);
+        (Link.xofs)=(fix)(value/10000);
         break;
         
     case LINKYOFS:
-        (Link->yofs)=(fix)(value/10000)+playing_field_offset;
+        (Link.yofs)=(fix)(value/10000)+playing_field_offset;
         break;
         
     case LINKZOFS:
-        (Link->zofs)=(fix)(value/10000);
+        (Link.zofs)=(fix)(value/10000);
         break;
         
     case LINKHXSZ:
-        (Link->hxsz)=(fix)(value/10000);
+        (Link.hxsz)=(fix)(value/10000);
         break;
         
     case LINKHYSZ:
-        (Link->hysz)=(fix)(value/10000);
+        (Link.hysz)=(fix)(value/10000);
         break;
         
     case LINKHZSZ:
-        (Link->hzsz)=(fix)(value/10000);
+        (Link.hzsz)=(fix)(value/10000);
         break;
         
     case LINKTXSZ:
-        (Link->txsz)=(fix)(value/10000);
+        (Link.txsz)=(fix)(value/10000);
         break;
         
     case LINKTYSZ:
-        (Link->tysz)=(fix)(value/10000);
+        (Link.tysz)=(fix)(value/10000);
         break;
         
     case LINKTILE:
-        (Link->tile)=(fix)(value/10000);
+        (Link.tile)=(fix)(value/10000);
         break;
         
     case LINKFLIP:
-        (Link->flip)=(fix)(value/10000);
+        (Link.flip)=(fix)(value/10000);
         break;
-    
-    
-    
-    case LINKINVFRAME:
-	Link->setHClk( (int)vbound((value/10000), 0, 214747) );
-	break;
-    
-    case LINKCANFLICKER:
-	Link->setCanLinkFlicker((value/10000)?1:0);
-	break;
-    
-    case LINKHURTSFX:
-	Link->setHurtSFX( (int)vbound((value/10000), 0, 255) );
-	break;
         
-    
-     case LINKITEMB:
-	    //Link->setBButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-    /*
-	Link->directItem = vbound((value/10000),0,(MAXITEMS-1));
-	Link->directItemB = Link->directItem;
-	Bwpn = vbound((value/10000),0,(MAXITEMS-1));
-    */
-	Link->setDirectItem((int)vbound((value/10000),0,(MAXITEMS-1)));
-	Link->setDirectItemB(Link->getDirectItem());
-	Bwpn = (int)vbound((value/10000),0,(MAXITEMS-1));
-	game->bwpn = (int)vbound((value/10000),0,(MAXITEMS-1));
-	break;
-    
-    case LINKITEMA:
-	    //Link->setBButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-	Link->setDirectItem((int)vbound((value/10000),0,(MAXITEMS-1)));
-	Link->setDirectItemA(Link->getDirectItem());
-	Awpn = (int)vbound((value/10000),0,(MAXITEMS-1));
-	game->awpn = (int)vbound((value/10000),0,(MAXITEMS-1));
-	break;
-    
-      case LINKEATEN:
-	Link->setEaten(value/10000);
-	break;
-    
-      case GAMESETA:
-	{
-		//int state   = (ri->d[1]/10000);
-		//int extend = (ri->d[1]/10000);
-		//int dir = (ri->d[0]/10000);
-		Z_message("Trying to force-set the A-button item().\n");
-		Link->setAButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-	}
-	break;
-	
-	case GAMESETB:
-	{
-		//int state   = (ri->d[1]/10000);
-		//int extend = (ri->d[1]/10000);
-		//int dir = (ri->d[0]/10000);
-		Z_message("Trying to force-set the A-button item().\n");
-		Link->setBButtonItem(vbound((value/10000),0,(MAXITEMS-1)));
-	}
-	break;
-	
-	//Set Link Diagonal
-        case LINKDIAG:
-	    Link->setDiagMove((value/10000)?1:0);
-	break;
-    
-    //Set Link Big Hitbox
-        case LINKBIGHITBOX:
-	    Link->setBigHitbox((value/10000)?1:0);
-	break;
 ///----------------------------------------------------------------------------------------------------//
 //Input States
     case INPUTSTART:
@@ -4086,20 +3272,20 @@ void set_register(const long arg, const long value)
         
     case INPUTMOUSEX:
     {
-        int leftOffset=(Backend::graphics->virtualScreenW()/2)-(128*virtualScreenScale());
-        position_mouse((value/10000)*virtualScreenScale() +leftOffset, Backend::mouse->getVirtualScreenY());
+        int leftOffset=(resx/2)-(128*screen_scale);
+        position_mouse((value/10000)*screen_scale+leftOffset, gui_mouse_y());
         break;
     }
     
     case INPUTMOUSEY:
     {
-        int topOffset=(Backend::graphics->virtualScreenH() /2)-((112-playing_field_offset)*virtualScreenScale());
-        position_mouse(Backend::mouse->getVirtualScreenX(), (value/10000)*virtualScreenScale() +topOffset);
+        int topOffset=(resy/2)-((112-playing_field_offset)*screen_scale);
+        position_mouse(gui_mouse_x(), (value/10000)*screen_scale+topOffset);
         break;
     }
     
     case INPUTMOUSEZ:
-		Backend::mouse->setWheelPosition(value/10000);
+        position_mouse_z(value/10000);
         break;
         
 ///----------------------------------------------------------------------------------------------------//
@@ -4399,7 +3585,7 @@ void set_register(const long arg, const long value)
     case ITEMMISCD:
         if(0!=(s=checkItem(ri->itemref)))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             (((item*)(s))->miscellaneous[a])=value;
         }
         
@@ -4407,94 +3593,20 @@ void set_register(const long arg, const long value)
         
 ///----------------------------------------------------------------------------------------------------//
 //Itemdata Variables
-	//not mine, but let;s guard some of them all the same -Z
-	//item class
     case IDATAFAMILY:
-        (itemsbuf[ri->idata].family)=vbound(value/10000,0, 254);
+        (itemsbuf[ri->idata].family)=value/10000;
         flushItemCache();
         break;
-    
-    case IDATAUSEWPN:
-        (itemsbuf[ri->idata].useweapon)=vbound(value/10000, 0, 255);
-        break;
-    case IDATAUSEDEF:
-        (itemsbuf[ri->idata].usedefence)=vbound(value/10000, 0, 255);
-        break;
-    case IDATAWRANGE:
-        (itemsbuf[ri->idata].weaprange)=vbound(value/10000, 0, 255);
-        break;
-     case IDATADURATION:
-        (itemsbuf[ri->idata].weapduration)=vbound(value/10000, 0, 255);
-        break;
-     
-     case IDATADUPLICATES:
-	(itemsbuf[ri->idata].duplicates)=vbound(value/10000, 0, 255);
-        break;
-    case IDATADRAWLAYER:
-	(itemsbuf[ri->idata].drawlayer)=vbound(value/10000, 0, 7);
-        break;
-    case IDATACOLLECTFLAGS:
-	//int a = ri->d[0] / 10000;
-        (itemsbuf[ri->idata].collectflags)=vbound(value/10000, 0, 214747);
-        break;
-    case IDATAWEAPONSCRIPT:
-	(itemsbuf[ri->idata].weaponscript)=vbound(value/10000, 0, 255);
-        break;
-    case IDATAMISCD:
-    {
-	    
-	int a = vbound((ri->d[0] / 10000),0,31);
-	(itemsbuf[ri->idata].wpn_misc_d[a])=(value/10000);
-    }
-    break;
-    case IDATAWPNINITD:
-    {
-	    
-	int a = vbound((ri->d[0] / 10000),0,7);
-	(itemsbuf[ri->idata].weap_initiald[a])=(value/10000);
-    }
-    break;
-    case IDATAWEAPHXOFS:
-	(itemsbuf[ri->idata].weap_hxofs)=(value/10000);
-        break;
-    case IDATAWEAPHYOFS:
-	(itemsbuf[ri->idata].weap_yxofs)=(value/10000);
-        break;
-    case IDATAWEAPHXSZ:
-	(itemsbuf[ri->idata].weap_hxsz)=(value/10000);
-        break;
-    case IDATAWEAPHYSZ:
-	(itemsbuf[ri->idata].weap_hysz)=(value/10000);
-        break;
-    case IDATAWEAPHZSZ:
-	(itemsbuf[ri->idata].weap_hzsz)=(value/10000);
-        break;
-    case IDATAWEAPXOFS:
-	(itemsbuf[ri->idata].weap_xofs)=(value/10000);
-        break;
-    case IDATAWEAPYOFS:
-	(itemsbuf[ri->idata].weap_yofs)=(value/10000);
-        break;
-
-    
-    case IDATAUSEMVT:
-	{
-	    long a = vbound((ri->d[0] / 10000),0,(ITEM_MOVEMENT_PATTERNS-1));
-	    (itemsbuf[ri->idata].weap_pattern[a])=vbound(value/10000, 0, 255);
-	}
-        break;
-    
-    
-    //item level
+        
     case IDATALEVEL:
-        (itemsbuf[ri->idata].fam_type)=vbound(value/10000, 0, 512);
+        (itemsbuf[ri->idata].fam_type)=value/10000;
         flushItemCache();
         break;
-        //bool keep
+        
     case IDATAKEEP:
         (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_GAMEDATA:0;
         break;
-        //Need the legal range -Z
+        
     case IDATAAMOUNT:
         (itemsbuf[ri->idata].amount)=value/10000;
         break;
@@ -4512,192 +3624,13 @@ void set_register(const long arg, const long value)
         break;
         
     case IDATACOUNTER:
-        (itemsbuf[ri->idata].count)=vbound(value/10000,0,31);
+        (itemsbuf[ri->idata].count)=value/10000;
         break;
         
     case IDATAUSESOUND:
-        (itemsbuf[ri->idata].usesound)=vbound(value/10000, 0, 255);
+        (itemsbuf[ri->idata].usesound)=value/10000;
         break;
-    
-    //2.54
-    //My additions begin here. -Z
-    //Stack item to gain next level
-    case IDATACOMBINE:
-		(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_COMBINE:0; 
-		break;
-    //using a level of an item downgrades to a lower one
-	case IDATADOWNGRADE:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_DOWNGRADE:0; 
-		break;
-
-	//Flags[5]
-	case IDATAFLAGS: {
-	    int index = vbound(ri->d[0]/10000,0,4);
-		switch(index){
-		    case 0:
-			(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_FLAG1:0; 
-		    break;
-		    case 1:
-			(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_FLAG2:0; 
-		    case 2:
-			(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_FLAG3:0; 
-		    case 3:
-			(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_FLAG4:0; 
-		    case 4:
-			(itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_FLAG5:0; 
-		    
-		    
-		    default: 
-			    break;
-		}
-		   
-		break;
-	}
-	//Keep Old in editor
-	case IDATAKEEPOLD:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_KEEPOLD:0; 
-		break;
-	//Ruppes for magic
-	case IDATARUPEECOST:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_RUPEE_MAGIC:0; 
-		break;
-	//can be eaten
-	case IDATAEDIBLE:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_EDIBLE:0; 
-		break;
-	//Reserving this for item editor stuff. 
-	case IDATAFLAGUNUSED:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_UNUSED:0; 
-		break;
-	//gain lower level items
-	case IDATAGAINLOWER:
-	      (itemsbuf[ri->idata].flags)|=(value/10000)?ITEM_GAINOLD:0; 
-		break;
-	//Set the action script
-	case IDATASCRIPT:
-        itemsbuf[ri->idata].script=vbound(value/10000,1,255);
-        break;
-    
-      /*
-      case ITEMMISCD:
-        if(0!=(s=checkItem(ri->itemref)))
-        {
-            int a = vbound(ri->d[0]/10000,0,31);
-            (((item*)(s))->miscellaneous[a])=value;
-        }
         
-        break;*/
-	//Attributes[10]
-	case IDATAATTRIB: {
-	    int index = vbound(ri->d[0]/10000,0,9);
-		switch(index){
-		    case 0:
-			itemsbuf[ri->idata].misc1=value/10000;
-		    break;
-		    case 1:
-			itemsbuf[ri->idata].misc2=value/10000; break;
-		    case 2:
-			itemsbuf[ri->idata].misc3=value/10000; break;
-		    case 3:
-			itemsbuf[ri->idata].misc4=value/10000; break;
-		    case 4:
-			itemsbuf[ri->idata].misc5=value/10000; break;
-		    case 5:
-			itemsbuf[ri->idata].misc6=value/10000; break;
-		    case 6:
-			itemsbuf[ri->idata].misc7=value/10000; break;
-		    case 7:
-			itemsbuf[ri->idata].misc8=value/10000; break;
-		    case 8:
-			itemsbuf[ri->idata].misc9=value/10000; break;
-		    case 9:
-			itemsbuf[ri->idata].misc10=value/10000; break;
-
-		    default: 
-			    break;
-		}
-		   
-		break;
-	}
-	//Sprites[10]
-	case IDATASPRITE: {
-	    int index = vbound(ri->d[0]/10000,0,9);
-		switch(index){
-		    case 0:
-			itemsbuf[ri->idata].wpn=vbound(value/10000, 0, 255);
-		    break;
-		    case 1:
-			itemsbuf[ri->idata].wpn2=(value/10000, 0, 255); break;
-		    case 2:
-			itemsbuf[ri->idata].wpn3=(value/10000, 0, 255); break;
-		    case 3:
-			itemsbuf[ri->idata].wpn4=(value/10000, 0, 255); break;
-		    case 4:
-			itemsbuf[ri->idata].wpn5=(value/10000, 0, 255); break;
-		    case 5:
-			itemsbuf[ri->idata].wpn6=(value/10000, 0, 255); break;
-		    case 6:
-			itemsbuf[ri->idata].wpn7=(value/10000, 0, 255); break;
-		    case 7:
-			itemsbuf[ri->idata].wpn8=(value/10000, 0, 255); break;
-		    case 8:
-			itemsbuf[ri->idata].wpn9=(value/10000, 0, 255); break;
-		    case 9:
-			itemsbuf[ri->idata].wpn10=(value/10000, 0, 255); break;
-		    
-		    default: 
-			    break;
-		}
-		   
-		break;
-	}
-	//Link tile modifier. 
-	case IDATALTM:
-        itemsbuf[ri->idata].ltm=value/10000;
-        break;
-	//Pickup script
-    case IDATAPSCRIPT:
-        itemsbuf[ri->idata].collect_script=(value/10000, 1, 255);
-        break;
-    //magic cost
-     case IDATAMAGCOST:
-        itemsbuf[ri->idata].magic=value/10000;
-        break;
-     //min hearts to pick up
-     case IDATAMINHEARTS:
-        itemsbuf[ri->idata].pickup_hearts=vbound(value/10000, 0, 214748);
-        break;
-     //item tile
-     case IDATATILE:
-        itemsbuf[ri->idata].tile=vbound(value/10000, 0, 65519);
-        break;
-     //flash
-     case IDATAMISC:
-        itemsbuf[ri->idata].misc=value/10000;
-        break;
-     //cset
-     case IDATACSET:
-        itemsbuf[ri->idata].csets=vbound(value/10000,0,13);
-        break;
-     /*
-     case IDATAFRAME:
-        itemsbuf[ri->idata].frame=value/10000;
-        break;
-     */
-     //A.Frames
-     case IDATAFRAMES:
-	(itemsbuf[ri->idata].frames)=vbound(value/10000, 0, 214748);
-        break;
-	//A.speed
-     case IDATAASPEED:
-        itemsbuf[ri->idata].speed=vbound(value/10000, 0, 214748);
-        break;
-     //Anim delay
-     case IDATADELAY:
-        itemsbuf[ri->idata].delay=vbound(value/10000, 0, 214748);
-        break;
-     
-        //not one of mine. 
     case IDATAINITDD:
     {
         int a = ri->d[0] / 10000;
@@ -4773,11 +3706,6 @@ void set_register(const long arg, const long value)
         if(0!=(s=checkLWpn(ri->lwpn,"Damage")))
             ((weapon*)s)->power=(value/10000);
             
-        break;
-	
-    case LWPNRANGE:
-        if(0!=(s=checkLWpn(ri->lwpn,"Range")))
-		((weapon*)s)->scriptrange=vbound((value/10000),0,512); //Allow it to move off-screen. -Z           
         break;
         
     case LWPNDEAD:
@@ -4921,7 +3849,7 @@ void set_register(const long arg, const long value)
     case LWPNMISCD:
         if(0!=(s=checkLWpn(ri->lwpn,"Misc")))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             (((weapon*)(s))->miscellaneous[a])=value;
         }
         
@@ -5142,7 +4070,7 @@ void set_register(const long arg, const long value)
     case EWPNMISCD:
         if(0!=(s=checkEWpn(ri->ewpn,"Misc")))
         {
-            int a = vbound(ri->d[0]/10000,0,31);
+            int a = vbound(ri->d[0]/10000,0,15);
             (((weapon*)(s))->miscellaneous[a])=value;
         }
         
@@ -5165,7 +4093,7 @@ void set_register(const long arg, const long value)
             GuyH::getNPC()->x = fix(value / 10000);
             
             if(GuyH::hasLink())
-                Link->setX(fix(value / 10000));
+                Link.setX(fix(value / 10000));
         }
     }
     break;
@@ -5179,7 +4107,7 @@ void set_register(const long arg, const long value)
             GuyH::getNPC()->floor_y += ((value / 10000) - oldy);
             
             if(GuyH::hasLink())
-                Link->setY(fix(value / 10000));
+                Link.setY(fix(value / 10000));
         }
     }
     break;
@@ -5196,7 +4124,7 @@ void set_register(const long arg, const long value)
                     GuyH::getNPC()->z = fix(value / 10000);
                     
                 if(GuyH::hasLink())
-                    Link->setZ(fix(value / 10000));
+                    Link.setZ(fix(value / 10000));
             }
         }
     }
@@ -5210,7 +4138,7 @@ void set_register(const long arg, const long value)
                 GuyH::getNPC()->fall = -fix(value * 100.0 / 10000.0);
                 
             if(GuyH::hasLink())
-                Link->setFall(value / fix(10000.0));
+                Link.setFall(value / fix(10000.0));
         }
     }
     break;
@@ -5293,7 +4221,7 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
             if(en->bgsfx != newSFX)
             {
                 en->stop_bgsfx(GuyH::getNPCIndex(ri->guyref));
-                Backend::sfx->loop(newSFX,128);
+                cont_sfx(newSFX);
                 en->bgsfx = newSFX;
             }
         }
@@ -5326,9 +4254,6 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
         
     case NPCHUNGER:
         SET_NPC_VAR_INT(grumble, "npc->Hunger") break;
-    
-    case NPCWEAPSPRITE:
-        SET_NPC_VAR_INT(wpnsprite, "npc->WeaponSprite") break;
         
     case NPCCSET:
     {
@@ -5394,21 +4319,8 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
         long a = ri->d[0] / 10000;
         
         if(GuyH::loadNPC(ri->guyref, "npc->Defense") == SH::_NoError &&
-                BC::checkBounds(a, 0, (edefLAST255-1), "npc->Defense") == SH::_NoError)
+                BC::checkBounds(a, 0, edefSCRIPT, "npc->Defense") == SH::_NoError)
             GuyH::getNPC()->defense[a] = value / 10000;
-    }
-    break;
-    
-    //2.future compat. -Z
-    
-    
-     case NPCSCRDEFENSED:
-    {
-        long a = ri->d[0] / 10000;
-        
-        if(GuyH::loadNPC(ri->guyref, "npc->ScriptDefense") == SH::_NoError &&
-                BC::checkBounds(a, 0, edefSCRIPTDEFS_MAX, "npc->ScriptDefense") == SH::_NoError)
-            GuyH::getNPC()->defense[a+edefSCRIPT01] = value / 10000;
     }
     break;
     
@@ -5417,97 +4329,15 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
         long a = ri->d[0] / 10000;
         
         if(GuyH::loadNPC(ri->guyref, "npc->Misc") == SH::_NoError &&
-                BC::checkMisc32(a, "npc->Misc") == SH::_NoError)
+                BC::checkMisc(a, "npc->Misc") == SH::_NoError)
             GuyH::getNPC()->miscellaneous[a] = value;
             
     }
     
     break;
     
-    //npc->Attributes[] setter -Z
-    case NPCDD:
-    {
-        long a = ri->d[0] / 10000;
-        
-        if(GuyH::loadNPC(ri->guyref, "npc->Attributes") == SH::_NoError &&
-                BC::checkBounds(a, 0, 15, "npc->Attributes") == SH::_NoError)
-	
-	switch(a){
-		case 0: GuyH::getNPC()->dmisc1 = value / 10000; break;
-		case 1: GuyH::getNPC()->dmisc2 = value / 10000; break;
-		case 2: GuyH::getNPC()->dmisc3 = value / 10000; break;
-		case 3: GuyH::getNPC()->dmisc4 = value / 10000; break;
-		case 4: GuyH::getNPC()->dmisc5 = value / 10000; break;
-		case 5: GuyH::getNPC()->dmisc6 = value / 10000; break;
-		case 6: GuyH::getNPC()->dmisc7 = value / 10000; break;
-		case 7: GuyH::getNPC()->dmisc8 = value / 10000; break;
-		case 8: GuyH::getNPC()->dmisc9 = value / 10000; break;
-		case 9: GuyH::getNPC()->dmisc10 = value / 10000; break;
-		case 10: GuyH::getNPC()->dmisc11 = value / 10000; break;
-		case 11: GuyH::getNPC()->dmisc12 = value / 10000; break;
-		case 12: GuyH::getNPC()->dmisc13 = value / 10000; break;
-		case 13: GuyH::getNPC()->dmisc14 = value / 10000; break;
-		case 14: GuyH::getNPC()->dmisc15 = value / 10000; break;
-		default: break;
-	}
-
-    }
-    break;
-    
-        
-    case NPCINVINC:
-    {
-        if(GuyH::loadNPC(ri->guyref, "npc->InvFrames") == SH::_NoError)
-            GuyH::getNPC()->hclk = (int)value/10000;
-    }
-    break;
-    
-    case NPCSUPERMAN:
-    {
-        if(GuyH::loadNPC(ri->guyref, "npc->Invincible") == SH::_NoError)
-            GuyH::getNPC()->superman = (int)value/10000;
-    }
-    break;
-    
-    case NPCHASITEM:
-    {
-        if(GuyH::loadNPC(ri->guyref, "npc->HasItem") == SH::_NoError)
-            GuyH::getNPC()->itemguy = (value/10000)?1:0;
-    }
-    break;
-    
-    case NPCRINGLEAD:
-    {
-        if(GuyH::loadNPC(ri->guyref, "npc->Ringleader") == SH::_NoError)
-            GuyH::getNPC()->leader = (value/10000)?1:0;
-    }
-    break;
-    
 ///----------------------------------------------------------------------------------------------------//
 //Game Information
-    
-    case GAMESUBSCHEIGHT:
-    {
-	int v = vbound(value,0,256);
-	passive_subscreen_height = (v/10000);   
-    }
-    break;
-    
-    case GAMEPLAYFIELDOFS:
-    {
-	int v = vbound(value,-256, 256);
-	playing_field_offset = (v/10000);
-    }
-    break;
-    
-    case PASSSUBOFS:
-    {
-	int v = vbound(value,-256, 256);
-	passive_subscreen_offset = (v/10000);
-    }
-    break;
-
-    
     case GAMEDEATHS:
         game->set_deaths(value/10000);
         break;
@@ -5571,10 +4401,6 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
     case GAMEITEMSD:
         game->set_item((ri->d[0])/10000,(value!=0));
         break;
-    
-    case DISABLEDITEM:
-	game->items_off[(ri->d[0])/10000]=value/10000;
-	break;
         
     case GAMELITEMSD:
         game->lvlitems[(ri->d[0])/10000]=value/10000;
@@ -5608,11 +4434,6 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
     case GAMECLICKFREEZE:
         disableClickToFreeze=value==0;
         break;
-    
-    
-    case NOACTIVESUBSC:
-	Link->stopSubscreenFalling((value/10000)?1:0);
-	break;
         
 ///----------------------------------------------------------------------------------------------------//
 //DMap Information
@@ -5636,19 +4457,6 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
     case DMAPCONTINUED:
         SET_DMAP_VAR(cont, "Game->DMapContinue") break;
         
-     case DMAPLEVELPAL:
-   {
-	int ID = ri->d[0] / 10000; 
-	int pal = value/10000;
-	pal = vbound(pal, 0, 0x1FF);
-	   
-	if(BC::checkDMapID(ID, "Game->DMapPalette") == SH::_NoError) 
-        DMaps[ID].color = pal;
-
-	loadlvlpal(DMaps[(ri->d[0] / 10000)].color);
-	break;
-   }
-   
     case DMAPMIDID:
     {
         int ID = ri->d[0] / 10000;
@@ -5790,7 +4598,7 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
             screen_combo_modify_postroutine(tmpscr,pos);
         }
         
-        int layr = FFScript::whichlayer(scr);
+        int layr = whichlayer(scr);
         
         if(layr>-1)
         {
@@ -5820,7 +4628,7 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
         if(scr==(currmap*MAPSCRS+currscr))
             tmpscr->cset[pos] = value/10000;
             
-        int layr = FFScript::whichlayer(scr);
+        int layr = whichlayer(scr);
         
         if(layr>-1)
             tmpscr2[layr].cset[pos]=(value/10000)&15;
@@ -5844,7 +4652,7 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
         if(scr==(currmap*MAPSCRS+currscr))
             tmpscr->sflag[pos] = value/10000;
             
-        int layr = FFScript::whichlayer(scr);
+        int layr = whichlayer(scr);
         
         if(layr>-1)
             tmpscr2[layr].sflag[pos]=value/10000;
@@ -5904,238 +4712,41 @@ if(GuyH::loadNPC(ri->guyref, str) == SH::_NoError) \
     
     case COMBOSDM:
     {
-        int pos = (ri->d[0])/10000;
-        int sc = (ri->d[2]/10000);
-		int m = (ri->d[1] / 10000) - 1;
-		if (curscript->version < 2)
-			m++;        
-        
-        if(pos<0 || pos>=176 ||
-          sc<0 || sc>=MAPSCRS ||
-          m<0 || m>=map_count)
-            break;
-        
-        long scr = m*MAPSCRS+sc;
-        combobuf[TheMaps[scr].data[pos]].walk=(value/10000)&15;
+	    if ( !get_bit(quest_rules,qr_NEWCOMBOSDM) )
+	    {
+	    //This is how it was in 2.50.1-2
+		int pos = (ri->d[0])/10000;
+		long scr = (ri->d[1]/10000)*MAPSCRS+(ri->d[2]/10000);
+
+		if(pos < 0 || pos >= 176 || scr < 0) break;
+
+		combobuf[TheMaps[scr].data[pos]].walk=(value/10000)&15;
+	    }
+	    if ( get_bit(quest_rules,qr_NEWCOMBOSDM) )
+	    {
+	    
+		int pos = (ri->d[0])/10000;
+		int sc = (ri->d[2]/10000);
+		int m = (ri->d[1]/10000)-1;
+		
+		if(pos<0 || pos>=176 ||
+		  sc<0 || sc>=MAPSCRS ||
+		  m<0 || m>=map_count)
+		    break;
+		
+		long scr = m*MAPSCRS+sc;
+		combobuf[TheMaps[scr].data[pos]].walk=(value/10000)&15;
+	    }
     }
     break;
     
 ///----------------------------------------------------------------------------------------------------//
 //Screen Variables
-    
-    //These use the same method as SetScreenD
-    case SETSCREENWIDTH:
-	FFScript::set_screenWidth(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENHEIGHT:
-	FFScript::set_screenHeight(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENVIEWX:
-	FFScript::set_screenViewX(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENVIEWY:
-	FFScript::set_screenViewY(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENGUY:
-	FFScript::set_screenGuy(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENSTRING:
-    {
-	FFScript::set_screenString(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	    //should this be either
-	    //set_screenString(&TheMaps[((ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)])-1), value/10000);
-	    //or
-	    //set_screenString(&TheMaps[((ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)])-+1), value/10000);
-	    Z_message("Map ref is: %d\n",((ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)));
-    }
-	break;
-
-    case SETSCREENROOM:
-	FFScript::set_screenRoomtype(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENENTX:
-	FFScript::set_screenEntryX(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENENTY:
-	FFScript::set_screenEntryY(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENITEM:
-	FFScript::set_screenitem(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENUNDCMB:
-	FFScript::set_screenundercombo(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENUNDCST:
-	FFScript::set_screenundercset(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-    case SETSCREENCATCH:
-	FFScript::set_screenatchall(&TheMaps[(ri->d[1] / 10000) * MAPSCRS + (ri->d[0]/10000)], value/10000);
-	break;
-
-//These use the method of SetScreenEnemy
-
-
-//SetScreenLayerOpacity(int map, int scr, int layer, int v)
-case SETSCREENLAYOP:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenLayerOpacity(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenLayerOpacity(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenLayerOpacity(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenlayeropacity(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENSECCMB:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenSecretCombo(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenSecretCombo(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenSecretCombo(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screensecretcombo(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENSECCST:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenSecretCSet(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenSecretCSet(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenSecretCSet(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screensecretcset(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENSECFLG:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenSecretFlag(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenSecretFlag(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenSecretFlag(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screensecretflag(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENLAYMAP:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenLayerMap(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenLayerMap(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenLayerMap(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenlayermap(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENLAYSCR:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenLayerScreen(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenLayerScreen(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenLayerScreen(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenlayerscreen(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENPATH:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenPath(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenPath(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenPath(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenpath(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENWARPRX:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenWarpReturnX(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenWarpReturnX(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenWarpReturnX(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenwarpReturnX(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
-case SETSCREENWARPRY:
-{ 
-	long map     = (ri->d[1] / 10000) - 1; //Should this be +1? -Z
-	long scrn  = ri->d[2] / 10000; 
-	long index = ri->d[0] / 10000; 
-	int nn = ri->d[3]/10000; 
-
-	if(BC::checkMapID(map, "Game->SetScreenWarpReturnY(...map...)") != SH::_NoError ||
-		BC::checkBounds(scrn, 0, 0x87, "Game->SetScreenWarpReturnY(...screen...)") != SH::_NoError ||
-		BC::checkBounds(index, 0, 9, "Game->SetScreenWarpReturnY(...index...)") != SH::_NoError)
-		return;
-		
-	FFScript::set_screenwarpReturnY(&TheMaps[map * MAPSCRS + scrn], index, nn); 
-}
-break;
-
     case SDD:
     {
         {
             int di2 = ((get_currdmap())<<7) + get_currscr()-(DMaps[get_currdmap()].type==dmOVERW ? 0 : DMaps[get_currdmap()].xoff);
-            FFScript::set_screen_d(di2, ri->d[0]/10000, value);
+            set_screen_d(di2, ri->d[0]/10000, value);
             break;
         }
     }
@@ -6146,11 +4757,11 @@ break;
         break;
         
     case SDDD:
-        FFScript::set_screen_d((ri->d[0])/10000 + ((get_currdmap())<<7), ri->d[1]/10000, value);
+        set_screen_d((ri->d[0])/10000 + ((get_currdmap())<<7), ri->d[1]/10000, value);
         break;
         
     case SDDDD:
-        FFScript::set_screen_d(ri->d[1]/10000 + ((ri->d[0]/10000)<<7), ri->d[2]/10000, value);
+        set_screen_d(ri->d[1]/10000 + ((ri->d[0]/10000)<<7), ri->d[2]/10000, value);
         break;
         
     case SCRDOORD:
@@ -6178,12 +4789,12 @@ break;
         break;
         
     case PUSHBLOCKCOMBO:
-        mblock2->bcombo=value/10000;
+        mblock2.bcombo=value/10000;
         break;
         
     case PUSHBLOCKCSET:
-        mblock2->cs=value/10000;
-        mblock2->oldcset=value/10000;
+        mblock2.cs=value/10000;
+        mblock2.oldcset=value/10000;
         break;
         
     case UNDERCOMBO:
@@ -6192,42 +4803,6 @@ break;
         
     case UNDERCSET:
         tmpscr->undercset=value/10000;
-        break;
-    
-    
-    case DEBUGGDR:
-    {
-	int a = vbound(ri->d[0]/10000,0,15);
-        game->global_d[a] = value / 10000;;
-    }
-        break;
-    
-    case DEBUGSP:
-        ri->sp = vbound((value / 10000),0,256);
-        break;
-        
-    case DEBUGREFFFC:
-        ri->ffcref = vbound((value / 10000),1,31);
-        break;
-        
-    case DEBUGREFITEM:
-        ri->itemref = vbound((value / 10000),0,255);
-        break;
-        
-    case DEBUGREFITEMDATA:
-        ri->idata = vbound((value / 10000),0,255);
-        break;
-        
-    case DEBUGREFLWEAPON:
-        ri->lwpn = vbound((value / 10000),0,255);
-        break;
-        
-    case DEBUGREFEWEAPON:
-        ri->ewpn = vbound((value / 10000),0,255);
-        break;
-        
-    case DEBUGREFNPC:
-        ri->guyref = vbound((value / 10000),0,255);
         break;
         
 ///----------------------------------------------------------------------------------------------------//
@@ -6279,7 +4854,7 @@ break;
         break;
     }
     }
-} //end set_register
+}
 
 ///----------------------------------------------------------------------------------------------------//
 //                                       ASM Functions                                                 //
@@ -6414,7 +4989,7 @@ void do_deallocatemem()
 {
     const long ptrval = get_register(sarg1) / 10000;
     
-    FFScript::deallocateZScriptArray(ptrval);
+    deallocateArray(ptrval);
 }
 
 void do_loada(const byte a)
@@ -6791,37 +5366,19 @@ void do_rshift(const bool v)
 
 void do_warp(bool v)
 {
-    int dmap=SH::get_arg(sarg1, v) / 10000;
-    if(dmap<0 || dmap>=MAXDMAPS)
-        return;
-    int screen=SH::get_arg(sarg2, v) / 10000;
-    if(screen<0 || screen>=MAPSCRS) // Should this be MAPSCRSNORMAL?
-        return;
-    // A shifted DMap can still go past the end of the maps, so check that
-    if(DMaps[dmap].map*MAPSCRS+DMaps[dmap].xoff+screen>= (int)TheMaps.size())
-        return;
-    
-    tmpscr->sidewarpdmap[0] = dmap;
-    tmpscr->sidewarpscr[0]  = screen;
+    tmpscr->sidewarpdmap[0] = SH::get_arg(sarg1, v) / 10000;
+    tmpscr->sidewarpscr[0]  = SH::get_arg(sarg2, v) / 10000;
     tmpscr->sidewarptype[0] = wtIWARP;
-    Link->ffwarp = true;
+    Link.ffwarp = true;
 }
 
 void do_pitwarp(bool v)
 {
-    int dmap=SH::get_arg(sarg1, v) / 10000;
-    if(dmap<0 || dmap>=MAXDMAPS)
-        return;
-    int screen=SH::get_arg(sarg2, v) / 10000;
-    if(screen<0 || screen>=MAPSCRS)
-        return;
-    if(DMaps[dmap].map*MAPSCRS+DMaps[dmap].xoff+screen>= (int)TheMaps.size())
-        return;
-    tmpscr->sidewarpdmap[0] = dmap;
-    tmpscr->sidewarpscr[0]  = screen;
+    tmpscr->sidewarpdmap[0] = SH::get_arg(sarg1, v) / 10000;
+    tmpscr->sidewarpscr[0]  = SH::get_arg(sarg2, v) / 10000;
     tmpscr->sidewarptype[0] = wtIWARP;
-    Link->ffwarp = true;
-    Link->ffpit = true;
+    Link.ffwarp = true;
+    Link.ffpit = true;
 }
 
 void do_breakshield()
@@ -7035,19 +5592,10 @@ void do_layermap()
         set_register(sarg1, tmpscr->layermap[layer] * 10000);
 }
 
-
-	
-
 void do_triggersecrets()
 {
     hidden_entrance(0, true, false, -4);
-	//hidden_entrance(0,true,single16,scombo); 
-	//bool findentrance(int x, int y, int flag, bool setflag)
-	//We need a variation on these that triggers any combos with a given flag. -Z
 }
-
-
-
 
 void do_getscreenflags()
 {
@@ -7076,478 +5624,6 @@ void do_getscreeneflags()
         
     set_register(sarg1, get_screeneflags(&TheMaps[map * MAPSCRS + scrn], flagset));
 }
-
-//Some of these need to be reduced to two inputs. -Z
-
-long get_screendoor(mapscr *m, int d)
-{
-    int f = m->door[d];
-    return f*10000;
-}
-
-
-
-long get_screenlayeropacity(mapscr *m, int d)
-{
-    int f = m->layeropacity[d]; //6 of these
-    return f*10000;
-}
-
-long get_screensecretcombo(mapscr *m, int d)
-{
-    int f = m->secretcombo[d]; //128 of these
-    return f*10000;
-}
-
-long get_screensecretcset(mapscr *m, int d)
-{
-    int f = m->secretcset[d]; //128 of these
-    return f*10000;
-}
-
-long get_screensecretflag(mapscr *m, int d)
-{
-    int f = m->secretflag[d]; //128 of these
-    return f*10000;
-}
-
-long get_screenlayermap(mapscr *m, int d)
-{
-    int f = m->layermap[d]; //6 of these
-    return f*10000;
-}
-
-long get_screenlayerscreen(mapscr *m, int d)
-{
-    int f = m->layerscreen[d]; //6 of these
-    return f*10000;
-}
-
-long get_screenpath(mapscr *m, int d)
-{
-    int f = m->path[d]; //4 of these
-    return f*10000;
-}
-
-long get_screenwarpReturnX(mapscr *m, int d)
-{
-    int f = m->warpreturnx[d]; //4 of these
-    return f*10000;
-}
-
-long get_screenwarpReturnY(mapscr *m, int d)
-{
-    int f = m->warpreturny[d]; //4 of these
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenViewX(mapscr *m)
-{
-    int f = m->viewX;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenGuy(mapscr *m)
-{
-    int f = m->guy;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenString(mapscr *m)
-{
-    int f = m->str;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenRoomtype(mapscr *m)
-{
-    int f = m->room;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenViewY(mapscr *m)
-{
-    int f = m->viewY;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenEntryX(mapscr *m)
-{
-    int f = m->entry_x;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenEntryY(mapscr *m)
-{
-    int f = m->entry_y;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenitem(mapscr *m)
-{
-    int f = m->item;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenundercombo(mapscr *m)
-{
-    int f = m->undercombo;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenundercset(mapscr *m)
-{
-    int f = m->undercset;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long get_screenatchall(mapscr *m)
-{
-    int f = m->catchall;
-    return f*10000;
-}
-void do_getscreenLayerOpacity()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetLayerOpacity(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetLayerOpacity(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GetLayerOpacity(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenlayeropacity(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenSecretCombo()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSecretCombo(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSecretCombo(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 127, "Game->GetSecretCombo(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screensecretcombo(&TheMaps[map * MAPSCRS + scrn], d));
-}
-
-void do_getscreenSecretCSet()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSecretCSet(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSecretCSet(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 127, "Game->GetSecretCSet(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screensecretcset(&TheMaps[map * MAPSCRS + scrn], d));
-}
-
-void do_getscreenSecretFlag()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSecretFlag(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSecretFlag(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0,127, "Game->GetSecretFlag(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screensecretflag(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenLayerMap()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSreenLayerMap(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSreenLayerMap(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GetSreenLayerMap(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenlayermap(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenLayerscreen()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSreenLayerScreen(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSreenLayerScreen(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GetSreenLayerScreen(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenlayerscreen(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenPath()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetSreenPath(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetSreenPath(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 3, "Game->GetSreenPath(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenpath(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenWarpReturnX()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenWarpReturnX(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenWarpReturnX(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 3, "Game->GetScreenWarpReturnX(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenwarpReturnX(&TheMaps[map * MAPSCRS + scrn], d));
-}
-void do_getscreenWarpReturnY()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenWarpReturnY(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenWarpReturnY(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 3, "Game->GetScreenWarpReturnY(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenwarpReturnY(&TheMaps[map * MAPSCRS + scrn], d));
-}
-
-/*
-//One too many inputs here. -Z
-void do_getscreenatchall()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenCatchall(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenCatchall(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GetScreenCatchall(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenatchall(&TheMaps[map * MAPSCRS + scrn], d));
-}
-
-
-//One too many inputs here. -Z
-void do_getscreenUndercombo()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetcreenUndercombo(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetcreenUndercombo(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GetcreenUndercombo(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenundercombo(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenUnderCSet()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GeScreenUnderCSet(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GeScreenUnderCSet(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 6, "Game->GeScreenUnderCSet(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenundercset(&TheMaps[map * MAPSCRS + scrn], d));
-}
-
-//One too many inputs here. -Z
-void do_getscreenWidth()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenWidth(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenWidth(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenWidth(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenWidth(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenHeight()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenHeight(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenHeight(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenHeight(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenHeight(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenViewX()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenViewX(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenViewX(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenViewX(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenViewX(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenViewY()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenViewY(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenViewY(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenViewY(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenViewY(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenGuy()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenGuy(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenGuy(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenGuy(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenGuy(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenString()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenString(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenString(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenString(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenString(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenRoomType()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenRoomType(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenRoomType(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenRoomType(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenRoomtype(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenEntryX()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenEntryX(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenEntryX(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenEntryX(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenEntryX(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenEntryY()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenEntryY(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenEntryY(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 214747, "Game->GetScreenEntryY(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenEntryY(&TheMaps[map * MAPSCRS + scrn], d));
-}
-//One too many inputs here. -Z
-void do_getscreenItem()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long d = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenItem(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenItem(...screen...)") != SH::_NoError ||
-            BC::checkBounds(d, 0, 255, "Game->GetScreenItem(...val...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screenitem(&TheMaps[map * MAPSCRS + scrn], d));
-}
-*/
-void do_getscreendoor()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long door = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenDoor(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenDoor(...screen...)") != SH::_NoError ||
-            BC::checkBounds(door, 0, 3, "Game->GetScreenDoor(...doorindex...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screendoor(&TheMaps[map * MAPSCRS + scrn], door));
-}
-
-long get_screennpc(mapscr *m, int index)
-{
-    int f = m->enemy[index];
-    return f*10000;
-}
-
-
-void do_getscreennpc()
-{
-    long map     = (ri->d[2] / 10000) - 1;
-    long scrn  = ri->d[1] / 10000;
-    long enemy = ri->d[0] / 10000;
-    
-    if(BC::checkMapID(map, "Game->GetScreenEnemy(...map...)") != SH::_NoError ||
-            BC::checkBounds(scrn, 0, 0x87, "Game->GetScreenEnemy(...screen...)") != SH::_NoError ||
-            BC::checkBounds(enemy, 0, 9, "Game->GetScreenEnemy(...enemy...)") != SH::_NoError)
-        return;
-        
-    set_register(sarg1, get_screennpc(&TheMaps[map * MAPSCRS + scrn], enemy));
-}
-
 
 ///----------------------------------------------------------------------------------------------------//
 //Pointer handling
@@ -7653,7 +5729,7 @@ void do_clearsprites(const bool v)
         
     case 3:
         Lwpns.clear();
-        Link->reset_hookshot();
+        Link.reset_hookshot();
         break;
         
     case 4:
@@ -7738,7 +5814,7 @@ void do_createlweapon(const bool v)
     if(BC::checkWeaponID(ID, "Screen->CreateLWeapon") != SH::_NoError)
         return;
         
-    addLwpn(0, 0, 0, ID, 0, 0, 0, Link->getUID());
+    addLwpn(0, 0, 0, ID, 0, 0, 0, Link.getUID());
     
     if(Lwpns.Count() < 1)
     {
@@ -7836,7 +5912,7 @@ void do_message(const bool v)
         dismissmsg();
         msgfont = zfont;
         blockpath = false;
-        Link->finishedmsg();
+        Link.finishedmsg();
     }
     else
         donewmsg(ID);
@@ -7926,10 +6002,6 @@ void do_drawing_command(const int script_command)
     case BITMAPR:
         set_drawing_command_args(j, 12);
         break;
-    
-    case BITMAPEXR:
-        set_drawing_command_args(j, 16);
-        break;
         
     case DRAWLAYERR:
         set_drawing_command_args(j, 8);
@@ -8006,7 +6078,7 @@ void do_sfx(const bool v)
     if(BC::checkSFXID(ID, "Game->PlaySound") != SH::_NoError)
         return;
         
-    Backend::sfx->play(ID,128);
+    sfx(ID);
 }
 
 void do_midi(bool v)
@@ -8018,36 +6090,6 @@ void do_midi(bool v)
     else
         jukebox(MIDI + (ZC_MIDI_COUNT - 1));
 }
-
-
-void stop_sfx(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    int sfx = (int)ID;
-    if(BC::checkSFXID(ID, "Game->EndSound") != SH::_NoError)
-        return;
-    Backend::sfx->stop(sfx);
-}
-
-void pause_sfx(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    int sfx = (int)ID;
-    if(BC::checkSFXID(ID, "Game->PauseSound") != SH::_NoError)
-        return;
-    Backend::sfx->pause(sfx);
-}
-
-void resume_sfx(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    int sfx = (int)ID;
-    if(BC::checkSFXID(ID, "Game->ResumeSound") != SH::_NoError)
-        return;
-    Backend::sfx->resume(sfx);
-}
-
-
 
 void do_enh_music(bool v)
 {
@@ -8107,10 +6149,6 @@ void do_set_dmap_enh_music(const bool v)
     DMaps[ID].tmusic[55]='\0';
     DMaps[ID].tmusictrack=track;
 }
-
-
-
-
 
 ///----------------------------------------------------------------------------------------------------//
 //Tracing
@@ -8274,26 +6312,6 @@ void do_getmessage(const bool v)
         Z_scripterrlog("Array supplied to 'Game->GetMessage' not large enough\n");
 }
 
-
-
-void do_setmessage(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    long arrayptr = get_register(sarg2) / 10000;
-    
-	if(BC::checkMessage(ID, "Game->SetMessage") != SH::_NoError)
-        return;
-	
-	string filename_str;
-
-        
-        
-    ArrayH::getString(arrayptr, filename_str, 73);
-    strncpy(MsgStrings[ID].s, filename_str.c_str(), 72);
-    MsgStrings[ID].s[72]='\0';
-}
-
-
 void do_getdmapname(const bool v)
 {
     long ID = SH::get_arg(sarg1, v) / 10000;
@@ -8304,23 +6322,6 @@ void do_getdmapname(const bool v)
         
     if(ArrayH::setArray(arrayptr, string(DMaps[ID].name)) == SH::_Overflow)
         Z_scripterrlog("Array supplied to 'Game->GetDMapName' not large enough\n");
-}
-
-void do_setdmapname(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    long arrayptr = get_register(sarg2) / 10000;
-    
-
-    string filename_str;
-    
-    if(BC::checkDMapID(ID, "Game->Game->SetDMapName") != SH::_NoError)
-        return;
-        
-        
-    ArrayH::getString(arrayptr, filename_str, 73);
-    strncpy(DMaps[ID].name, filename_str.c_str(), 72);
-    DMaps[ID].name[72]='\0';
 }
 
 void do_getdmaptitle(const bool v)
@@ -8335,22 +6336,6 @@ void do_getdmaptitle(const bool v)
         Z_scripterrlog("Array supplied to 'Game->GetDMapTitle' not large enough\n");
 }
 
-
-void do_setdmaptitle(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    long arrayptr = get_register(sarg2) / 10000;
-    string filename_str;
-    
-    if(BC::checkDMapID(ID, "Game->Game->SetDMapTitle") != SH::_NoError)
-        return;
-        
-        
-    ArrayH::getString(arrayptr, filename_str, 21);
-    strncpy(DMaps[ID].title, filename_str.c_str(), 20);
-    DMaps[ID].title[20]='\0';
-}
-
 void do_getdmapintro(const bool v)
 {
     long ID = SH::get_arg(sarg1, v) / 10000;
@@ -8362,24 +6347,6 @@ void do_getdmapintro(const bool v)
     if(ArrayH::setArray(arrayptr, string(DMaps[ID].intro)) == SH::_Overflow)
         Z_scripterrlog("Array supplied to 'Game->GetDMapIntro' not large enough\n");
 }
-
-
-void do_setdmapintro(const bool v)
-{
-    long ID = SH::get_arg(sarg1, v) / 10000;
-    long arrayptr = get_register(sarg2) / 10000;
-    string filename_str;
-    
-    if(BC::checkDMapID(ID, "Game->Game->SetDMapIntro") != SH::_NoError)
-        return;
-        
-        
-    ArrayH::getString(arrayptr, filename_str, 73);
-    strncpy(DMaps[ID].intro, filename_str.c_str(), 72);
-    DMaps[ID].intro[72]='\0';
-}
-
-//Set npc and item names t.b.a. -Z
 
 void do_getitemname()
 {
@@ -8412,26 +6379,6 @@ void do_getffcscript()
     for(int i=0; i<512; i++)
     {
         if(strcmp(name.c_str(), ffcmap[i].second.c_str())==0)
-        {
-            num=i+1;
-            break;
-        }
-    }
-    
-    set_register(sarg1, num * 10000);
-}
-
-
-void do_getitemscript()
-{
-	 long arrayptr = get_register(sarg1) / 10000;
-    string name;
-    int num=-1;
-    ArrayH::getString(arrayptr, name, 256); // What's the limit on name length?
-    
-    for(int i=0; i<512; i++)
-    {
-        if(strcmp(name.c_str(), itemmap[i].second.c_str())==0)
         {
             num=i+1;
             break;
@@ -8572,7 +6519,7 @@ int run_script(const byte type, const word script, const byte i)
     {
         ri = &(ffcScriptData[i]);
         
-        curscript = &scripts.ffscripts[script];
+        curscript = ffscripts[script];
         stack = &(ffc_stack[i]);
         
         if(!tmpscr->initialized[i])
@@ -8590,7 +6537,7 @@ int run_script(const byte type, const word script, const byte i)
         ri = &itemScriptData;
         ri->Clear(); //Only runs for one frame so we just zero it out
         
-        curscript = &scripts.itemscripts[script];
+        curscript = itemscripts[script];
         stack = &item_stack;
         memset(stack, 0, 256 * sizeof(long)); //zero here too
         
@@ -8606,7 +6553,7 @@ int run_script(const byte type, const word script, const byte i)
     {
         ri = &globalScriptData;
         
-        curscript = &scripts.globalscripts[script];
+        curscript = globalscripts[script];
         stack = &global_stack;
     }
     break;
@@ -8618,9 +6565,9 @@ int run_script(const byte type, const word script, const byte i)
     }
     
     dword pc = ri->pc; //this is (marginally) quicker than dereferencing ri each time
-    word scommand = curscript->commands[pc].command;
-    sarg1 = curscript->commands[pc].arg1;
-    sarg2 = curscript->commands[pc].arg2;
+    word scommand = curscript[pc].command;
+    sarg1 = curscript[pc].arg1;
+    sarg2 = curscript[pc].arg2;
     
     
 #ifdef _FFDISSASSEMBLY
@@ -8837,33 +6784,9 @@ int run_script(const byte type, const word script, const byte i)
         case ARRAYSIZE:
             do_arraysize();
             break;
-         case ARRAYSIZEB:
-            do_arraysize();
-            break;
-	case ARRAYSIZEF:
-            do_arraysize();
-            break;
-	case ARRAYSIZEN:
-            do_arraysize();
-            break;
-	case ARRAYSIZEI:
-            do_arraysize();
-            break;
-	case ARRAYSIZEID:
-            do_arraysize();
-            break;
-	case ARRAYSIZEL:
-            do_arraysize();
-            break;
-	case ARRAYSIZEE:
-            do_arraysize();
-            break;
-	
+            
         case GETFFCSCRIPT:
             do_getffcscript();
-            break;
-	case GETITEMSCRIPT:
-            do_getitemscript();
             break;
             
             
@@ -9150,14 +7073,6 @@ int run_script(const byte type, const word script, const byte i)
         case PLAYSOUNDV:
             do_sfx(true);
             break;
-	
-	case TRIGGERSECRETR:
-            FFScript::do_triggersecret(false);
-            break;
-            
-        case TRIGGERSECRETV:
-            FFScript::do_triggersecret(true);
-            break;
             
         case PLAYMIDIR:
             do_midi(false);
@@ -9182,83 +7097,6 @@ int run_script(const byte type, const word script, const byte i)
         case SETDMAPENHMUSIC:
             do_set_dmap_enh_music(false);
             break;
-	
-	// Audio->
-	
-	case ENDSOUNDR:
-            stop_sfx(false);
-            break;
-            
-        case ENDSOUNDV:
-            stop_sfx(true);
-            break;
-	
-	case PAUSESOUNDR:
-            pause_sfx(false);
-            break;
-            
-        case PAUSESOUNDV:
-            pause_sfx(true);
-            break;
-	
-	case RESUMESOUNDR:
-            resume_sfx(false);
-            break;
-            
-        case RESUMESOUNDV:
-            resume_sfx(true);
-            break;
-	
-	
-	
-	case PAUSESFX:
-	{
-		int sound = ri->d[0]/10000;
-		Backend::sfx->pause(sound);
-		
-	}
-	break;
-
-	case RESUMESFX:
-	{
-		int sound = ri->d[0]/10000;
-		Backend::sfx->resume(sound);
-	}
-	break;
-
-	case ADJUSTSFX:
-	{
-		int sound = ri->d[2]/10000;
-		int pan = ri->d[1];
-		// control_state[6]=((value/10000)!=0)?true:false;
-		bool loop = ((ri->d[0]/10000)!=0)?true:false;
-		//SFXBackend.adjust_sfx(sound,pan,loop);
-		
-		//! adjust_sfx was not ported to the new back end!!! -Z
-	}
-	break;
-
-
-	case CONTINUESFX:
-	{
-		int sound = ri->d[0]/10000;
-		//Backend::sfx->cont_sfx(sound);
-		
-		//! cont_sfx was not ported to the new back end!!!
-		// I believe this restarted the loop. 
-		
-		Backend::sfx->resume(sound);
-	}
-	break;	
-
-	
-	case PAUSEMUSIC:
-		Backend::sfx->pauseAll();
-		break;
-	case RESUMEMUSIC:
-		Backend::sfx->resumeAll();
-		break;
-            
             
         case MSGSTRR:
             do_message(false);
@@ -9287,9 +7125,6 @@ int run_script(const byte type, const word script, const byte i)
         case GETMESSAGE:
             do_getmessage(false);
             break;
-	case SETMESSAGE:
-            do_setmessage(false);
-            break;
             
         case GETDMAPNAME:
             do_getdmapname(false);
@@ -9303,18 +7138,6 @@ int run_script(const byte type, const word script, const byte i)
             do_getdmapintro(false);
             break;
             
-	case SETDMAPNAME:
-            do_setdmapname(false);
-            break;
-            
-        case SETDMAPTITLE:
-            do_setdmaptitle(false);
-            break;
-	
-        case SETDMAPINTRO:
-            do_setdmapintro(false);
-            break;
-	
         case LOADLWEAPONR:
             do_loadlweapon(false);
             break;
@@ -9482,43 +7305,7 @@ int run_script(const byte type, const word script, const byte i)
         case GETSCREENEFLAGS:
             do_getscreeneflags();
             break;
-	
-	case GETSCREENDOOR:
-            do_getscreendoor();
-            break;
-	
-	case GETSCREENENEMY:
-            do_getscreennpc();
-            break;
             
-	case GETSCREENLAYOP:
-            do_getscreenLayerOpacity();
-            break;
-	case GETSCREENSECCMB:
-	    do_getscreenSecretCombo();
-            break;
-	case GETSCREENSECCST:
-	    do_getscreenSecretCSet();
-            break;
-	case GETSCREENSECFLG:
-	    do_getscreenSecretFlag();
-            break;
-	case GETSCREENLAYMAP:
-	    do_getscreenLayerMap();
-            break;
-	case GETSCREENLAYSCR:
-	    do_getscreenLayerscreen();
-            break;
-	case GETSCREENPATH:
-	    do_getscreenPath();
-            break;
-	case GETSCREENWARPRX:
-	    do_getscreenWarpReturnX();
-            break;
-	case GETSCREENWARPRY:
-	    do_getscreenWarpReturnY();
-            break;
-
         case COMBOTILE:
             do_combotile(false);
             break;
@@ -9542,7 +7329,6 @@ int run_script(const byte type, const word script, const byte i)
         case DRAWSTRINGR:
         case SPLINER:
         case BITMAPR:
-	case BITMAPEXR:
         case DRAWLAYERR:
         case DRAWSCREENR:
             do_drawing_command(scommand);
@@ -9700,34 +7486,7 @@ int run_script(const byte type, const word script, const byte i)
         case DEQUEUE:
             do_dequeue(false);
             break;
-	
-	//Visual Effects
-	case WAVYIN:
-		FFScript::do_wavyin();
-		break;
-	case WAVYOUT:
-		FFScript::do_wavyout();
-		break;
-	case ZAPIN:
-		FFScript::do_zapin();
-		break;
-	case ZAPOUT:
-		FFScript::do_zapout();
-		break;
-	case OPENWIPE:
-		FFScript::do_openscreen();
-		break;
-	
-	//Monochrome
-	case GREYSCALEON:
-		setMonochrome(true);
-		break;
-	case GREYSCALEOFF:
-		setMonochrome(false);
-		break;
-	
-	
-	
+            
         default:
             Z_scripterrlog("Invalid ZASM command %ld reached\n", scommand);
             break;
@@ -9744,9 +7503,9 @@ int run_script(const byte type, const word script, const byte i)
         
         if(scommand != 0xFFFF)
         {
-            scommand = curscript->commands[pc].command;
-            sarg1 = curscript->commands[pc].arg1;
-            sarg2 = curscript->commands[pc].arg2;
+            scommand = curscript[pc].command;
+            sarg1 = curscript[pc].arg1;
+            sarg2 = curscript[pc].arg2;
         }
     }
     
@@ -9813,10 +7572,10 @@ int ffscript_engine(const bool preload)
         if(preload && !(tmpscr->ffflags[i]&ffPRELOAD))
             continue;
             
-        if((tmpscr->ffflags[i]&ffIGNOREHOLDUP)==0 && Link->getHoldClk()>0)
+        if((tmpscr->ffflags[i]&ffIGNOREHOLDUP)==0 && Link.getHoldClk()>0)
             continue;
             
-		run_script(SCRIPT_FFC, tmpscr->ffscript[i], i);
+        ZScriptVersion::RunScript(SCRIPT_FFC, tmpscr->ffscript[i], i);
         tmpscr->initialized[i] = true;
     }
     
@@ -9825,420 +7584,3 @@ int ffscript_engine(const bool preload)
 
 
 ///----------------------------------------------------------------------------------------------------
-
-
-void FFScript::set_screenwarpReturnY(mapscr *m, int d, int value)
-{
-    int y = vbound(value, 0, 255); //should be screen hight max, except that we may be able to move the subscreen.
-    m->warpreturny[d] = y;
-}
-
-void FFScript::set_screendoor(mapscr *m, int d, int value)
-{
-    int dr = vbound(d,0,3);
-    int doortype = vbound(value,0,14);
-    m->door[dr] = doortype;
-}
-
-
-void FFScript::set_screenenemy(mapscr *m, int index, int value)
-{
-    int enem_indx = vbound(index,0,9);
-    m->enemy[enem_indx] = vbound(value,0,511);
-}
-void FFScript::set_screenlayeropacity(mapscr *m, int d, int value)
-{
-    int layer = vbound(d,0,6); int op;
-    if ( value <= 64 ) op = 64; 
-    else op = 128;
-    m->layeropacity[layer] = op;
-}
-void FFScript::set_screensecretcombo(mapscr *m, int d, int value)
-{
-    int indx = vbound(value,0,127);
-    int cmb = vbound(value,0,MAXCOMBOS);
-    m->secretcombo[indx] = cmb;
-}
-void FFScript::set_screensecretcset(mapscr *m, int d, int value)
-{
-    int indx = vbound(value,0,127);
-    int cs = vbound(value,0,15);
-    m->secretcset[indx] = cs;
-}
-void FFScript::set_screensecretflag(mapscr *m, int d, int value)
-{
-    int indx = vbound(d,0,127);
-    int flag = vbound(value,0,MAX_FLAGS);
-    m->secretflag[indx] = flag;
-}
-void FFScript::set_screenlayermap(mapscr *m, int d, int value)
-{
-    int layer = vbound(d, MIN_ZQ_LAYER, MAX_ZQ_LAYER);
-    int mp = vbound(value,0, (map_count-1));
-    m->layermap[layer] = mp;
-}
-void FFScript::set_screenlayerscreen(mapscr *m, int d, int value)
-{
-    int layer = vbound(d, MIN_ZQ_LAYER, MAX_ZQ_LAYER);
-    int sc = vbound(value,0, 0x87);
-    m->layerscreen[layer] = sc;
-}
-void FFScript::set_screenpath(mapscr *m, int d, int value)
-{
-    int indx = vbound(d,0,3);
-    m->path[indx] = value;
-}
-void FFScript::set_screenwarpReturnX(mapscr *m, int d, int value)
-{
-    int x = vbound(value,0,255);
-    m->warpreturnx[d] = x;
-}
-
-
-//Use as SetScreenD:
-void FFScript::set_screenWidth(mapscr *m, int value)
-{
-    int w = vbound(value,0,255); //value is char
-    m->scrWidth = w;
-}
-void FFScript::set_screenHeight(mapscr *m, int value)
-{
-    int h = vbound(value,0,255); //value is char
-    m->scrHeight = h;
-}
-void FFScript::set_screenViewX(mapscr *m, int value)
-{
-    int x = vbound(value, 0, 255); //value is char
-    m->viewX = x;
-}
-void FFScript::set_screenViewY(mapscr *m, int value)
-{
-    int y = vbound(value, 0, 255); //value is char
-    m->viewY = y;
-}
-void FFScript::set_screenGuy(mapscr *m, int value)
-{
-    int bloke = vbound(value,0,9); 
-    m->guy = bloke ;
-}
-void FFScript::set_screenString(mapscr *m, int value)
-{
-    int string = vbound(value, 0, msg_count-1); //Sanity check to keep it within the legal string IDs.
-    m->str = string;
-}
-void FFScript::set_screenRoomtype(mapscr *m, int value)
-{
-    int r = vbound(value, rNONE, (rMAX-1)); 
-    m->room = r;
-}
-void FFScript::set_screenEntryX(mapscr *m, int value)
-{
-    int x = vbound(value,0,255);
-    m->entry_x = x;
-}
-void FFScript::set_screenEntryY(mapscr *m, int value)
-{
-    int y = vbound(value,0,255);
-    m->entry_y = y;
-}
-void FFScript::set_screenitem(mapscr *m, int value)
-{
-    int itm = vbound(value,0,MAXITEMS);
-    m->item = itm;
-}
-void FFScript::set_screenundercombo(mapscr *m, int value)
-{
-    int cmb = vbound(value,0,MAXCOMBOS);
-    m->undercombo = cmb;
-}
-void FFScript::set_screenundercset(mapscr *m, int value)
-{
-    int cs = vbound(value,0,15);
-    m->undercset = cs;
-}
-void FFScript::set_screenatchall(mapscr *m, int value)
-{
-    //What are ALL of the catchalls and their max (used) values?
-    int ctch = vbound(value, 0, 65535); //It is a word type. 
-    m->catchall = ctch;
-}
-
-
-//One too many inputs here. -Z
-long FFScript::get_screenWidth(mapscr *m)
-{
-    long f = m->scrWidth;
-    return f*10000;
-}
-//One too many inputs here. -Z
-long FFScript::get_screenHeight(mapscr *m)
-{
-    int f = m->scrHeight;
-    return f*10000;
-}
-
-// Called when leaving a screen; deallocate arrays created by FFCs that aren't carried over
-void FFScript::deallocateZScriptArray(const long ptrval)
-{
-    if(ptrval<=0 || ptrval >= MAX_ZCARRAY_SIZE)
-        Z_scripterrlog("Script tried to deallocate memory at invalid address %ld\n", ptrval);
-    else
-    {
-        arrayOwner[ptrval] = 255;
-        
-        if(localRAM[ptrval].Size() == 0)
-            Z_scripterrlog("Script tried to deallocate memory that was not allocated at address %ld\n", ptrval);
-        else
-        {
-            word size = localRAM[ptrval].Size();
-            localRAM[ptrval].Clear();
-            
-            // If this happens once per frame, it can drown out every other message. -L
-            //Z_eventlog("Deallocated local array with address %ld, size %d\n", ptrval, size);
-            size = size;
-        }
-    }
-}
-
-int FFScript::get_screen_d(long index1, long index2)
-{
-    if(index2 < 0 || index2 > 7)
-    {
-        Z_scripterrlog("You were trying to reference an out-of-bounds array index for a screen's D[] array (%ld); valid indices are from 0 to 7.\n", index1);
-        return 0;
-    }
-    
-    return game->screen_d[index1][index2];
-}
-
-void FFScript::set_screen_d(long index1, long index2, int val)
-{
-    if(index2 < 0 || index2 > 7)
-    {
-        Z_scripterrlog("You were trying to reference an out-of-bounds array index for a screen's D[] array (%ld); valid indices are from 0 to 7.\n", index1);
-        return;
-    }
-    
-    game->screen_d[index1][index2] = val;
-}
-
-// If scr is currently being used as a layer, return that layer no.
-int FFScript::whichlayer(long scr)
-{
-    for(int i = 0; i < 6; i++)
-    {
-        if(scr == (tmpscr->layermap[i] - 1) * MAPSCRS + tmpscr->layerscreen[i])
-            return i;
-    }
-    
-    return -1;
-}
-
-void FFScript::clear_ffc_stack(const byte i)
-{
-    memset(ffc_stack[i], 0, 256 * sizeof(long));
-}
-
-void FFScript::clear_global_stack()
-{
-    memset(global_stack, 0, 256 * sizeof(long));
-}
-
-void FFScript::do_zapout()
-{
-	zapout();
-}
-
-void FFScript::do_zapin(){ zapin(); }
-
-void FFScript::do_openscreen() { openscreen(); }
-void FFScript::do_wavyin() { wavyin(); }
-void FFScript::do_wavyout() { wavyout(false); }
-
-
-void FFScript::do_triggersecret(const bool v)
-{
-    long ID = vbound((SH::get_arg(sarg1, v) / 10000), 0, 255);
-    mapscr *s = tmpscr;
-    int ft=0, checkflag; //Flag trigger, checked flag temp. 
-    bool putit = true;  //Is set false with a mismatch (illegal value input).
-    //Convert a flag type to a secret type. -Z
-	switch(ID)
-	{
-		case mfBCANDLE:
-		    ft=sBCANDLE;
-		    break;
-		    
-		case mfRCANDLE:
-		    ft=sRCANDLE;
-		    break;
-		    
-		case mfWANDFIRE:
-		    ft=sWANDFIRE;
-		    break;
-		    
-		case mfDINSFIRE:
-		    ft=sDINSFIRE;
-		    break;
-		    
-		case mfARROW:
-		    ft=sARROW;
-		    break;
-		    
-		case mfSARROW:
-		    ft=sSARROW;
-		    break;
-		    
-		case mfGARROW:
-		    ft=sGARROW;
-		    break;
-		    
-		case mfSBOMB:
-		    ft=sSBOMB;
-		    break;
-		    
-		case mfBOMB:
-		    ft=sBOMB;
-		    break;
-		    
-		case mfBRANG:
-		    ft=sBRANG;
-		    break;
-		    
-		case mfMBRANG:
-		    ft=sMBRANG;
-		    break;
-		    
-		case mfFBRANG:
-		    ft=sFBRANG;
-		    break;
-		    
-		case mfWANDMAGIC:
-		    ft=sWANDMAGIC;
-		    break;
-		    
-		case mfREFMAGIC:
-		    ft=sREFMAGIC;
-		    break;
-		    
-		case mfREFFIREBALL:
-		    ft=sREFFIREBALL;
-		    break;
-		    
-		case mfSWORD:
-		    ft=sSWORD;
-		    break;
-		    
-		case mfWSWORD:
-		    ft=sWSWORD;
-		    break;
-		    
-		case mfMSWORD:
-		    ft=sMSWORD;
-		    break;
-		    
-		case mfXSWORD:
-		    ft=sXSWORD;
-		    break;
-		    
-		case mfSWORDBEAM:
-		    ft=sSWORDBEAM;
-		    break;
-		    
-		case mfWSWORDBEAM:
-		    ft=sWSWORDBEAM;
-		    break;
-		    
-		case mfMSWORDBEAM:
-		    ft=sMSWORDBEAM;
-		    break;
-		    
-		case mfXSWORDBEAM:
-		    ft=sXSWORDBEAM;
-		    break;
-		    
-		case mfHOOKSHOT:
-		    ft=sHOOKSHOT;
-		    break;
-		    
-		case mfWAND:
-		    ft=sWAND;
-		    break;
-		    
-		case mfHAMMER:
-		    ft=sHAMMER;
-		    break;
-		    
-		case mfSTRIKE:
-		    ft=sSTRIKE;
-		    break;
-		    
-		default:
-		    putit = false;
-		    break;
-	}
-	if ( putit ) {		
-		for(int iter=0; iter<2; ++iter)
-		{
-			for ( int q = 0; q < 176; q++ ) 
-			{		
-				if(iter==1) checkflag=s->sflag[q]; //Placed
-				else checkflag=combobuf[s->data[q]].flag; //Inherent
-				Z_message("checkflag is: %d\n", checkflag);
-				al_trace("checkflag is: %d\n", checkflag);
-				
-				Z_message("ID is: %d\n", ID);
-				al_trace("ID is: %d\n", ID);
-				//cmbx = COMBOX(q);
-				////cmby = COMBOY(q);
-				
-				//Placed flags
-				if ( iter == 1 ) {
-					if ( s->sflag[q] == ID ) {
-						screen_combo_modify_preroutine(s,q);
-						s->data[q] = s->secretcombo[ft];
-						s->cset[q] = s->secretcset[ft];
-						s->sflag[q] = s->secretflag[ft];
-					   // newflag = s->secretflag[ft];
-						screen_combo_modify_postroutine(s,q);
-					}
-				}
-				//Inherent flags
-				else {
-					if ( combobuf[s->data[q]].flag == ID ) {
-						screen_combo_modify_preroutine(s,q);
-						s->data[q] = s->secretcombo[ft];
-						s->cset[q] = s->secretcset[ft];
-						//s->sflag[q] = s->secretflag[ft];
-						screen_combo_modify_postroutine(s,q);
-					}
-					
-				}
-			}
-		}
-	}
-	
-}
-
-void FFScript::do_changeffcscript(const bool v){
-	long ID = vbound((SH::get_arg(sarg1, v) / 10000), 0, 255);
-	for(long i = 1; i < MAX_ZCARRAY_SIZE; i++)
-	{
-	    if(arrayOwner[i]==ri->ffcref)
-		FFScript::deallocateZScriptArray(i);
-	}
-	
-	tmpscr->ffscript[ri->ffcref] = vbound(ID/10000, 0, scripts.ffscripts.size()-1);
-	
-	for(int i=0; i<16; i++)
-	    ffmisc[ri->ffcref][i] = 0;
-	    
-	for(int i=0; i<2; i++)
-	    tmpscr->inita[ri->ffcref][i] = 0;
-	    
-	for(int i=0; i<8; i++)
-	    tmpscr->initd[ri->ffcref][i] = 0;
-	    
-	ffcScriptData[ri->ffcref].Clear();
-	tmpscr->initialized[ri->ffcref] = true;
-}

@@ -35,9 +35,6 @@
 #include "zc_custom.h"
 #include "sfx.h"
 #include "md5.h"
-#include <sstream>
-#include "backend/AllBackends.h"
-#include "scripting/ZASMdefs.h"
 
 #ifdef _MSC_VER
 	#define strncasecmp _strnicmp
@@ -77,9 +74,6 @@ string				             zScript;
 std::map<int, pair<string,string> > ffcmap;
 std::map<int, pair<string,string> > globalmap;
 std::map<int, pair<string,string> > itemmap;
-GameScripts scripts;
-
-extern refInfo ffcScriptData[32];
 
 bool combosread=false;
 bool mapsread=false;
@@ -98,7 +92,7 @@ const char *qst_error[] =
     "Version not supported","Obsolete version",
     "Missing new data"  ,                                     /* but let it pass in ZQuest */
     "Internal error occurred", "Invalid password",
-    "Doesn't match saved game", "Save file is for older version of quest; please start new save",
+    "Doesn't match saved game", "New quest version; please restart game",
     "Out of memory", "File Debug Mode"
 };
 
@@ -823,7 +817,7 @@ PACKFILE *open_quest_template(zquestheader *Header, char *deletefilename, bool v
     
     if(!f)
     {
-        return NULL;
+        return false;
     }
     
     if(validate)
@@ -839,7 +833,7 @@ PACKFILE *open_quest_template(zquestheader *Header, char *deletefilename, bool v
                 delete_file(deletefilename);
             }
             
-            return NULL;
+            return false;
         }
     }
     
@@ -988,7 +982,7 @@ bool init_section(zquestheader *Header, long section_id, miscQdata *Misc, zctune
         
     case ID_ITEMS:
         //items
-        ret=readitems(f, version, build, Header, true);
+        ret=readitems(f, version, build, true);
         break;
         
     case ID_WEAPONS:
@@ -2558,11 +2552,17 @@ int readrules(PACKFILE *f, zquestheader *Header, bool keepdata)
     {
         set_bit(extra_rules, er_SHORTDGNWALK, 1);
     }
-
-	if (s_version < 14)
-	{
-		set_bit(quest_rules, qr_NOSCRIPTSDURINGSCROLL, 0);
-	}
+    
+    //COMBOSDM
+    //COMBOSDM
+    if(tempheader.zelda_version == 0x250 && tempheader.build < 30) //2.50.2 or earlier
+    {
+        set_bit(quest_rules,qr_NEWCOMBOSDM, 0);
+    }
+    if(tempheader.zelda_version == 0x250 && tempheader.build == 30) //2.50.3RC1
+    {
+        set_bit(quest_rules,qr_NEWCOMBOSDM, 1);
+    }
     
     if(keepdata==true)
     {
@@ -4663,7 +4663,7 @@ extern const char *old_item_string[iLast];
 extern char *weapon_string[WPNCNT];
 extern const char *old_weapon_string[wLast];
 
-int readitems(PACKFILE *f, word version, word build, zquestheader *Header, bool keepdata, bool zgpmode)
+int readitems(PACKFILE *f, word version, word build, bool keepdata, bool zgpmode)
 {
     byte padding;
     int  dummy;
@@ -4744,8 +4744,6 @@ int readitems(PACKFILE *f, word version, word build, zquestheader *Header, bool 
                                                             itemsbuf[i].misc2=itemsbuf[i].magic=tempitem.usesound=0;
             itemsbuf[i].count=-1;
             itemsbuf[i].playsound=WAV_SCALE;
-		itemsbuf[i].useweapon = itemsbuf[i].usedefence = itemsbuf[i].weaprange = itemsbuf[i].weapduration = 0;
-		for ( int q = 0; q < ITEM_MOVEMENT_PATTERNS; q++ ) itemsbuf[i].weap_pattern[q] = 0;
             reset_itembuf(&itemsbuf[i],i);
         }
     }
@@ -4754,7 +4752,6 @@ int readitems(PACKFILE *f, word version, word build, zquestheader *Header, bool 
     {
         memset(&tempitem, 0, sizeof(itemdata));
         reset_itembuf(&tempitem,i);
-	
         
         if(!p_igetw(&tempitem.tile,f,true))
         {
@@ -5134,36 +5131,7 @@ int readitems(PACKFILE *f, word version, word build, zquestheader *Header, bool 
                         return qe_invalid;
                     }
                 }
-		
-		
             }
-	    if ( s_version >= 26 )  //! New itemdata vars for weapon editor. -Z
-		{			// temp.useweapon, temp.usedefence, temp.weaprange, temp.weap_pattern[ITEM_MOVEMENT_PATTERNS]
-			if(!p_getc(&tempitem.useweapon,f,true))
-                        {
-                            return qe_invalid;
-                        }
-			if(!p_getc(&tempitem.usedefence,f,true))
-                        {
-                            return qe_invalid;
-                        }
-			if(!p_igetl(&tempitem.weaprange,f,true))
-                        {
-                            return qe_invalid;
-                        }
-			if(!p_igetl(&tempitem.weapduration,f,true))
-                        {
-                            return qe_invalid;
-                        }
-			for ( int q = 0; q < ITEM_MOVEMENT_PATTERNS; q++ ) {
-				
-				if(!p_igetl(&tempitem.weap_pattern[q],f,true))
-				{
-				    return qe_invalid;
-				}
-			}
-		
-		}
         }
         else
         {
@@ -7731,13 +7699,21 @@ int setupsubscreens()
     return 0;
 }
 
-int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata)
+extern ffscript *ffscripts[512];
+extern ffscript *itemscripts[256];
+extern ffscript *guyscripts[256];
+extern ffscript *wpnscripts[256];
+extern ffscript *globalscripts[NUMSCRIPTGLOBAL];
+extern ffscript *linkscripts[3];
+extern ffscript *screenscripts[256];
+
+int readffscript(PACKFILE *f, zquestheader *Header, bool keepdata)
 {
     int dummy;
     word s_version=0, s_cversion=0;
+    byte numscripts=0;
+    numscripts=numscripts; //to avoid unused variables warnings
     int ret;
-
-	GameScripts tmpscripts;
     
     //section version info
     if(!p_igetw(&s_version,f,true))
@@ -7750,163 +7726,86 @@ int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata)
         return qe_invalid;
     }
     
+    //al_trace("Scripts version %d\n", s_version);
     //section size
     if(!p_igetl(&dummy,f,true))
     {
         return qe_invalid;
     }
     
-	if (s_version < 6 && keepdata)
-		set_bit(quest_rules, qr_NOSCRIPTSDURINGSCROLL, 1);
-
-	// read the scripts
-
-	int numffcscripts = 0;
-	if(s_version < 7)
-		numffcscripts = (s_version < 2) ? NUMSCRIPTFFCOLD : NUMSCRIPTFFC;
-	else
-	{
-		p_igetw(&numffcscripts, f, true);
-	}
-	
-	tmpscripts.ffscripts.resize(numffcscripts);
-
-	for (int i = 0; i < numffcscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_FFC, tmpscripts.ffscripts[i]);
-		if (ret != 0)
-		{
-			return qe_invalid;
-		}
-	}
-
-	int numitemscripts = 0;
-	if (s_version < 7)
-	{
-		if (s_version > 1)
-		{
-			numitemscripts = NUMSCRIPTITEM;
-		}
-	}
-	else
-	{
-		p_igetw(&numitemscripts, f, true);
-	}
-
-	tmpscripts.itemscripts.resize(numitemscripts);
-	for (int i = 0; i < numitemscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_ITEM, tmpscripts.itemscripts[i]);
-		if (ret != 0) return qe_invalid;
-	}
-
-	int numguyscripts = 0;
-	if (s_version < 7)
-	{
-		if (s_version > 1)
-		{
-			numguyscripts = NUMSCRIPTGUYS;
-		}
-	}
-	else
-	{
-		p_igetw(&numguyscripts, f, true);
-	}
-
-	tmpscripts.guyscripts.resize(numguyscripts);
-	for (int i = 0; i < numguyscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_NPC, tmpscripts.guyscripts[i]);
-		if (ret != 0) return qe_invalid;
-	}
-
-	int numweaponscripts = 0;
-	if (s_version < 7)
-	{
-		if (s_version > 1)
-		{
-			numweaponscripts = NUMSCRIPTWEAPONS;
-		}
-	}
-	else
-	{
-		p_igetw(&numweaponscripts, f, true);
-	}
-
-	tmpscripts.wpnscripts.resize(numweaponscripts);
-	for (int i = 0; i < numweaponscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_LWPN, tmpscripts.wpnscripts[i]);
-		if (ret != 0) return qe_invalid;
-	}
-
-	int numscreenscripts = 0;
-	if (s_version < 7)
-	{
-		if (s_version > 1)
-		{
-			numscreenscripts = NUMSCRIPTSCREEN;
-		}
-	}
-	else
-	{
-		p_igetw(&numscreenscripts, f, true);
-	}
-
-	tmpscripts.screenscripts.resize(numscreenscripts);
-	for (int i = 0; i < numscreenscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_SCREEN, tmpscripts.screenscripts[i]);
-		if (ret != 0) return qe_invalid;
-	}
-
-	if (s_version > 4)
-	{
-		for (int i = 0; i < NUMSCRIPTGLOBAL; i++)
-		{
-			ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_GLOBAL, tmpscripts.globalscripts[i]);
-			if (ret != 0) return qe_invalid;
-		}
-	}
-	else if(s_version > 1)
-	{
-		for (int i = 0; i < NUMSCRIPTGLOBALOLD; i++)
-		{
-			ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_GLOBAL, tmpscripts.globalscripts[i]);
-			if (ret != 0) return qe_invalid;
-		}
-
-		if (tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands != NULL)
-		delete[] tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands;
-		
-		tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands = new zasm[1];
-		tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands[0].command = 0xFFFF;
-		tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands_len = 1;
-	}
-
-	int numlinkscripts = 0;
-	if (s_version < 7)
-	{
-		if (s_version > 1)
-		{
-			numlinkscripts = NUMSCRIPTLINK;
-		}
-	}
-	else
-	{
-		p_igetw(&numlinkscripts, f, true);
-	}
-	
-	tmpscripts.linkscripts.resize(numlinkscripts);
-	for (int i = 0; i < numlinkscripts; i++)
-	{
-		ret = read_one_script(f, Header, i, s_version, s_cversion, SCRIPT_LINK, tmpscripts.linkscripts[i]);
-
-		if (ret != 0) return qe_invalid;
-	}
-
-	if (keepdata)
-		scripts = tmpscripts;
+    //ZScriptVersion::setVersion(s_version); ~this ideally, but there's no ZC/ZQuest defines...
+    setZScriptVersion(s_version); //Lumped in zelda.cpp and in zquest.cpp as zquest can't link ZScriptVersion
+    
+    //finally...  section data
+    for(int i = 0; i < ((s_version < 2) ? NUMSCRIPTFFCOLD : NUMSCRIPTFFC); i++)
+    {
+        ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &ffscripts[i]);
+        
+        if(ret != 0) return qe_invalid;
+    }
+    
+    if(s_version > 1)
+    {
+        for(int i = 0; i < NUMSCRIPTITEM; i++)
+        {
+            ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &itemscripts[i]);
+            
+            if(ret != 0) return qe_invalid;
+        }
+        
+        for(int i = 0; i < NUMSCRIPTGUYS; i++)
+        {
+            ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &guyscripts[i]);
+            
+            if(ret != 0) return qe_invalid;
+        }
+        
+        for(int i = 0; i < NUMSCRIPTWEAPONS; i++)
+        {
+            ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &wpnscripts[i]);
+            
+            if(ret != 0) return qe_invalid;
+        }
+        
+        for(int i = 0; i < NUMSCRIPTSCREEN; i++)
+        {
+            ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &screenscripts[i]);
+            
+            if(ret != 0) return qe_invalid;
+        }
+        
+        if(s_version > 4)
+        {
+            for(int i = 0; i < NUMSCRIPTGLOBAL; i++)
+            {
+                ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &globalscripts[i]);
+                
+                if(ret != 0) return qe_invalid;
+            }
+        }
+        else
+        {
+            for(int i = 0; i < NUMSCRIPTGLOBALOLD; i++)
+            {
+                ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &globalscripts[i]);
+                
+                if(ret != 0) return qe_invalid;
+            }
+            
+            if(globalscripts[GLOBAL_SCRIPT_CONTINUE] != NULL)
+                delete [] globalscripts[GLOBAL_SCRIPT_CONTINUE];
+                
+            globalscripts[GLOBAL_SCRIPT_CONTINUE] = new ffscript[1];
+            globalscripts[GLOBAL_SCRIPT_CONTINUE][0].command = 0xFFFF;
+        }
+        
+        for(int i = 0; i < NUMSCRIPTLINK; i++)
+        {
+            ret = read_one_ffscript(f, Header, keepdata, i, s_version, s_cversion, &linkscripts[i]);
+            
+            if(ret != 0) return qe_invalid;
+        }
+    }
     
     if(s_version > 2)
     {
@@ -7938,21 +7837,6 @@ int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata)
                 
             delete[] buf;
         }
-
-		// Some older quests have no bindings, but do have scripts
-		for (int i = 1; i < numffcscripts; i++)
-		{
-			if (scripts.ffscripts[i].commands_len > 1)
-			{
-				// check if binding exists
-				if(ffcmap[i-1].second.length() == 0)				
-				{
-					std::stringstream ss;
-					ss << "Orphaned Script #" << i;
-					ffcmap[i-1].second = ss.str();
-				}
-			}
-		}
         
         word numglobalbindings;
         p_igetw(&numglobalbindings, f, true);
@@ -7966,18 +7850,16 @@ int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata)
             pfread(buf, bufsize, f, true);
             buf[bufsize]=0;
             
-			// id in principle should be valid, since slot assignment cannot assign a global script to a bogus slot.
-			// However, because of a corruption bug, some 2.50.x quests contain bogus entries in the global bindings table.
-			// Ignore these. -DD
-            if(keepdata && id >= 0 && id < NUMSCRIPTGLOBAL)
+            //nothing needed here
+            if(keepdata)
             {
                 //Disable old '~Continue's, they'd wreak havoc. Bit messy, apologies ~Joe
                 if(strcmp(buf,"~Continue") == 0)
                 {
                     globalmap[id].second = "";
                     
-                    if(tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands != NULL)
-						tmpscripts.globalscripts[GLOBAL_SCRIPT_CONTINUE].commands[0].command = 0xFFFF;
+                    if(globalscripts[GLOBAL_SCRIPT_CONTINUE] != NULL)
+                        globalscripts[GLOBAL_SCRIPT_CONTINUE][0].command = 0xFFFF;
                 }
                 else
                 {
@@ -8014,34 +7896,102 @@ int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata)
     return 0;
 }
 
-int read_one_script(PACKFILE *f, zquestheader *, int , word s_version, word , int type, ZAsmScript &script)
+//Eh?
+bool is_string_command(int command)
+{
+    command = command;
+    return false;
+}
+
+void reset_scripts()
+{
+    //OK, who spaced this? ;)
+    for(int i=0; i<NUMSCRIPTFFC; i++)
+    {
+        if(ffscripts[i]!=NULL) delete [] ffscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTITEM; i++)
+    {
+        if(itemscripts[i]!=NULL) delete [] itemscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTGUYS; i++)
+    {
+        if(guyscripts[i]!=NULL) delete [] guyscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTWEAPONS; i++)
+    {
+        if(wpnscripts[i]!=NULL) delete [] wpnscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTSCREEN; i++)
+    {
+        if(screenscripts[i]!=NULL) delete [] screenscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTGLOBAL; i++)
+    {
+        if(globalscripts[i]!=NULL) delete [] globalscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTLINK; i++)
+    {
+        if(linkscripts[i]!=NULL) delete [] linkscripts[i];
+    }
+    
+    
+    for(int i=0; i<NUMSCRIPTFFC; i++)
+    {
+        ffscripts[i] = new ffscript[1];
+        ffscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTITEM; i++)
+    {
+        itemscripts[i] = new ffscript[1];
+        itemscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTGUYS; i++)
+    {
+        guyscripts[i] = new ffscript[1];
+        guyscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTWEAPONS; i++)
+    {
+        wpnscripts[i] = new ffscript[1];
+        wpnscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTSCREEN; i++)
+    {
+        screenscripts[i] = new ffscript[1];
+        screenscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTGLOBAL; i++)
+    {
+        globalscripts[i] = new ffscript[1];
+        globalscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTLINK; i++)
+    {
+        linkscripts[i] = new ffscript[1];
+        linkscripts[i][0].command = 0xFFFF;
+    }
+}
+
+int read_one_ffscript(PACKFILE *f, zquestheader *, bool keepdata, int , word s_version, word , ffscript **script)
 {
 
     //Please also update loadquest() when modifying this method -DD
-	if (s_version < 7)
-	{
-		script.version = 1;
-		script.type = type;
-		delete[] script.name;
-		script.name_len = 16;
-		script.name = new char[16];
-		strcpy(script.name, "Nameless Script");
-	}
-	else
-	{
-		p_igetw(&script.version, f, true);
-		p_igetw(&script.type, f, true);
-		if (script.type != type && script.type != SCRIPT_NONE)
-			return qe_invalid;
-		p_igetw(&script.name_len, f, true);
-		delete[] script.name;
-		script.name = new char[script.name_len];
-		pfread(script.name, script.name_len, f, true);
-		if (script.name[script.name_len - 1] != '\0')
-			return qe_invalid;
-	}
-    
-	long num_commands=1000;
+    ffscript temp_script;
+    temp_script.ptr=NULL;
+    long num_commands=1000;
     
     if(s_version>=2)
     {
@@ -8051,44 +8001,68 @@ int read_one_script(PACKFILE *f, zquestheader *, int , word s_version, word , in
         }
     }
     
-	script.commands_len = num_commands;
-	delete[] script.commands;
-
-	// some old quests have no commands, not even 0xFFFF
-	if (script.commands_len == 0)
-		script.commands_len++;
-
-	script.commands = new zasm[script.commands_len];
+    if(keepdata)
+    {
+        //FIXME:
+        if((*script) != NULL) //Surely we want to do this regardless of keepdata?
+            delete [](*script);
+            
+        (*script) = new ffscript[num_commands]; //memory leak
+    }
     
     for(int j=0; j<num_commands; j++)
     {
-        if(!p_igetw(&(script.commands[j].command),f,true))
+        if(!p_igetw(&(temp_script.command),f,true))
         {
             return qe_invalid;
         }
         
-		if (script.commands[j].command == 0xFFFF)
-		{
-			break;
-		}
-
-		if(!p_igetl(&(script.commands[j].arg1),f,true))
+        if(temp_script.command == 0xFFFF)
         {
-            return qe_invalid;
-        }
+            if(keepdata)
+                (*script)[j].command = 0xFFFF;
                 
-        if(!p_igetl(&(script.commands[j].arg2),f,true))
+            break;
+        }
+        else
         {
-            return qe_invalid;
+            if(is_string_command(temp_script.command))
+            {
+            }
+            else
+            {
+                if(!p_igetl(&(temp_script.arg1),f,keepdata))
+                {
+                    return qe_invalid;
+                }
+                
+                if(!p_igetl(&(temp_script.arg2),f,keepdata))
+                {
+                    return qe_invalid;
+                }
+            }
+            
+            if(keepdata)
+            {
+                (*script)[j].command = temp_script.command;
+                (*script)[j].arg1 = temp_script.arg1;
+                (*script)[j].arg2 = temp_script.arg2;
+                // I'll comment this out until the whole routine is finished using ptr
+                //if(is_string_command(temp_script.command))
+                //{
+                //( *script)[j].ptr=(char *)zc_malloc(256);
+                //memcpy((*script)[j].ptr, temp_script.ptr, 256);
+                //}
+            }
         }
     }
-
-	if (num_commands == 0)
-		script.commands[0].command = 0xFFFF;
     
     return 0;
 }
 
+extern SAMPLE customsfxdata[WAV_COUNT];
+extern unsigned char customsfxflag[WAV_COUNT>>3];
+extern int sfxdat;
 extern DATAFILE *sfxdata;
 const char *old_sfx_string[Z35] =
 {
@@ -8105,6 +8079,7 @@ const char *old_sfx_string[Z35] =
     "Spell rocket up", "Sword spin attack", "Splash", "Summon magic", "Sword tapping",
     "Sword tapping (secret)", "Whistle whirlwind", "Cane of Byrna orbit"
 };
+char *sfx_string[WAV_COUNT];
 
 int readsfx(PACKFILE *f, zquestheader *Header, bool keepdata)
 {
@@ -8147,128 +8122,78 @@ int readsfx(PACKFILE *f, zquestheader *Header, bool keepdata)
         
     /* End highly unorthodox updating thing */
     
-    int16_t wavcount = 0;    
-
-    if (s_version < 7)
-        wavcount = s_version < 6 ? 128 : 256;
-    else if (!p_igetw(&wavcount, f, true))
+    int wavcount = WAV_COUNT;
+    
+    if(s_version < 6)
+        wavcount = 128;
+        
+    unsigned char tempflag[WAV_COUNT>>3];
+    
+    if(s_version < 4)
     {
-        return qe_invalid;
-    }
-
-    std::vector<bool> iscustom;
-    iscustom.resize(wavcount);
-     
-    if (s_version < 7)
-    {
-        unsigned char tempflag[256 >> 3];
-
-        if (s_version < 4)
-        {
-            memset(tempflag, 0xFF, 256 >> 3);
-        }
-        else
-        {
-            if (s_version < 6)
-                memset(tempflag, 0, 256 >> 3);
-
-            for (int i = 0; i < (wavcount >> 3); i++)
-            {
-                if (!p_getc(&tempflag[i], f, true))
-                {
-                    return qe_invalid;
-                }
-            }
-        }
-
-        for (int i = 1; i < wavcount; i++)
-        {
-            iscustom[i] = get_bit(tempflag, i-1) != 0;
-        }
+        memset(tempflag, 0xFF, WAV_COUNT>>3);
     }
     else
     {
-        for (int i = 1; i < wavcount; i++)
+        if(s_version < 6)
+            memset(tempflag, 0, WAV_COUNT>>3);
+            
+        for(int i=0; i<(wavcount>>3); i++)
         {
-            char tmpcustom;
-            if (!p_getc(&tmpcustom, f, true))
-            {
-                return qe_invalid;
-            }
-            iscustom[i] = (tmpcustom != 0);
+            p_getc(&tempflag[i], f, true);
         }
+        
     }
     
-    std::vector<std::string> sfxnames;
-    sfxnames.resize(wavcount);
-
+    if(keepdata)
+        memcpy(customsfxflag, tempflag, WAV_COUNT>>3);
+        
     if(s_version>4)
     {
-        for(int i=1; i<wavcount; i++)
+        for(int i=1; i<WAV_COUNT; i++)
         {
             if(keepdata)
             {
-                char tmpn[5];
-                sprintf(tmpn,"s%03d",i);
+                sprintf(sfx_string[i],"s%03d",i);
                 
-                if ((i < Z35))
-                    sfxnames[i] = std::string(old_sfx_string[i - 1]);
-                else
-                    sfxnames[i] = std::string(tmpn);
+                if((i<Z35))
+                    strcpy(sfx_string[i], old_sfx_string[i-1]);
             }
             
-            if(!iscustom[i])
+            if((get_bit(tempflag, i-1) == 0) || i>=wavcount)
                 continue;
                 
-            if (s_version < 7)
+            char tempname[36];
+            
+            if(!pfread(tempname, 36, f, keepdata))
             {
-                char tempname[36];
-
-                if (!pfread(tempname, 36, f, keepdata))
-                {
-                    return qe_invalid;
-                }
-                sfxnames[i] = std::string(tempname);
+                return qe_invalid;
             }
-            else
+            
+            if(keepdata)
             {
-                int16_t namelen;
-                if (!p_igetw(&namelen, f, true))
-                {
-                    return qe_invalid;
-                }
-                char *tempname = new char[namelen+1];
-                if (!pfread(tempname, namelen+1, f, true))
-                {
-                    delete[] tempname;
-                    return qe_invalid;
-                }
-                if (tempname[namelen] != '\0')
-                    return qe_invalid;
-
-                sfxnames[i] = std::string(tempname);
-                delete[] tempname;
+                strcpy(sfx_string[i], tempname);
             }
         }
     }
     else
     {
-        for(int i=1; i<wavcount; i++)
+        if(keepdata)
         {
-            char tempn[5];
-            sprintf(tempn,"s%03d",i);
+            for(int i=1; i<WAV_COUNT; i++)
+            {
+                sprintf(sfx_string[i],"s%03d",i);
                 
-            if (i < Z35)
-                sfxnames[i] = std::string(old_sfx_string[i - 1]);
-            else
-                sfxnames[i] = std::string(tempn);
+                if(i<Z35)
+                    strcpy(sfx_string[i], old_sfx_string[i-1]);
+            }
         }
     }
     
-    //finally...  sample data
+    //finally...  section data
     for(int i=1; i<wavcount; i++)
     {
-        if (!iscustom[i])
+        if(get_bit(tempflag, i-1) == 0)
             continue;
             
         if(!p_igetl(&dummy,f,true))
@@ -8330,7 +8255,6 @@ int readsfx(PACKFILE *f, zquestheader *Header, bool keepdata)
         //old-style, non-portable loading (Bad Allegro! Bad!!) -DD
         if(s_version < 2)
         {
-            al_trace("WARNING: Quest SFX %d is in stereo, and may be corrupt.\n", i);
             if(!pfread(temp_sample.data, len,f,keepdata))
             {
                 return qe_invalid;
@@ -8357,13 +8281,84 @@ int readsfx(PACKFILE *f, zquestheader *Header, bool keepdata)
         
         if(keepdata)
         {
-            Backend::sfx->loadSample(i, temp_sample, sfxnames[i]);            
+            if(customsfxdata[i].data!=NULL)
+            {
+//        delete [] customsfxdata[i].data;
+                zc_free(customsfxdata[i].data);
+            }
+            
+//      customsfxdata[i].data = new byte[(temp_sample.bits==8?1:2)*temp_sample.len];
+            int len2 = (temp_sample.bits==8?1:2)*(temp_sample.stereo==0?1:2)*temp_sample.len;
+            customsfxdata[i].data = calloc(len2,1);
+            customsfxdata[i].bits = temp_sample.bits;
+            customsfxdata[i].stereo = temp_sample.stereo;
+            customsfxdata[i].freq = temp_sample.freq;
+            customsfxdata[i].priority = temp_sample.priority;
+            customsfxdata[i].len = temp_sample.len;
+            customsfxdata[i].loop_start = temp_sample.loop_start;
+            customsfxdata[i].loop_end = temp_sample.loop_end;
+            customsfxdata[i].param = temp_sample.param;
+            int cpylen = len2;
+            
+            if(s_version<3)
+            {
+                cpylen = (temp_sample.bits==8?1:2)*temp_sample.len;
+                al_trace("WARNING: Quest SFX %d is in stereo, and may be corrupt.\n",i);
+            }
+            
+            memcpy(customsfxdata[i].data,temp_sample.data,cpylen);
+            
+            
         }
         
         zc_free(temp_sample.data);
     }
     
+    sfxdat=0;
     return 0;
+}
+
+void setupsfx()
+{
+    for(int i=1; i<WAV_COUNT; i++)
+    {
+        sprintf(sfx_string[i],"s%03d",i);
+        
+        if(i<Z35)
+        {
+            strcpy(sfx_string[i], old_sfx_string[i-1]);
+        }
+        
+        memset(customsfxflag, 0, WAV_COUNT>>3);
+        
+        int j=i;
+        
+        if(i>Z35)
+        {
+            i=Z35;
+        }
+        
+        SAMPLE *temp_sample = (SAMPLE *)sfxdata[i].dat;
+        
+        if(customsfxdata[j].data!=NULL)
+        {
+//    delete [] customsfxdata[j].data;
+            zc_free(customsfxdata[j].data);
+        }
+        
+//    customsfxdata[j].data = new byte[(temp_sample->bits==8?1:2)*temp_sample->len];
+        customsfxdata[j].data = calloc((temp_sample->bits==8?1:2)*(temp_sample->stereo == 0 ? 1 : 2)*temp_sample->len,1);
+        customsfxdata[j].bits = temp_sample->bits;
+        customsfxdata[j].stereo = temp_sample->stereo;
+        customsfxdata[j].freq = temp_sample->freq;
+        customsfxdata[j].priority = temp_sample->priority;
+        customsfxdata[j].len = temp_sample->len;
+        customsfxdata[j].loop_start = temp_sample->loop_start;
+        customsfxdata[j].loop_end = temp_sample->loop_end;
+        customsfxdata[j].param = temp_sample->param;
+        memcpy(customsfxdata[j].data, (temp_sample->data), (temp_sample->bits==8?1:2)*(temp_sample->stereo==0 ? 1 : 2)*temp_sample->len);
+        i=j;
+    }
 }
 
 extern char *guy_string[eMAXGUYS];
@@ -8912,10 +8907,7 @@ int readguys(PACKFILE *f, zquestheader *Header, bool keepdata)
                 return qe_invalid;
             }
             
-	    //! Enemy Defences
-	    
-	    //If a 2.50 quest, use only the 2.5 defences. 
-            if(guyversion >= 16 )  // November 2009 - Super Enemy Editor
+            if(guyversion >= 16)  // November 2009 - Super Enemy Editor
             {
                 for(int j=0; j<edefLAST; j++)
                 {
@@ -8924,12 +8916,7 @@ int readguys(PACKFILE *f, zquestheader *Header, bool keepdata)
                         return qe_invalid;
                     }
                 }
-		//then copy the generic script defence to all the new script defences
-		
             }
-	    
-	    
-	    
             
             if(guyversion >= 18)
             {
@@ -8974,105 +8961,7 @@ int readguys(PACKFILE *f, zquestheader *Header, bool keepdata)
                 
                 tempguy.misc12=tempMisc;
             }
-	    
-	    //If a 2.54 or later quest, use all of the defences. 
-	    if(guyversion > 24) // Add new guyversion conditional statement 
-            {
-		for(int j=edefLAST; j<edefLAST255; j++)
-                {
-                    if(!p_getc(&(tempguy.defense[j]),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-                }
-            }
-	    
-	    if(guyversion <= 24) // Port over generic script settings from old quests in the new editor. 
-            {
-		for(int j=edefSCRIPT01; j<=edefSCRIPT10; j++)
-                {
-                    tempguy.defense[j] = tempguy.defense[edefSCRIPT] ;
-                }
-            }
-	    
-	    //tilewidth, tileheight, hitwidth, hitheight, hitzheight, hitxofs, hityofs, hitzofs
-	    if(guyversion > 25)
-	    {
-		    if(!p_igetl(&(tempguy.txsz),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.tysz),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.hxsz),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.hysz),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.hzsz),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    /* Is it safe to read a fixed with getl, or do I need to typecast it? -Z
-		   
-		    */
-	    }
-	    //More Enemy Editor vars for 2.60
-	    if(guyversion > 26)
-	    {
-		    if(!p_igetl(&(tempguy.hxofs),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.hyofs),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.xofs),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.yofs),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-		    if(!p_igetl(&(tempguy.zofs),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-	    }
-	    
-	    if(guyversion <= 27) // Port over generic script settings from old quests in the new editor. 
-            {
-		tempguy.wpnsprite = 0;
-            }
-	    
-	    if(guyversion > 27)
-	    {
-	        if(!p_igetl(&(tempguy.wpnsprite),f,keepdata))
-                    {
-                        return qe_invalid;
-                    }
-	    }
-	    if(guyversion <= 28) // Port over generic script settings from old quests in the new editor. 
-            {
-		tempguy.SIZEflags = 0;
-            }
-	    if(guyversion > 28)
-	    {
-		if(!p_igetl(&(tempguy.SIZEflags),f,keepdata))
-		    {
-			return qe_invalid;
-		    }
-		
-	    }
-	    
-	    
+            
             //miscellaneous other corrections
             //fix the mirror wizzrobe -DD
             if(guyversion < 7)
@@ -9330,8 +9219,6 @@ int readguys(PACKFILE *f, zquestheader *Header, bool keepdata)
                 else if(tempguy.family==eeMOLD)
                     tempguy.misc2 = 0;
             }
-	    
-	    
             
             if(keepdata)
             {
@@ -13671,7 +13558,7 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
             itemmap[i] = pair<string,string>("","");
         }
         
-		scripts = GameScripts();
+        reset_scripts();
     }
     
     zquestheader tempheader;
@@ -13893,7 +13780,7 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
                 }
                 
                 box_out("Reading Items...");
-                ret=readitems(f, tempheader.zelda_version, tempheader.build, Header, keepall&&!get_bit(skip_flags, skip_items));
+                ret=readitems(f, tempheader.zelda_version, tempheader.build, keepall&&!get_bit(skip_flags, skip_items));
                 checkstatus(ret);
                 
                 box_out("okay.");
@@ -13984,7 +13871,7 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
                 
                 if(keepall&&!get_bit(skip_flags, skip_sfx))
                 {
-                    Backend::sfx->loadDefaultSamples(Z35, sfxdata, old_sfx_string);
+                    setupsfx();
                 }
                 
                 if(keepall&&!get_bit(skip_flags, skip_itemdropsets))
@@ -14060,8 +13947,8 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
                     catchup=false;
                 }
                 
-                box_out("Reading Script Data...");
-                ret=readscripts(f, &tempheader, keepall&&!get_bit(skip_flags, skip_ffscript));
+                box_out("Reading FF Script Data...");
+                ret=readffscript(f, &tempheader, keepall&&!get_bit(skip_flags, skip_ffscript));
                 checkstatus(ret);
                 box_out("okay.");
                 box_eol();
@@ -14228,7 +14115,7 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
         
         //items
         box_out("Reading Items...");
-        ret=readitems(f, tempheader.zelda_version, tempheader.build, Header, keepall&&!get_bit(skip_flags, skip_items));
+        ret=readitems(f, tempheader.zelda_version, tempheader.build, keepall&&!get_bit(skip_flags, skip_items));
         checkstatus(ret);
         box_out("okay.");
         box_eol();
@@ -14312,8 +14199,8 @@ int loadquest(const char *filename, zquestheader *Header, miscQdata *Misc, zctun
         
         box_out("Setting Up Default Sound Effects...");
         
-        if (keepall && !get_bit(skip_flags, skip_sfx))
-            Backend::sfx->loadDefaultSamples(Z35, sfxdata, old_sfx_string);
+        if(keepall&&!get_bit(skip_flags, skip_sfx))
+            setupsfx();
             
         box_out("okay.");
         box_eol();

@@ -31,7 +31,7 @@
 
 #include "zc_malloc.h"
 #include "mem_debug.h"
-#include "ffasm.h"
+#include "zscriptversion.h"
 #include "zcmusic.h"
 #include "zdefs.h"
 #include "zelda.h"
@@ -48,6 +48,7 @@
 #include "load_gif.h" // not really needed; we're just saving GIF files in ZC.
 #include "fontsdat.h"
 #include "particles.h"
+#include "gamedata.h"
 #include "ffscript.h"
 #include "init.h"
 #include <assert.h>
@@ -57,22 +58,15 @@
 #include "win32.h"
 #include "vectorset.h"
 #include "single_instance.h"
-#include "backend/AllBackends.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
 #define stricmp _stricmp
 #endif
 
-// MSVC fix
-#if _MSC_VER >= 1900
-FILE _iob[] = { *stdin, *stdout, *stderr };
-extern "C" FILE * __cdecl __iob_func(void) { return _iob; }
-#endif
-
-
 ZCMUSIC *zcmusic = NULL;
 zinitdata zinit;
+int colordepth;
 int db=0;
 //zinitdata  zinit;
 int detail_int[10];                                         //temporary holder for things you want to detail
@@ -90,6 +84,7 @@ using std::string;
 using std::pair;
 extern std::map<int, pair<string,string> > ffcmap;
 
+int zq_screen_w, zq_screen_h;
 int passive_subscreen_height=56;
 int original_playing_field_offset=56;
 int playing_field_offset=original_playing_field_offset;
@@ -97,6 +92,8 @@ int passive_subscreen_offset=0;
 extern int directItem;
 extern int directItemA;
 extern int directItemB;
+
+bool is_large=false;
 
 bool standalone_mode=false;
 char *standalone_quest=NULL;
@@ -107,9 +104,13 @@ int favorite_comboaliases[MAXFAVORITECOMBOALIASES];
 
 void playLevelMusic();
 
+volatile int logic_counter=0;
 bool trip=false;
-
-int user_midi_ids[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; //user MIDIs that override things such as GAME_OVER. 
+void update_logic_counter()
+{
+    ++logic_counter;
+}
+END_OF_FUNCTION(update_logic_counter)
 
 #ifdef _SCRIPT_COUNTER
 volatile int script_counter=0;
@@ -119,6 +120,31 @@ void update_script_counter()
 }
 END_OF_FUNCTION(update_script_counter)
 #endif
+
+void throttleFPS()
+{
+    if(Throttlefps ^ (key[KEY_TILDE]!=0))
+    {
+        if(zc_vsync == FALSE)
+        {
+			int t = 0;
+            while(logic_counter < 1)
+			{
+				// bugfix: win xp/7/8 have incompatible timers.
+				// preserve 60 fps and CPU based on user settings. -Gleeok
+				int ms = t >= 16 ? 0 : frame_rest_suggest;
+                rest(ms);
+				t += frame_rest_suggest;
+			}
+        }
+        else
+        {
+            vsync();
+        }
+    }
+    
+    logic_counter = 0;
+}
 
 int onHelp()
 {
@@ -160,7 +186,7 @@ bool triplebuffer_not_available=false;
 RGB_MAP rgb_table;
 COLOR_MAP trans_table, trans_table2;
 
-BITMAP     *framebuf, *scrollbuf, *tmp_bmp, *tmp_scr, *screen2, *fps_undo, *msgdisplaybuf, *pricesdisplaybuf, *temp_buf, *prim_bmp;
+BITMAP     *framebuf, *scrollbuf, *tmp_bmp, *tmp_scr, *screen2, *fps_undo, *msgdisplaybuf, *pricesdisplaybuf, *tb_page[3], *real_screen, *temp_buf, *prim_bmp;
 DATAFILE   *data, *sfxdata, *fontsdata, *mididata;
 FONT       *nfont, *zfont, *z3font, *z3smallfont, *deffont, *lfont, *lfont_l, *pfont, *mfont, *ztfont, *sfont, *sfont2, *sfont3, *spfont, *ssfont1, *ssfont2, *ssfont3, *ssfont4, *gblafont,
            *goronfont, *zoranfont, *hylian1font, *hylian2font, *hylian3font, *hylian4font, *gboraclefont, *gboraclepfont, *dsphantomfont, *dsphantompfont;
@@ -223,14 +249,23 @@ int readsize, writesize;
 bool fake_pack_writing=false;
 combo_alias combo_aliases[MAXCOMBOALIASES];  //Temporarily here so ZC can compile. All memory from this is freed after loading the quest file.
 
+SAMPLE customsfxdata[WAV_COUNT];
+unsigned char customsfxflag[WAV_COUNT>>3];
+int sfxdat=1;
+BITMAP *hw_screen;
+int zqwin_scale;
+
 int jwin_pal[jcMAX];
 int gui_colorset=0;
-byte frame_rest_suggest=0,forceExit=0;
+int fullscreen;
+byte frame_rest_suggest=0,forceExit=0,zc_vsync=0;
+byte disable_triplebuffer=0,can_triplebuffer_in_windowed_mode=0;
+byte zc_color_depth=8;
 byte use_debug_console=0, use_win32_proc=1; //windows-build configs
 int homescr,currscr,frame=0,currmap=0,dlevel,warpscr,worldscr;
 int newscr_clk=0,opendoors=0,currdmap=0,fadeclk=-1,currgame=0,listpos=0;
 int lastentrance=0,lastentrance_dmap=0,prices[3],loadside, Bwpn, Awpn;
-int digi_volume,midi_volume,emusic_volume,currmidi,hasitem,whistleclk;
+int digi_volume,midi_volume,sfx_volume,emusic_volume,currmidi,hasitem,whistleclk,pan_style;
 bool analog_movement=true;
 int joystick_index=0,Akey,Bkey,Skey,Lkey,Rkey,Pkey,Exkey1,Exkey2,Exkey3,Exkey4,Abtn,Bbtn,Sbtn,Mbtn,Lbtn,Rbtn,Pbtn,Exbtn1,Exbtn2,Exbtn3,Exbtn4,Quit=0;
 int js_stick_1_x_stick, js_stick_1_x_axis, js_stick_1_x_offset;
@@ -243,13 +278,13 @@ int cheat_goto_dmap=0, cheat_goto_screen=0, currcset;
 int gfc, gfc2, pitx, pity, refill_what, refill_why, heart_beep_timer=0, new_enemy_tile_start=1580;
 int nets=1580, magicitem=-1,nayruitem=-1, title_version, magiccastclk, quakeclk=0, wavy=0, castx, casty, df_x, df_y, nl1_x, nl1_y, nl2_x, nl2_y;
 int magicdrainclk=0, conveyclk=3, memrequested=0;
+float avgfps=0;
+dword fps_secs=0;
 bool do_cheat_goto=false, do_cheat_light=false;
 int checkx, checky;
 int loadlast=0;
 int skipcont=0;
 int skipicon=0;
-
-bool monochrome = false; //GFX are monochrome.
 
 bool show_layer_0=true, show_layer_1=true, show_layer_2=true, show_layer_3=true, show_layer_4=true, show_layer_5=true, show_layer_6=true,
 //oveheard combos     //pushblocks
@@ -270,14 +305,6 @@ bool Udown,Ddown,Ldown,Rdown,Adown,Bdown,Sdown,Mdown,LBdown,RBdown,Pdown,Ex1down
      pausenow=false, castnext=false, add_df1asparkle, add_df1bsparkle, add_nl1asparkle, add_nl1bsparkle, add_nl2asparkle, add_nl2bsparkle,
      is_on_conveyor, activated_timed_warp=false;
 
-void switch_in_callback();
-void switch_out_callback();
-
-int virtualScreenScale()
-{
-	return 2 - Backend::graphics->getVirtualMode();
-}
-
 byte COOLSCROLL;
 
 int  add_asparkle=0, add_bsparkle=0;
@@ -294,7 +321,15 @@ mapscr tmpscr[2];
 mapscr tmpscr2[6];
 mapscr tmpscr3[6];
 gamedata *game=NULL;
-ObjectPool *pool = NULL;
+ffscript *ffscripts[NUMSCRIPTFFC];
+ffscript *itemscripts[NUMSCRIPTITEM];
+ffscript *globalscripts[NUMSCRIPTGLOBAL];
+
+//If only...
+ffscript *guyscripts[NUMSCRIPTGUYS];
+ffscript *wpnscripts[NUMSCRIPTWEAPONS];
+ffscript *linkscripts[NUMSCRIPTLINK];
+ffscript *screenscripts[NUMSCRIPTSCREEN];
 
 extern refInfo globalScriptData;
 extern word g_doscript;
@@ -309,6 +344,12 @@ byte arrayOwner[MAX_ZCARRAY_SIZE];
 ZScriptDrawingRenderTarget* zscriptDrawingRenderTarget;
 
 DebugConsole DebugConsole::singleton = DebugConsole();
+
+
+void setZScriptVersion(int s_version)
+{
+    ZScriptVersion::setVersion(s_version);
+}
 
 void initZScriptArrayRAM(bool firstplay)
 {
@@ -355,10 +396,8 @@ void initZScriptGlobalRAM()
 {
     g_doscript = 1;
     globalScriptData.Clear();
-    FFScript::clear_global_stack();
+    clear_global_stack();
 }
-
-extern GameScripts scripts;
 
 dword getNumGlobalArrays()
 {
@@ -366,7 +405,7 @@ dword getNumGlobalArrays()
     
     do
     {
-        scommand = scripts.globalscripts[GLOBAL_SCRIPT_INIT].commands[pc].command;
+        scommand = globalscripts[GLOBAL_SCRIPT_INIT][pc].command;
         
         if(scommand == ALLOCATEGMEMV || scommand == ALLOCATEGMEMR)
             ret++;
@@ -381,13 +420,17 @@ dword getNumGlobalArrays()
 //movingblock mblock2; //mblock[4]?
 //LinkClass   Link;
 
+int resx,resy,scrx,scry;
+bool sbig;                                                  // big screen
+bool sbig2;													// bigger screen
+int screen_scale = 2; //default = 2 (640x480)
 bool scanlines;                                             //do scanlines if sbig==1
 bool toogam=false;
 bool ignoreSideview=false;
 
 int cheat=0;                                                // 0 = none; 1,2,3,4 = cheat level
 
-bool mouse_down;                                             // used to hold the last reading of 'gui_mouse_b()' status
+int mouse_down;                                             // used to hold the last reading of 'gui_mouse_b()' status
 int idle_count, active_count;
 
 
@@ -411,6 +454,10 @@ dword               quest_map_pos[MAPSCRS*MAXMAPS2];
 char     *qstpath=NULL;
 char     *qstdir=NULL;
 gamedata *saves=NULL;
+
+volatile int lastfps=0;
+volatile int framecnt=0;
+volatile int myvsync=0;
 
 /**********************************/
 /*********** Misc Data ************/
@@ -591,7 +638,7 @@ void dismissmsg()
     cursor_x=0;
     cursor_y=0;
     msg_onscreen = msg_active = false;
-    //Link->finishedmsg(); //Not possible?
+    //Link.finishedmsg(); //Not possible?
     clear_bitmap(msgdisplaybuf);
     set_clip_state(msgdisplaybuf, 1);
 }
@@ -706,13 +753,13 @@ void Z_scripterrlog(const char * const format,...)
 
 bool blockmoving;
 #include "sprite.h"
-movingblock *mblock2;                                        //mblock[4]?
+movingblock mblock2;                                        //mblock[4]?
 
 sprite_list  guys, items, Ewpns, Lwpns, Sitems, chainlinks, decorations, particles;
 
 #include "zc_custom.h"
 #include "link.h"
-LinkClass   *Link;
+LinkClass   Link;
 
 #include "maps.h"
 #include "subscr.h"
@@ -757,13 +804,13 @@ void ALLOFF(bool messagesToo, bool decorationsToo)
         
     particles.clear();
     
-    if(Link->getNayrusLoveShieldClk())
+    if(Link.getNayrusLoveShieldClk())
     {
-        Link->setNayrusLoveShieldClk(Link->getNayrusLoveShieldClk());
+        Link.setNayrusLoveShieldClk(Link.getNayrusLoveShieldClk());
     }
     
-    Link->resetflags(false);
-    Link->reset_hookshot();
+    Link.resetflags(false);
+    Link.reset_hookshot();
     linkedmsgclk=0;
     add_asparkle=0;
     add_bsparkle=0;
@@ -774,7 +821,7 @@ void ALLOFF(bool messagesToo, bool decorationsToo)
     add_nl2asparkle=false;
     add_nl2bsparkle=false;
     //  for(int i=0; i<1; i++)
-    mblock2->clk=0;
+    mblock2.clk=0;
     dismissmsg();
     fadeclk=-1;
     introclk=intropos=72;
@@ -785,13 +832,13 @@ void ALLOFF(bool messagesToo, bool decorationsToo)
     
     if(watch && !cheat_superman)
     {
-        Link->setClock(false);
+        Link.setClock(false);
     }
     
     //  if(watch)
-    //    Link->setClock(false);
+    //    Link.setClock(false);
     watch=freeze_guys=loaded_guys=loaded_enemies=blockpath=false;
-    Backend::sfx->stop(WAV_BRANG);
+    stop_sfx(WAV_BRANG);
     
     for(int i=0; i<176; i++)
         guygrid[i]=0;
@@ -809,68 +856,68 @@ void ALLOFF(bool messagesToo, bool decorationsToo)
 }
 void centerLink()
 {
-    Link->setX(120);
-    Link->setY(80);
+    Link.setX(120);
+    Link.setY(80);
 }
 fix  LinkX()
 {
-    return Link->getX();
+    return Link.getX();
 }
 fix  LinkY()
 {
-    return Link->getY();
+    return Link.getY();
 }
 fix  LinkZ()
 {
-    return Link->getZ();
+    return Link.getZ();
 }
 int  LinkHClk()
 {
-    return Link->getHClk();
+    return Link.getHClk();
 }
 int  LinkAction()
 {
-    return Link->getAction();
+    return Link.getAction();
 }
 int  LinkCharged()
 {
-    return Link->isCharged();
+    return Link.isCharged();
 }
 int  LinkNayrusLoveShieldClk()
 {
-    return Link->getNayrusLoveShieldClk();
+    return Link.getNayrusLoveShieldClk();
 }
 int  LinkHoverClk()
 {
-    return Link->getHoverClk();
+    return Link.getHoverClk();
 }
 int  LinkSwordClk()
 {
-    return Link->getSwordClk();
+    return Link.getSwordClk();
 }
 int  LinkItemClk()
 {
-    return Link->getItemClk();
+    return Link.getItemClk();
 }
 void setSwordClk(int newclk)
 {
-    Link->setSwordClk(newclk);
+    Link.setSwordClk(newclk);
 }
 void setItemClk(int newclk)
 {
-    Link->setItemClk(newclk);
+    Link.setItemClk(newclk);
 }
 int  LinkLStep()
 {
-    return Link->getLStep();
+    return Link.getLStep();
 }
 void LinkCheckItems()
 {
-    Link->checkitems();
+    Link.checkitems();
 }
 bool LinkGetDontDraw()
 {
-    return Link->getDontDraw();
+    return Link.getDontDraw();
 }
 fix  GuyX(int j)
 {
@@ -915,15 +962,15 @@ void StunGuy(int j,int stun)
 
 fix LinkModifiedX()
 {
-    return Link->getModifiedX();
+    return Link.getModifiedX();
 }
 fix LinkModifiedY()
 {
-    return Link->getModifiedY();
+    return Link.getModifiedY();
 }
 int LinkDir()
 {
-    return Link->getDir();
+    return Link.getDir();
 }
 void add_grenade(int wx, int wy, int wz, int size, int parentid)
 {
@@ -952,15 +999,15 @@ fix distance(int x1, int y1, int x2, int y2)
 
 bool getClock()
 {
-    return Link->getClock();
+    return Link.getClock();
 }
 void setClock(bool state)
 {
-    Link->setClock(state);
+    Link.setClock(state);
 }
 void CatchBrang()
 {
-    Link->Catch();
+    Link.Catch();
 }
 
 /**************************/
@@ -1044,10 +1091,10 @@ int load_quest(gamedata *g, bool report)
 					{
 						char cwdbuf[260];
 						memset(cwdbuf,0,260*sizeof(char));
-#ifdef _WIN32
+#ifdef _ALLEGRO_WINDOWS
 						_getcwd(cwdbuf, 260);
 #else
-						getcwd(cwdbuf, 260);
+                        getcwd(cwdbuf, 260);
 #endif
 
 						std::string path = cwdbuf;
@@ -1109,7 +1156,6 @@ int load_quest(gamedata *g, bool report)
     if(ret && report)
     {
         system_pal();
-		Backend::mouse->setCursorVisibility(true);
         char buf1[80],buf2[80];
         sprintf(buf1,"Error loading %s:",get_filename(qstpath));
         sprintf(buf2,"%s",qst_error[ret]);
@@ -1121,7 +1167,6 @@ int load_quest(gamedata *g, bool report)
         }
         
         game_pal();
-		Backend::mouse->setCursorVisibility(false);
     }
     
     return ret;
@@ -1148,9 +1193,9 @@ int init_game()
     
 //Some initialising globals
     didpit=false;
-    Link->unfreeze();
-    Link->reset_hookshot();
-    Link->reset_ladder();
+    Link.unfreeze();
+    Link.reset_hookshot();
+    Link.reset_ladder();
     linkedmsgclk=0;
     blockmoving=false;
     add_asparkle=0;
@@ -1334,9 +1379,9 @@ int init_game()
     //preloaded freeform combos
     //ffscript_engine(true); Can't do this here! Global arrays haven't been allocated yet... ~Joe
     
-    Link->init();
-    Link->resetflags(true);
-    Link->setEntryPoints(LinkX(),LinkY());
+    Link.init();
+    Link.resetflags(true);
+    Link.setEntryPoints(LinkX(),LinkY());
     
     copy_pal((RGB*)data[PAL_GUI].dat,RAMpal);
     loadfullpal();
@@ -1405,7 +1450,7 @@ int init_game()
     
     reset_subscr_items();
     
-    Link->setDontDraw(false);
+    Link.setDontDraw(false);
     show_subscreen_dmap_dots=true;
     show_subscreen_items=true;
     show_subscreen_numbers=true;
@@ -1425,7 +1470,7 @@ int init_game()
     
     if(isdungeon() && currdmap>0) // currdmap>0 is weird, but at least one quest (Mario's Insane Rampage) depends on it
     {
-        Link->stepforward(get_bit(quest_rules,qr_LTTPWALK) ? 11: 12, false);
+        Link.stepforward(get_bit(quest_rules,qr_LTTPWALK) ? 11: 12, false);
     }
     
     if(!Quit)
@@ -1434,11 +1479,11 @@ int init_game()
     if(firstplay)
     {
         memset(game->screen_d, 0, MAXDMAPS * 64 * 8 * sizeof(long));
-        run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_INIT);
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_INIT);
     }
     else
     {
-		run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_CONTINUE); //Do this after global arrays have been loaded
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_CONTINUE); //Do this after global arrays have been loaded
     }
     
     initZScriptGlobalRAM(); //Call again so we're set up for GLOBAL_SCRIPT_GAME
@@ -1451,9 +1496,9 @@ int cont_game()
 {
     //  introclk=intropos=msgclk=msgpos=dmapmsgclk=0;
     didpit=false;
-    Link->unfreeze();
-    Link->reset_hookshot();
-    Link->reset_ladder();
+    Link.unfreeze();
+    Link.reset_hookshot();
+    Link.reset_ladder();
     linkedmsgclk=0;
     blockmoving=0;
     add_asparkle=0;
@@ -1509,7 +1554,7 @@ int cont_game()
     ringcolor(false);
     loadlvlpal(DMaps[currdmap].color);
     lighting(false,true);
-    Link->init();
+    Link.init();
     wavy=quakeclk=0;
     
     //if(get_bit(zinit.misc,idM_CONTPERCENT))
@@ -1548,7 +1593,7 @@ int cont_game()
         playLevelMusic();
         
         if(isdungeon())
-            Link->stepforward(get_bit(quest_rules,qr_LTTPWALK)?11:12, false);
+            Link.stepforward(get_bit(quest_rules,qr_LTTPWALK)?11:12, false);
             
         newscr_clk=frame;
         activated_timed_warp=false;
@@ -1603,11 +1648,11 @@ void restart_level()
     ringcolor(false);
     loadlvlpal(DMaps[currdmap].color);
     lighting(false,true);
-    Link->init();
+    Link.init();
     currcset=DMaps[currdmap].color;
     openscreen();
     map_bkgsfx(true);
-    Link->setEntryPoints(LinkX(),LinkY());
+    Link.setEntryPoints(LinkX(),LinkY());
     show_subscreen_numbers=true;
     show_subscreen_life=true;
     loadguys();
@@ -1618,7 +1663,7 @@ void restart_level()
         playLevelMusic();
         
         if(isdungeon())
-            Link->stepforward(get_bit(quest_rules,qr_LTTPWALK)?11:12, false);
+            Link.stepforward(get_bit(quest_rules,qr_LTTPWALK)?11:12, false);
             
         newscr_clk=frame;
         activated_timed_warp=false;
@@ -1663,7 +1708,7 @@ void putintro()
             ++intropos;
     }
     
-    Backend::sfx->play(WAV_MSG,128);
+    sfx(WAV_MSG);
     
     
     //using the clip value to indicate the bitmap is "dirty"
@@ -1689,7 +1734,7 @@ void show_details()
     textprintf_ex(framebuf,font,0,8,WHITE,BLACK,"dlvl:%-2d dngn:%d", dlevel, isdungeon());
     textprintf_ex(framebuf,font,0,176,WHITE,BLACK,"%ld %s",game->get_time(),time_str_long(game->get_time()));
     
-//    textprintf_ex(framebuf,font,200,16,WHITE,BLACK,"%3d",Link->getPushing());
+//    textprintf_ex(framebuf,font,200,16,WHITE,BLACK,"%3d",Link.getPushing());
 //    for(int i=0; i<Lwpns.Count(); i++)
 //      textprintf_ex(framebuf,font,200,(i<<3)+16,WHITE,BLACK,"%3d",items.spr(i)->id);
 
@@ -1704,15 +1749,15 @@ void show_details()
         
 //      textprintf_ex(framebuf,font,90,16,WHITE,BLACK,"%3d, %3d",int(LinkModifiedX()),int(LinkModifiedY()));
     //textprintf_ex(framebuf,font,90,24,WHITE,BLACK,"%3d, %3d",detail_int[0],detail_int[1]);
-//      textprintf_ex(framebuf,font,200,16,WHITE,BLACK,"%3d",Link->getAction());
+//      textprintf_ex(framebuf,font,200,16,WHITE,BLACK,"%3d",Link.getAction());
 
     /*
       for(int i=0; i<Ewpns.Count(); i++)
       {
       sprite *s=Ewpns.spr(i);
       textprintf_ex(framebuf,font,100,(i<<3)+16,WHITE,BLACK,"%3d>%3d %3d>%3d %3d<%3d %3d<%3d ",
-      int(Link->getX()+0+16), int(s->x+s->hxofs),  int(Link->getY()+0+16), int(s->y+s->hyofs),
-      int(Link->getX()+0), int(s->x+s->hxofs+s->hxsz), int(Link->getY()+0), int(s->y+s->hyofs+s->hysz));
+      int(Link.getX()+0+16), int(s->x+s->hxofs),  int(Link.getY()+0+16), int(s->y+s->hyofs),
+      int(Link.getX()+0), int(s->x+s->hxofs+s->hxsz), int(Link.getY()+0), int(s->y+s->hyofs+s->hysz));
       }
       */
 //        textprintf_ex(framebuf,font,200,16,WHITE,BLACK,"gi=%3d",guycarryingitem);
@@ -1751,31 +1796,31 @@ void do_magic_casting()
     {
         if(magiccastclk==0)
         {
-            Lwpns.add(new weapon(LinkX(),LinkY(),LinkZ(),wPhantom,pDINSFIREROCKET,0,up, magicitem, Link->getUID()));
+            Lwpns.add(new weapon(LinkX(),LinkY(),LinkZ(),wPhantom,pDINSFIREROCKET,0,up, magicitem, Link.getUID()));
             weapon *w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            //          Link->tile=(BSZ)?32:29;
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_landhold2, Link->getDir(), zinit.linkanimationstyle);
+            //          Link.tile=(BSZ)?32:29;
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_landhold2, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
-            casty=Link->getY();
+            casty=Link.getY();
         }
         
         if(magiccastclk==64)
         {
-            Lwpns.add(new weapon((fix)LinkX(),(fix)(-32),(fix)LinkZ(),wPhantom,pDINSFIREROCKETRETURN,0,down, magicitem, Link->getUID()));
+            Lwpns.add(new weapon((fix)LinkX(),(fix)(-32),(fix)LinkZ(),wPhantom,pDINSFIREROCKETRETURN,0,down, magicitem, Link.getUID()));
             weapon *w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            //          Link->tile=29;
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_landhold2, Link->getDir(), zinit.linkanimationstyle);
+            //          Link.tile=29;
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_landhold2, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
             castnext=false;
@@ -1783,22 +1828,22 @@ void do_magic_casting()
         
         if(castnext)
         {
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_cast, Link->getDir(), zinit.linkanimationstyle);
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_cast, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(itemsbuf[magicitem].usesound,Link->getX());
+                sfx(itemsbuf[magicitem].usesound,pan(int(Link.getX())));
                 
             int flamemax=itemsbuf[magicitem].misc1;
             
             for(int flamecounter=((-1)*(flamemax/2))+1; flamecounter<=((flamemax/2)+1); flamecounter++)
             {
                 Lwpns.add(new weapon((fix)LinkX(),(fix)LinkY(),(fix)LinkZ(),wFire,3,itemsbuf[magicitem].power*DAMAGE_MULTIPLIER,
-                                     (tmpscr->flags7&fSIDEVIEW) ? (flamecounter<flamemax ? left : right) : 0, magicitem, Link->getUID()));
+                                     (tmpscr->flags7&fSIDEVIEW) ? (flamecounter<flamemax ? left : right) : 0, magicitem, Link.getUID()));
                 weapon *w = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
                 w->step=(itemsbuf[magicitem].misc2/100.0);
                 w->angular=true;
@@ -1830,40 +1875,40 @@ void do_magic_casting()
             
             unpack_tile(newtilebuf, ltile, lflip, true);
             memcpy(linktilebuf, unpackbuf, 256);
-            tempx=Link->getX();
-            tempy=Link->getY();
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_pound, down, zinit.linkanimationstyle);
+            tempx=Link.getX();
+            tempy=Link.getY();
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_pound, down, zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
         }
         
         if(magiccastclk>=0&&magiccastclk<64)
         {
-            Link->setX(tempx+((rand()%3)-1));
-            Link->setY(tempy+((rand()%3)-1));
+            Link.setX(tempx+((rand()%3)-1));
+            Link.setY(tempy+((rand()%3)-1));
         }
         
         if(magiccastclk==64)
         {
-            Link->setX(tempx);
-            Link->setY(tempy);
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_stab, down, zinit.linkanimationstyle);
+            Link.setX(tempx);
+            Link.setY(tempy);
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_stab, down, zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
         }
         
         if(magiccastclk==96)
         {
             if(get_bit(quest_rules,qr_MORESOUNDS))
-                Backend::sfx->play(itemsbuf[magicitem].usesound,Link->getX());
+                sfx(itemsbuf[magicitem].usesound,pan(int(Link.getX())));
                 
-            Link->setDontDraw(true);
+            Link.setDontDraw(true);
             
             for(int i=0; i<16; ++i)
             {
@@ -1873,14 +1918,14 @@ void do_magic_casting()
                     {
                         if(itemsbuf[magicitem].misc1==1)  // Twilight
                         {
-                            particles.add(new pTwilight(Link->getX()+j, Link->getY()-Link->getZ()+i, 5, 0, 0, (rand()%8)+i*4));
+                            particles.add(new pTwilight(Link.getX()+j, Link.getY()-Link.getZ()+i, 5, 0, 0, (rand()%8)+i*4));
                             int k=particles.Count()-1;
                             particle *p = (particle*)(particles.spr(k));
                             p->step=3;
                         }
                         else if(itemsbuf[magicitem].misc1==2)  // Sands of Hours
                         {
-                            particles.add(new pTwilight(Link->getX()+j, Link->getY()-Link->getZ()+i, 5, 1, 2, (rand()%16)+i*2));
+                            particles.add(new pTwilight(Link.getX()+j, Link.getY()-Link.getZ()+i, 5, 1, 2, (rand()%16)+i*2));
                             int k=particles.Count()-1;
                             particle *p = (particle*)(particles.spr(k));
                             p->step=4;
@@ -1893,14 +1938,14 @@ void do_magic_casting()
                         }
                         else
                         {
-                            particles.add(new pFaroresWindDust(Link->getX()+j, Link->getY()-Link->getZ()+i, 5, 6, linktilebuf[i*16+j], rand()%96));
+                            particles.add(new pFaroresWindDust(Link.getX()+j, Link.getY()-Link.getZ()+i, 5, 6, linktilebuf[i*16+j], rand()%96));
                             
                             int k=particles.Count()-1;
                             particle *p = (particle*)(particles.spr(k));
                             p->angular=true;
                             p->angle=rand();
                             p->step=(((double)j)/8);
-                            p->yofs=Link->getYOfs();
+                            p->yofs=Link.getYOfs();
                         }
                     }
                 }
@@ -1917,7 +1962,7 @@ void do_magic_casting()
             //action=none;
             magicitem=-1;
             magiccastclk=0;
-            Link->setDontDraw(false);
+            Link.setDontDraw(false);
         }
     }
     break;
@@ -1927,21 +1972,21 @@ void do_magic_casting()
         // See also Link.cpp, LinkClass::checkhit().
         if(magiccastclk==0)
         {
-            Lwpns.add(new weapon(LinkX(),LinkY(),(fix)0,wPhantom,pNAYRUSLOVEROCKET1,0,left, magicitem, Link->getUID()));
+            Lwpns.add(new weapon(LinkX(),LinkY(),(fix)0,wPhantom,pNAYRUSLOVEROCKET1,0,left, magicitem, Link.getUID()));
             weapon *w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            Lwpns.add(new weapon(LinkX(),LinkY(),(fix)0,wPhantom,pNAYRUSLOVEROCKET2,0,right, magicitem, Link->getUID()));
+            Lwpns.add(new weapon(LinkX(),LinkY(),(fix)0,wPhantom,pNAYRUSLOVEROCKET2,0,right, magicitem, Link.getUID()));
             w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            //          Link->tile=(BSZ)?32:29;
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_cast, Link->getDir(), zinit.linkanimationstyle);
+            //          Link.tile=(BSZ)?32:29;
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_cast, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
-            castx=Link->getX();
+            castx=Link.getX();
         }
         
         if(magiccastclk==64)
@@ -1955,18 +2000,18 @@ void do_magic_casting()
             }
             
             int d=zc_max(LinkX(),256-LinkX())+32;
-            Lwpns.add(new weapon((fix)(LinkX()-d),(fix)LinkY(),(fix)LinkZ(),wPhantom,pNAYRUSLOVEROCKETRETURN1,0,right, magicitem,Link->getUID()));
+            Lwpns.add(new weapon((fix)(LinkX()-d),(fix)LinkY(),(fix)LinkZ(),wPhantom,pNAYRUSLOVEROCKETRETURN1,0,right, magicitem,Link.getUID()));
             weapon *w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            Lwpns.add(new weapon((fix)(LinkX()+d),(fix)LinkY(),(fix)LinkZ(),wPhantom,pNAYRUSLOVEROCKETRETURN2,0,left, magicitem,Link->getUID()));
+            Lwpns.add(new weapon((fix)(LinkX()+d),(fix)LinkY(),(fix)LinkZ(),wPhantom,pNAYRUSLOVEROCKETRETURN2,0,left, magicitem,Link.getUID()));
             w1 = (weapon*)(Lwpns.spr(Lwpns.Count()-1));
             w1->step=4;
-            //          Link->tile=29;
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_cast, Link->getDir(), zinit.linkanimationstyle);
+            //          Link.tile=29;
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_cast, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
             castnext=false;
@@ -1974,25 +2019,25 @@ void do_magic_casting()
         
         if(castnext)
         {
-            //          Link->tile=4;
-            linktile(&Link->tile, &Link->flip, &Link->extend, ls_landhold2, Link->getDir(), zinit.linkanimationstyle);
+            //          Link.tile=4;
+            linktile(&Link.tile, &Link.flip, &Link.extend, ls_landhold2, Link.getDir(), zinit.linkanimationstyle);
             
             if(get_bit(quest_rules,qr_EXPANDEDLTM))
             {
-                Link->tile+=item_tile_mod(shieldModify);
+                Link.tile+=item_tile_mod(shieldModify);
             }
             
-            Link->setNayrusLoveShieldClk(itemsbuf[magicitem].misc1);
+            Link.setNayrusLoveShieldClk(itemsbuf[magicitem].misc1);
             
             if(get_bit(quest_rules,qr_MORESOUNDS))
             {
                 if(nayruitem != -1)
                 {
-                    Backend::sfx->stop(itemsbuf[nayruitem].usesound+1);
-                    Backend::sfx->stop(itemsbuf[nayruitem].usesound);
+                    stop_sfx(itemsbuf[nayruitem].usesound+1);
+                    stop_sfx(itemsbuf[nayruitem].usesound);
                 }
                 
-                Backend::sfx->loop(itemsbuf[magicitem].usesound,128);
+                cont_sfx(itemsbuf[magicitem].usesound);
             }
             
             castnext=false;
@@ -2058,12 +2103,12 @@ void update_hookshot()
                 if(abs(hs_dx)>=hs_xdist+8)
                 {
                     hs_xdist=abs(hs_x-hs_startx);
-                    chainlinks.add(new weapon((fix)hs_x, (fix)hs_y, (fix)hs_z,wHSChain, 0,0,Link->getDir(), parentitem,Link->getUID()));
+                    chainlinks.add(new weapon((fix)hs_x, (fix)hs_y, (fix)hs_z,wHSChain, 0,0,Link.getDir(), parentitem,Link.getUID()));
                 }
                 else if(abs(hs_dy)>=hs_ydist+8)
                 {
                     hs_ydist=abs(hs_y-hs_starty);
-                    chainlinks.add(new weapon((fix)hs_x, (fix)hs_y, (fix)hs_z,wHSChain, 0,0,Link->getDir(), parentitem,Link->getUID()));
+                    chainlinks.add(new weapon((fix)hs_x, (fix)hs_y, (fix)hs_z,wHSChain, 0,0,Link.getDir(), parentitem,Link.getUID()));
                 }
             }                                                     //stretching chain
             else
@@ -2086,7 +2131,7 @@ void update_hookshot()
                 
                 for(int counter=0; counter<chainlinks.Count(); counter++)
                 {
-                    if(Link->getDir()>down)                            //chain is moving horizontally
+                    if(Link.getDir()>down)                            //chain is moving horizontally
                     {
                         chainlinks.spr(counter)->x=hs_startx+hs_w+dist_bx+(counter*(hs_w+dist_bx));
                     }
@@ -2116,7 +2161,7 @@ void update_hookshot()
             }
             
             /* With ZScript modification, chains can conceivably move diagonally.*/
-            //if (Link->getDir()>down)                               //chain is moving horizontally
+            //if (Link.getDir()>down)                               //chain is moving horizontally
             {
                 if(abs(hs_dx)-(8*chainlinks.Count())>0)             //chain is stretched
                 {
@@ -2231,7 +2276,7 @@ void do_dcounters()
         }
         
         if((sfxon || i==1) && !lensclk && (i<2 || i==4)) // Life, Rupees and Magic
-            Backend::sfx->play(WAV_MSG,128);
+            sfx(WAV_MSG);
     }
 }
 
@@ -2294,12 +2339,12 @@ void game_loop()
     // Arbitrary Rule 637: neither 'freeze' nor 'freezeff' freeze the global script.
     if(!freezemsg && g_doscript)
     {
-        run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
     }
     
     if(!freeze && !freezemsg)
     {
-        mblock2->animate(0);
+        mblock2.animate(0);
         items.animate();
         items.check_conveyor();
         guys.animate();
@@ -2310,7 +2355,7 @@ void game_loop()
         
         for(int i = 0; i < (gofast ? 8 : 1); i++)
         {
-            if(Link->animate(0))
+            if(Link.animate(0))
             {
                 if(!Quit)
                 {
@@ -2348,7 +2393,7 @@ void game_loop()
     
     if(global_wait)
     {
-		run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
         global_wait=false;
     }
     
@@ -2369,7 +2414,7 @@ void game_loop()
     
     if(dmapmsgclk>0)
     {
-        Link->Freeze();
+        Link.Freeze();
         
         if(dmapmsgclk<=50)
         {
@@ -2379,7 +2424,7 @@ void game_loop()
     
     if(dmapmsgclk==1)
     {
-        Link->finishedmsg();
+        Link.finishedmsg();
         dmapmsgclk=0;
         introclk=72;
         clear_bitmap(msgdisplaybuf);
@@ -2523,46 +2568,6 @@ bool no_subscreen()
     return (tmpscr->flags3&fNOSUBSCR)!=0;
 }
 
-//2.54 Monochrome
-
-bool isMonochrome(){
-	return monochrome;
-}
-
-void setMonochrome(bool v){
-	if ( v && !monochrome ) { 
-		
-		memcpy(tempgreypal, RAMpal, PAL_SIZE*sizeof(RGB));
-		if(get_bit(quest_rules,qr_FADE)) {
-		for(int i=CSET(0); i < CSET(15); i++)
-		{
-			int g = zc_min((RAMpal[i].r*42 + RAMpal[i].g*75 + RAMpal[i].b*14) >> 7, 63);
-			g = (g >> 1) + 32;
-			RAMpal[i] = _RGB(g,g,g);
-		}
-    
-		}
-		else
-		{
-			// this is awkward. NES Z1 converts colors based on the global
-			// NES palette. Something like RAMpal[i] = NESpal( reverse_NESpal(RAMpal[i]) & 0x30 );
-			for(int i=CSET(0); i < CSET(15); i++)
-			{
-				RAMpal[i] = NESpal(reverse_NESpal(RAMpal[i]) & 0x30);
-			}
-		} 
-		refreshpal = true;
-		monochrome = true; 
-	}
-	
-	else if ( !v && monochrome ) {
-		memcpy(RAMpal, tempgreypal, PAL_SIZE*sizeof(RGB));
-		refreshpal = true;
-		monochrome = false; 
-	}
-}
-
-
 /**************************/
 /********** Main **********/
 /**************************/
@@ -2579,13 +2584,131 @@ bool screenIsScrolling()
     return screenscrolling;
 }
 
+int isFullScreen()
+{
+    return !is_windowed_mode();
+}
+
+class TB_Handler //Dear Santa: please kill Easter bunny. I've been a good boy.
+{
+public:
+
+    TB_Handler() {}
+    ~TB_Handler() {}
+    
+    bool CanEnable() const
+    {
+        if(is_windowed_mode() && can_triplebuffer_in_windowed_mode == FALSE)
+        {
+            triplebuffer_not_available = true;
+            return false;
+        }
+        
+        return (disable_triplebuffer == FALSE);
+    }
+    bool GFX_can_triple_buffer() const
+    {
+        if(!CanEnable())
+        {
+            triplebuffer_not_available = true;
+            return false;
+        }
+        
+        triplebuffer_not_available = false;
+        
+        if(!(gfx_capabilities & GFX_CAN_TRIPLE_BUFFER)) enable_triple_buffer();
+        
+        if(!(gfx_capabilities & GFX_CAN_TRIPLE_BUFFER)) triplebuffer_not_available = true;
+        
+        return !triplebuffer_not_available;
+    }
+    void Destroy() const
+    {
+        if(disable_triplebuffer != FALSE || triplebuffer_not_available) return;
+        
+        for(int i=0; i<3; i++)
+            if(tb_page[i])
+                destroy_bitmap(tb_page[i]);
+    }
+    void Create() const
+    {
+        if(!CanEnable())
+        {
+            triplebuffer_not_available = true;
+            return;
+        }
+        
+        for(int i=0; i<3; ++i)
+        {
+            tb_page[i]=create_video_bitmap(SCREEN_W, SCREEN_H);
+            
+            if(!tb_page[i])
+            {
+                triplebuffer_not_available = true;
+                break;
+            }
+        }
+        
+        Clear();
+    }
+    void Clear() const
+    {
+        for(int i=0; i<3; i++)
+            clear_bitmap(tb_page[i]);
+    }
+}
+static Triplebuffer;
+
+bool setGraphicsMode(bool windowed)
+{
+    int type=windowed ? GFX_AUTODETECT_WINDOWED : GFX_AUTODETECT_FULLSCREEN;
+    return set_gfx_mode(type, resx, resy, 0, 0)==0;
+}
+
 int onFullscreen()
 {
-	Backend::graphics->setFullscreen(!Backend::graphics->isFullscreen());
-
-	gui_mouse_focus = 0;
-	Backend::mouse->setCursorVisibility(true);
-	Backend::graphics->showBackBuffer();
+    PALETTE oldpal;
+    get_palette(oldpal);
+    
+    show_mouse(NULL);
+    bool windowed=is_windowed_mode()!=0;
+    
+    // these will become ultra corrupted no matter what.
+    Triplebuffer.Destroy();
+    
+    bool success=setGraphicsMode(!windowed);
+    if(success)
+        fullscreen=!fullscreen;
+    else
+    {
+        // Try to restore the previous mode, then...
+        success=setGraphicsMode(windowed);
+        if(!success)
+        {
+            Z_message("Failed to set video mode.\n");
+            Z_message(allegro_error);
+            exit(1);
+        }
+    }
+    
+    /* ZC will crash going from fullscreen to windowed mode if triple buffer is left unchecked. -Gleeok  */
+    if(Triplebuffer.GFX_can_triple_buffer())
+    {
+        Triplebuffer.Create();
+        Z_message("Triplebuffer enabled \n");
+    }
+    else
+        Z_message("Triplebuffer disabled \n");
+    
+    //Everything set?
+    Z_message("gfx mode set at -%d %dbpp %d x %d \n", is_windowed_mode(), get_color_depth(), resx, resy);
+    
+    set_palette(oldpal);
+    gui_mouse_focus=0;
+    show_mouse(screen);
+    set_display_switch_mode(fullscreen?SWITCH_BACKAMNESIA:SWITCH_BACKGROUND);
+//	set_display_switch_callback(SWITCH_OUT, switch_out_callback);/
+//	set_display_switch_callback(SWITCH_IN,switch_in_callback);
 
     return D_REDRAW;
 }
@@ -2603,8 +2726,8 @@ int main(int argc, char* argv[])
             exit(1);
     }
 #endif
-
-	switch(IS_BETA)
+    
+    switch(IS_BETA)
     {
     
     case -1:
@@ -2735,11 +2858,6 @@ int main(int argc, char* argv[])
     register_bitmap_file_type("GIF",  load_gif, save_gif);
     jpgalleg_init();
     loadpng_init();
-	Backend::initializeBackend();
-	pool = new ObjectPool();
-
-	mblock2 = new movingblock;
-	Link = new LinkClass;
     
     // set and load game configurations
     set_config_file("ag.cfg");
@@ -2790,7 +2908,11 @@ int main(int argc, char* argv[])
         quit_game();
     }
     
+    //set_keyboard_rate(1000,160);
     
+    LOCK_VARIABLE(logic_counter);
+    LOCK_FUNCTION(update_logic_counter);
+    install_int_ex(update_logic_counter, BPS_TO_TIMER(60));
     
 #ifdef _SCRIPT_COUNTER
     LOCK_VARIABLE(script_counter);
@@ -2798,7 +2920,14 @@ int main(int argc, char* argv[])
     install_int_ex(update_script_counter, 1);
 #endif
     
- 
+    if(!Z_init_timers())
+    {
+        Z_error("Couldn't Allocate Timers");
+        quit_game();
+    }
+    
+    Z_message("OK\n");
+    
     // check for the included quest files
     if(!standalone_mode)
     {
@@ -2852,6 +2981,49 @@ int main(int argc, char* argv[])
     // allocate bitmap buffers
     Z_message("Allocating bitmap buffers... ");
     
+    //Turns out color depth can be critical. -Gleeok
+    if(used_switch(argc,argv,"-0bit")) set_color_depth(desktop_color_depth());
+    else if(used_switch(argc,argv,"-15bit")) set_color_depth(15);
+    else if(used_switch(argc,argv,"-16bit")) set_color_depth(16);
+    else if(used_switch(argc,argv,"-24bit")) set_color_depth(24);
+    else if(used_switch(argc,argv,"-32bit")) set_color_depth(32);
+    else
+    {
+        //command-line switches takes priority
+        switch(zc_color_depth)
+        {
+        case 0:
+            set_color_depth(desktop_color_depth());
+            break;
+            
+        case 8:
+            set_color_depth(8);
+            break;
+            
+        case 15:
+            set_color_depth(15);
+            break;
+            
+        case 16:
+            set_color_depth(16);
+            break;
+            
+        case 24:
+            set_color_depth(24);
+            break;
+            
+        case 32:
+            set_color_depth(32);
+            break;
+            
+        default:
+            zc_color_depth = 8; //invalid configuration, set to default in config file.
+            set_color_depth(8);
+            break;
+        }
+    }
+    
+    
     framebuf  = create_bitmap_ex(8,256,224);
     temp_buf  = create_bitmap_ex(8,256,224);
     scrollbuf = create_bitmap_ex(8,512,406);
@@ -2883,6 +3055,7 @@ int main(int argc, char* argv[])
     zcmusic_init();
     
     //  int mode = VidMode;                                       // from config file
+    int tempmode=GFX_AUTODETECT;
     int res_arg = used_switch(argc,argv,"-res");
     
     if(used_switch(argc,argv,"-v0")) Throttlefps=false;
@@ -3064,7 +3237,16 @@ int main(int argc, char* argv[])
         }
     }
     
-    Backend::sfx->loadDefaultSamples(Z35, sfxdata, old_sfx_string);
+    for(int i=0; i<WAV_COUNT; i++)
+    {
+        customsfxdata[i].data=NULL;
+        sfx_string[i] = new char[36];
+    }
+    
+    for(int i=0; i<WAV_COUNT>>3; i++)
+    {
+        customsfxflag[i] = 0;
+    }
     
     for(int i=0; i<WPNCNT; i++)
     {
@@ -3081,7 +3263,49 @@ int main(int argc, char* argv[])
         guy_string[i] = new char[64];
     }
     
-	//script drawing bitmap allocation
+    for(int i=0; i<512; i++)
+    {
+        ffscripts[i] = new ffscript[1];
+        ffscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        itemscripts[i] = new ffscript[1];
+        itemscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        guyscripts[i] = new ffscript[1];
+        guyscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        wpnscripts[i] = new ffscript[1];
+        wpnscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        screenscripts[i] = new ffscript[1];
+        screenscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<NUMSCRIPTGLOBAL; i++)
+    {
+        globalscripts[i] = new ffscript[1];
+        globalscripts[i][0].command = 0xFFFF;
+    }
+    
+    for(int i=0; i<3; i++)
+    {
+        linkscripts[i] = new ffscript[1];
+        linkscripts[i][0].command = 0xFFFF;
+    }
+    
+    //script drawing bitmap allocation
     zscriptDrawingRenderTarget = new ZScriptDrawingRenderTarget();
     
     
@@ -3095,9 +3319,9 @@ int main(int argc, char* argv[])
     }
     else
     {
-	if(install_sound(DIGI_AUTODETECT,MIDI_AUTODETECT,NULL))
+        if(install_sound(DIGI_AUTODETECT,MIDI_AUTODETECT,NULL))
         {
-            //Z_error(allegro_error);
+            //      Z_error(allegro_error);
             Z_message("Sound driver not available.  Sound disabled.\n");
         }
         else
@@ -3107,12 +3331,36 @@ int main(int argc, char* argv[])
     }
     
     Z_init_sound();
-   
+    
+    
+    // CD player
+    
+    /*
+      if(used_switch(argc,argv,"-cd"))
+      {
+      printf("Initializing CD player... ");
+      if(cd_init())
+      Z_error("Error");
+      printf("OK\n");
+      useCD = true;
+      }
+      */
+    
+    //use only page flipping
+    if(used_switch(argc,argv,"-doublebuffer"))
+    {
+        disable_triplebuffer = 1;
+        Z_message("used switch: -doublebuffer\n");
+    }
+    
+    //allow video bitmaps in windowed mode
+    if(used_switch(argc,argv,"-triplebuffer"))
+    {
+        can_triplebuffer_in_windowed_mode = 1;
+        Z_message("used switch: -triplebuffer\n");
+    }
+    
     const int wait_ms_on_set_graphics = 20; //formerly 250. -Gleeok
-
-	std::vector<std::pair<int, int> > desiredModes;
-	desiredModes.push_back(std::pair<int, int>(640, 480));
-	desiredModes.push_back(std::pair<int, int>(320, 240));
     
     // quick quit
     if(used_switch(argc,argv,"-q"))
@@ -3125,63 +3373,120 @@ int main(int argc, char* argv[])
     
     if(res_arg && (argc>(res_arg+2)))
     {
-        int resx = atoi(argv[res_arg+1]);
-        int resy = atoi(argv[res_arg+2]);
-		Backend::graphics->setScreenResolution(resx, resy);
-	}
+        resx = atoi(argv[res_arg+1]);
+        resy = atoi(argv[res_arg+2]);
+        bool old_sbig = (argc>(res_arg+3))? stricmp(argv[res_arg+3],"big")==0 : 0;
+        bool old_sbig2 = (argc>(res_arg+3))? stricmp(argv[res_arg+3],"big2")==0 : 0;
+        
+//    mode = GFX_AUTODETECT;
+    }
     
-    if(used_switch(argc,argv,"-fullscreen"))
+    if(resx>=640 && resy>=480)
+    {
+        is_large=true;
+    }
+    
+    //request_refresh_rate(60);
+    
+    if(used_switch(argc,argv,"-fullscreen") ||
+            (!used_switch(argc, argv, "-windowed") && get_config_int("zeldadx","fullscreen",1)==1))
     {
         al_trace("Used switch: -fullscreen\n");
-		Backend::graphics->setFullscreen(true);
+        tempmode = GFX_AUTODETECT_FULLSCREEN;
     }
-    else if(used_switch(argc,argv,"-windowed"))
+    else if(used_switch(argc,argv,"-windowed") || get_config_int("zeldadx","fullscreen",1)==0)
     {
         al_trace("Used switch: -windowed\n");
-		Backend::graphics->setFullscreen(false);
+        tempmode=GFX_AUTODETECT_WINDOWED;
     }
-
-	if (used_switch(argc, argv, "-0bit"))
-	{
-		al_trace("Used switch: -0bit\n");
-		Backend::graphics->setUseNativeColorDepth(true);
-	}
-	else if (used_switch(argc, argv, "-8bit"))
-	{
-		al_trace("Used switch: -8bit\n");
-		Backend::graphics->setUseNativeColorDepth(false);
-	}
-
-	Backend::graphics->setVideoModeSwitchDelay(wait_ms_on_set_graphics);
-	Backend::graphics->registerVirtualModes(desiredModes);
-
-	if (Backend::graphics->initialize())
-	{
-		Z_message("Initialized gfx succsessfully using fullscreen=%d, %dbpp bit, %d x %d \n", Backend::graphics->isFullscreen(), 8, Backend::graphics->screenW(), Backend::graphics->screenH());
-	}
-	else
-		goto quick_quit;	
     
-	Backend::mouse->setCursorSprite((BITMAP*)data[BMP_MOUSE].dat);
-
-	for (int i = 240; i<256; i++)
-		RAMpal[i] = ((RGB*)data[PAL_GUI].dat)[i];
-
-	Backend::palette->setPalette(RAMpal);
-	clear_to_color(screen, BLACK);
-     
+    //set scale
+    if(resx < 320) resx = 320;
+    
+    if(resy < 240) resy = 240;
+    
+    screen_scale = zc_max(zc_min(resx / 320, resy / 240), 1);
+    
+    if(!game_vid_mode(tempmode, wait_ms_on_set_graphics))
+    {
+        //what we need here is not rightousness but madness!!!
+        
+#define TRY_SET_VID_MODE(scale) \
+	Z_message("Unable to set gfx mode at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy); \
+	screen_scale=scale; \
+	resx=320*scale; \
+	resy=240*scale
+        
+        TRY_SET_VID_MODE(2);
+        
+        if(!game_vid_mode(tempmode, wait_ms_on_set_graphics))
+        {
+            TRY_SET_VID_MODE(1);
+            
+            if(!game_vid_mode(tempmode, wait_ms_on_set_graphics))
+            {
+                if(tempmode != GFX_AUTODETECT_WINDOWED)
+                {
+                    tempmode=GFX_AUTODETECT_WINDOWED;
+                    al_trace("-fullscreen not supported by your video driver! setting -windowed switch\n");
+                    TRY_SET_VID_MODE(2);
+                    
+                    if(!game_vid_mode(tempmode, wait_ms_on_set_graphics))
+                    {
+                        TRY_SET_VID_MODE(1);
+                        
+                        if(!game_vid_mode(tempmode, wait_ms_on_set_graphics))
+                        {
+                            Z_message("Unable to set gfx mode at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+                            al_trace("Fatal Error...Zelda Classic could not be initialized. Have a nice day :) \n");
+                            Z_error(allegro_error);
+                            quit_game();
+                        }
+                        else Z_message("set gfx mode succsessful at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+                    }
+                    else Z_message("set gfx mode succsessful at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+                }
+                else
+                {
+                    al_trace("Fatal Error: could not create a window for Zelda Classic.\n");
+                    Z_error(allegro_error);
+                    quit_game();
+                }
+            }
+            else Z_message("set gfx mode succsessful at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+        }
+        else Z_message("set gfx mode succsessful at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+    }
+    else
+    {
+        Z_message("set gfx mode succsessful at -%d %dbpp %d x %d \n", tempmode, get_color_depth(), resx, resy);
+    }
+    
+    sbig = (screen_scale > 1);
+    set_display_switch_mode(is_windowed_mode()?SWITCH_BACKGROUND:SWITCH_BACKAMNESIA);
+    zq_screen_w = resx;
+    zq_screen_h = resy;
+    
+    real_screen = screen;
+    
+    if(Triplebuffer.GFX_can_triple_buffer())
+    {
+        Triplebuffer.Create();
+    }
+    
+    Z_message("Triplebuffer %savailable\n", triplebuffer_not_available?"not ":"");
+    
     set_close_button_callback((void (*)()) hit_close_button);
     set_window_title("Zelda Classic");
     
     fix_dialogs();
     gui_mouse_focus = FALSE;
-    position_mouse(Backend::graphics->virtualScreenW()-16,Backend::graphics->virtualScreenH()-16);
+    position_mouse(resx-16,resy-16);
     
     if(!onlyInstance)
     {
         clear_to_color(screen,BLACK);
         system_pal();
-		Backend::mouse->setCursorVisibility(true);
         int ret=jwin_alert3("Multiple Instances",
                             "Another instance of ZC is already running.",
                             "Running multiple instances may cause your",
@@ -3195,7 +3500,6 @@ int main(int argc, char* argv[])
             allegro_exit();
             return 0;
         }
-		Backend::mouse->setCursorVisibility(false);
     }
     
 // load saved games
@@ -3209,13 +3513,17 @@ int main(int argc, char* argv[])
     
     Z_message("OK\n");
     
-	Backend::graphics->registerSwitchCallbacks(switch_in_callback, switch_out_callback);
+#ifdef _WIN32
+    // Nothing for them to do on other platforms
+    set_display_switch_callback(SWITCH_IN,switch_in_callback);
+    set_display_switch_callback(SWITCH_OUT,switch_out_callback);
+#endif
     
     // AG logo
     if(!fast_start)
     {
         set_volume(240,-1);
-        aglogo(tmp_scr, scrollbuf, Backend::graphics->virtualScreenW(), Backend::graphics->virtualScreenH());
+        aglogo(tmp_scr, scrollbuf, resx, resy);
         master_volume(digi_volume,midi_volume);
     }
     
@@ -3264,7 +3572,7 @@ int main(int argc, char* argv[])
         
             if(use_win32_proc != FALSE)
             {
-                win32data.Update();
+                win32data.Update(0);
             }
             
 #endif
@@ -3281,7 +3589,7 @@ int main(int argc, char* argv[])
         case qGAMEOVER:
         {
             playing_field_offset=56; // Fixes an issue with Link being drawn wrong when quakeclk>0
-            Link->setDontDraw(false);
+            Link.setDontDraw(false);
             show_subscreen_dmap_dots=true;
             show_subscreen_numbers=true;
             show_subscreen_items=true;
@@ -3290,7 +3598,7 @@ int main(int argc, char* argv[])
             introclk=intropos=0;
             
             initZScriptGlobalRAM();
-			run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_END);
+            ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_END);
             
             if(!skipcont&&!get_bit(quest_rules,qr_NOCONTINUE)) game_over(get_bit(quest_rules,qr_NOSAVE));
             
@@ -3300,21 +3608,21 @@ int main(int argc, char* argv[])
         
         case qWON:
         {
-            Link->setDontDraw(false);
+            Link.setDontDraw(false);
             show_subscreen_dmap_dots=true;
             show_subscreen_numbers=true;
             show_subscreen_items=true;
             show_subscreen_life=true;
             
             initZScriptGlobalRAM();
-			run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_END);
+            ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_END);
             ending();
         }
         break;
         
         }
         
-        Backend::sfx->stopAll();
+        kill_sfx();
         music_stop();
         clear_to_color(screen,BLACK);
     }
@@ -3322,20 +3630,19 @@ int main(int argc, char* argv[])
     // clean up
     
     music_stop();
-    Backend::sfx->stopAll();
+    kill_sfx();
     
 quick_quit:
     show_saving(screen);
     save_savedgames();
     save_game_configs();
-	//rest(250); // ???
+    Triplebuffer.Destroy();
+    set_gfx_mode(GFX_TEXT,80,25,0,0);
+    //rest(250); // ???
     //  if(useCD)
     //    cd_exit();
     quit_game();
-	delete mblock2;
-	delete Link;
-	delete pool;
-	Z_message("Armageddon Games web site: http://www.armageddongames.com\n");
+    Z_message("Armageddon Games web site: http://www.armageddongames.com\n");
     Z_message("Zelda Classic web site: http://www.zeldaclassic.com\n");
     Z_message("Zelda Classic wiki: http://www.shardstorm.com/ZCwiki/\n");
     
@@ -3353,6 +3660,8 @@ END_OF_MAIN()
 void remove_installed_timers()
 {
     al_trace("Removing timers. \n");
+    remove_int(update_logic_counter);
+    Z_remove_timers();
 #ifdef _SCRIPT_COUNTER
     remove_int(update_script_counter);
 #endif
@@ -3372,12 +3681,8 @@ void delete_everything_else() //blarg.
 void quit_game()
 {
     script_drawing_commands.Dispose(); //for allegro bitmaps
-	Backend::mouse->setCursorVisibility(false);
-    Backend::sfx->clearSamples();
-	Backend::shutdownBackend();
-	set_gfx_mode(GFX_TEXT, 80, 25, 0, 0);
-
-	remove_installed_timers();
+    
+    remove_installed_timers();
     delete_everything_else();
     
     al_trace("Freeing Data: \n");
@@ -3425,8 +3730,19 @@ void quit_game()
     }
     
     al_trace("SFX... \n");
-    zcmusic_exit();      
+    zcmusic_exit();
+    
+    for(int i=0; i<WAV_COUNT; i++)
+    {
+        delete [] sfx_string[i];
         
+        if(customsfxdata[i].data!=NULL)
+        {
+//      delete [] customsfxdata[i].data;
+            zc_free(customsfxdata[i].data);
+        }
+    }
+    
     al_trace("Misc... \n");
     
     for(int i=0; i<WPNCNT; i++)
@@ -3446,8 +3762,40 @@ void quit_game()
     
     al_trace("Script buffers... \n");
     
-	// In case this doesn't clear out later... -DD
-	scripts = GameScripts();
+    for(int i=0; i<512; i++)
+    {
+        if(ffscripts[i]!=NULL) delete [] ffscripts[i];
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        if(itemscripts[i]!=NULL) delete [] itemscripts[i];
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        if(guyscripts[i]!=NULL) delete [] guyscripts[i];
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        if(wpnscripts[i]!=NULL) delete [] wpnscripts[i];
+    }
+    
+    for(int i=0; i<256; i++)
+    {
+        if(screenscripts[i]!=NULL) delete [] screenscripts[i];
+    }
+    
+    for(int i=0; i<NUMSCRIPTGLOBAL; i++)
+    {
+        if(globalscripts[i]!=NULL) delete [] globalscripts[i];
+    }
+    
+    for(int i=0; i<3; i++)
+    {
+        if(linkscripts[i]!=NULL) delete [] linkscripts[i];
+    }
     
     delete zscriptDrawingRenderTarget;
     
@@ -3595,7 +3943,7 @@ void __zc_always_assert(bool e, const char* expression, const char* file, int li
     {
         //for best results set a breakpoint in here.
         char buf[1024];
-        sprintf(buf, "ASSERTION FAILED! : %s, %s line %i\n", expression, file, line);
+        sprintf("ASSERTION FAILED! : %s, %s line %i\n", expression, file, line);
         
         al_trace("%s", buf);
         set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
@@ -3604,4 +3952,6 @@ void __zc_always_assert(bool e, const char* expression, const char* file, int li
     }
 }
 
+
 /*** end of zelda.cc ***/
+

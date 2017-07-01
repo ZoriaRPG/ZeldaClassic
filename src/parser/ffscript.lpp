@@ -8,8 +8,6 @@ command: flex -B -olex.yy.cpp ffscript.lpp
 %option never-interactive
 WS	[ \t\n\r]
 
-%x COMMENT
-
 %{
 #include <stdlib.h>
 #include "AST.h"
@@ -29,9 +27,6 @@ bool				  { doLines();return ZBOOL; }
 void				  { doLines();return ZVOID; }
 if				  { doLines();return IF; }
 else				  { doLines();return ELSE; }
-switch				  { doLines(); return SWITCH; }
-case              	  { doLines(); return CASE; }
-default				  { doLines(); return DEFAULT; }
 return			  { doLines();return RETURN; }
 import			  { doLines();return IMPORT; }
 true				  { doLines();return ZTRUE; }
@@ -48,9 +43,6 @@ do					{doLines(); return DO;}
 npc					{doLines(); return NPC;}
 lweapon					{doLines(); return LWEAPON;}
 eweapon					{doLines(); return EWEAPON;}
-typedef					{doLines(); return TYPEDEF;}
-
-compile_error			{doLines(); return COMPILEERROR;}
 
 \-\>		{ doLines(); return ARROW;}
 \<\<=		{ doLines(); return LSHIFTASSIGN; }
@@ -74,7 +66,6 @@ compile_error			{doLines(); return COMPILEERROR;}
 \|=			{ doLines();return BITORASSIGN; }
 \^=			{ doLines();return BITXORASSIGN; }
 \%=			{ doLines();return MODULOASSIGN; }
-\:			{ doLines();return COLON; }
 \;			{ doLines();return SEMICOLON; }
 \,			{ doLines();return COMMA; }
 \[			{ doLines();return LBRACKET; }
@@ -87,6 +78,7 @@ compile_error			{doLines(); return COMPILEERROR;}
 \+			{ doLines();return PLUS; }
 \-                { doLines();return MINUS; }
 \*			{ doLines();return TIMES; }
+\/\/.*            { ; }
 \/                { doLines();return DIVIDE; }
 \{                { doLines();return LBRACE; }
 \}                { doLines();return RBRACE; }
@@ -99,17 +91,6 @@ compile_error			{doLines(); return COMPILEERROR;}
 \!			{ doLines();return NOT; }
 \%			{ doLines(); return MODULO; }
 
-"//".*            		 { ; }
-"/*"                     { doLines(); BEGIN(COMMENT); }
-<COMMENT>"*/"            { doLines(); BEGIN(INITIAL); }
-<COMMENT>([^*]|\n)+|.    { ; }
-<COMMENT><<EOF>>         {
-		char temp[512];
-		sprintf(temp, "Scanner: Unterminated comment.\n");
-		box_out(temp);
-		box_eol();
-		return 0;
-}
 
 [_a-zA-Z]([_a-zA-Z]|[0-9])*	{
 						doLines();
@@ -126,7 +107,7 @@ compile_error			{doLines(); return COMPILEERROR;}
 
 \"[^\"]+\"				{ doLines();yylval = new ASTString(yytext, yylloc); return QUOTEDSTRING; }
 
-\'[^\']\'				{ doLines();yylval = new ASTString(yytext, yylloc); return SINGLECHAR; }
+\'[^\']?\'				{ doLines();yylval = new ASTString(yytext, yylloc); return SINGLECHAR; }
 
 {WS}					{ ; }
 

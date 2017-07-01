@@ -1,10 +1,14 @@
 
 #pragma once
 
-#if defined(ZC_PCH)
+#if defined(PCH)
 
 //globally remove extraneous bullshit
 //
+
+
+//allegro
+#include "zc_alleg.h"
 
 
 //c standard lib
@@ -23,8 +27,6 @@
 #include <vector>
 #include <set>
 
-//allegro
-#include "zc_alleg.h"
 
 //zc
 #include "zc_malloc.h"

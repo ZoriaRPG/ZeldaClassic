@@ -86,16 +86,17 @@ static int animationrules[] =
 
 int onAnimationRules()
 {
-	DIALOG *animationrules_cpy = resizeDialog(animationrules_dlg, 1.5);
-
-	animationrules_cpy[0].dp2=lfont;
+    if(is_large)
+        large_dialog(animationrules_dlg);
+        
+    animationrules_dlg[0].dp2=lfont;
     
     for(int i=0; animationrules[i]!=-1; i++)
     {
-		animationrules_cpy[i+6].flags = get_bit(quest_rules,animationrules[i]) ? D_SELECTED : 0;
+        animationrules_dlg[i+6].flags = get_bit(quest_rules,animationrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(animationrules_cpy,4);
+    int ret = zc_popup_dialog(animationrules_dlg,4);
     
     if(ret==4)
     {
@@ -103,7 +104,7 @@ int onAnimationRules()
         
         for(int i=0; animationrules[i]!=-1; i++)
         {
-            set_bit(quest_rules,animationrules[i], animationrules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules,animationrules[i],animationrules_dlg[i+6].flags & D_SELECTED);
         }
         
         // For 2.50.0 and 2.50.1
@@ -113,8 +114,6 @@ int onAnimationRules()
         //this is only here until the subscreen style is selectable by itself
         zinit.subscreen_style=get_bit(quest_rules,qr_COOLSCROLL)?1:0;
     }
-
-	delete[] animationrules_cpy;
     
     return D_O_K;
 }
@@ -161,16 +160,17 @@ static int comborules[] =
 
 int onComboRules()
 {
-	DIALOG *comborules_cpy = resizeDialog(comborules_dlg, 1.5);
+    if(is_large)
+        large_dialog(comborules_dlg);
         
-	comborules_cpy[0].dp2=lfont;
+    comborules_dlg[0].dp2=lfont;
     
     for(int i=0; comborules[i]!=-1; i++)
     {
-		comborules_cpy[i+6].flags = get_bit(quest_rules,comborules[i]) ? D_SELECTED : 0;
+        comborules_dlg[i+6].flags = get_bit(quest_rules,comborules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(comborules_cpy,4);
+    int ret = zc_popup_dialog(comborules_dlg,4);
     
     if(ret==4)
     {
@@ -178,11 +178,9 @@ int onComboRules()
         
         for(int i=0; comborules[i]!=-1; i++)
         {
-            set_bit(quest_rules, comborules[i], comborules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules, comborules[i], comborules_dlg[i+6].flags & D_SELECTED);
         }
     }
-
-	delete[] comborules_cpy;
     
     return D_O_K;
 }
@@ -257,16 +255,17 @@ static int itemrules[] =
 
 int onItemRules()
 {
-	DIALOG *itemrules_cpy = resizeDialog(itemrules_dlg, 1.5);
-    
-	itemrules_cpy[0].dp2=lfont;
+    if(is_large)
+        large_dialog(itemrules_dlg);
+        
+    itemrules_dlg[0].dp2=lfont;
     
     for(int i=0; itemrules[i]!=-1; i++)
     {
-		itemrules_cpy[i+6].flags = get_bit(quest_rules,itemrules[i]) ? D_SELECTED : 0;
+        itemrules_dlg[i+6].flags = get_bit(quest_rules,itemrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(itemrules_cpy,4);
+    int ret = zc_popup_dialog(itemrules_dlg,4);
     
     if(ret==4)
     {
@@ -274,12 +273,10 @@ int onItemRules()
         
         for(int i=0; itemrules[i]!=-1; i++)
         {
-            set_bit(quest_rules, itemrules[i], itemrules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules, itemrules[i], itemrules_dlg[i+6].flags & D_SELECTED);
         }
     }
     
-	delete[] itemrules_cpy;
-
     return D_O_K;
 }
 
@@ -347,16 +344,17 @@ static int enemyrules[] =
 
 int onEnemyRules()
 {
-	DIALOG *enemyrules_cpy = resizeDialog(enemyrules_dlg, 1.5);
-    
-	enemyrules_cpy[0].dp2=lfont;
+    if(is_large)
+        large_dialog(enemyrules_dlg);
+        
+    enemyrules_dlg[0].dp2=lfont;
     
     for(int i=0; enemyrules[i]!=-1; i++)
     {
-		enemyrules_cpy[i+6].flags = get_bit(quest_rules,enemyrules[i]) ? D_SELECTED : 0;
+        enemyrules_dlg[i+6].flags = get_bit(quest_rules,enemyrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(enemyrules_cpy,4);
+    int ret = zc_popup_dialog(enemyrules_dlg,4);
     
     if(ret==4)
     {
@@ -364,11 +362,9 @@ int onEnemyRules()
         
         for(int i=0; enemyrules[i]!=-1; i++)
         {
-            set_bit(quest_rules, enemyrules[i], enemyrules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules, enemyrules[i], enemyrules_dlg[i+6].flags & D_SELECTED);
         }
     }
-
-	delete[] enemyrules_cpy;
     
     return D_O_K;
 }
@@ -442,16 +438,17 @@ static int fixesrules[] =
 
 int onFixesRules()
 {
-	DIALOG *fixesrules_cpy = resizeDialog(fixesrules_dlg, 1.5);
+    if(is_large)
+        large_dialog(fixesrules_dlg);
         
-	fixesrules_cpy[0].dp2=lfont;
+    fixesrules_dlg[0].dp2=lfont;
     
     for(int i=0; fixesrules[i]!=-1; i++)
     {
-		fixesrules_cpy[i+6].flags = get_bit(quest_rules,fixesrules[i]) ? D_SELECTED : 0;
+        fixesrules_dlg[i+6].flags = get_bit(quest_rules,fixesrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(fixesrules_cpy,4);
+    int ret = zc_popup_dialog(fixesrules_dlg,4);
     
     if(ret==4)
     {
@@ -459,11 +456,9 @@ int onFixesRules()
         
         for(int i=0; fixesrules[i]!=-1; i++)
         {
-            set_bit(quest_rules, fixesrules[i], fixesrules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules, fixesrules[i], fixesrules_dlg[i+6].flags & D_SELECTED);
         }
     }
-
-	delete[] fixesrules_cpy;
     
     return D_O_K;
 }
@@ -530,16 +525,17 @@ static int miscrules[] =
 
 int onMiscRules()
 {
-	DIALOG *miscrules_cpy = resizeDialog(miscrules_dlg, 1.5);
-    
-	miscrules_cpy[0].dp2=lfont;
+    if(is_large)
+        large_dialog(miscrules_dlg);
+        
+    miscrules_dlg[0].dp2=lfont;
     
     for(int i=0; miscrules[i]!=-1; i++)
     {
-		miscrules_cpy[i+6].flags = get_bit(quest_rules,miscrules[i]) ? D_SELECTED : 0;
+        miscrules_dlg[i+6].flags = get_bit(quest_rules,miscrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(miscrules_cpy,4);
+    int ret = zc_popup_dialog(miscrules_dlg,4);
     
     if(ret==4)
     {
@@ -547,11 +543,10 @@ int onMiscRules()
         
         for(int i=0; miscrules[i]!=-1; i++)
         {
-            set_bit(quest_rules, miscrules[i], miscrules_cpy[i+6].flags & D_SELECTED);
+            set_bit(quest_rules, miscrules[i], miscrules_dlg[i+6].flags & D_SELECTED);
         }
     }
-
-	delete[] miscrules_cpy;
+    
     return D_O_K;
 }
 
@@ -559,7 +554,7 @@ static int compatrules[] =
 {
    qr_GOTOLESSNOTEQUAL, qr_OLDLENSORDER, qr_NOFAIRYGUYFIRES, qr_TRIGGERSREPEAT,
    qr_HOOKSHOTDOWNBUG, qr_REPLACEOPENDOORS, qr_NOSOLIDDAMAGECOMBOS, qr_OLDHOOKSHOTGRAB,
-   qr_PEAHATCLOCKVULN, qr_OFFSCREENWEAPONS, qr_NOSCRIPTSDURINGSCROLL
+   qr_PEAHATCLOCKVULN, qr_OFFSCREENWEAPONS, qr_NEWCOMBOSDM,
    -1 
 };
 
@@ -589,22 +584,24 @@ static DIALOG compatrules_dlg[] =
     { jwin_check_proc,      10, 33+110, 185,    9,    vc(14),   vc(1),      0,      0,          1,             0, (void *) "Old Hookshot Grab Checking", NULL, NULL },
     { jwin_check_proc,      10, 33+120, 185,    9,    vc(14),   vc(1),      0,      0,          1,             0, (void *) "Peahats Are Vulnerable When Frozen By Clocks", NULL, NULL },
     { jwin_check_proc,      10, 33+130, 185,    9,    vc(14),   vc(1),      0,      0,          1,             0, (void *) "Weapons With No Collision Detection Move Offscreen", NULL, NULL },
-	{ jwin_check_proc,      10, 33+140, 185,    9,    vc(14),   vc(1),      0,      0,          1,             0, (void *) "Scripts Don't Run During Screen Scrolling", NULL, NULL },
+    //Added to support 2.50.3Rc1
+    { jwin_check_proc,      10, 33+140, 185,    9,    vc(14),   vc(1),      0,      0,          1,             0, (void *) "Use 2.50.3 SetComboSolid()", NULL, NULL },
     { NULL,                  0,    0,     0,    0,    0,        0,          0,      0,          0,             0,       NULL, NULL, NULL }
 };
 
 int onCompatRules()
 {
-	DIALOG *compatrules_cpy = resizeDialog(compatrules_dlg, 1.5);
-    
-	compatrules_cpy[0].dp2=lfont;
+    if(is_large)
+        large_dialog(compatrules_dlg);
+        
+    compatrules_dlg[0].dp2=lfont;
     
     for(int i=0; compatrules[i]!=-1; i++)
     {
-		compatrules_cpy[i+8].flags = get_bit(quest_rules,compatrules[i]) ? D_SELECTED : 0;
+        compatrules_dlg[i+8].flags = get_bit(quest_rules,compatrules[i]) ? D_SELECTED : 0;
     }
     
-    int ret = zc_popup_dialog(compatrules_cpy,4);
+    int ret = zc_popup_dialog(compatrules_dlg,4);
     
     if(ret==4)
     {
@@ -612,11 +609,9 @@ int onCompatRules()
         
         for(int i=0; compatrules[i]!=-1; i++)
         {
-            set_bit(quest_rules, compatrules[i], compatrules_cpy[i+8].flags & D_SELECTED);
+            set_bit(quest_rules, compatrules[i], compatrules_dlg[i+8].flags & D_SELECTED);
         }
     }
-
-	delete[] compatrules_cpy;
     
     return D_O_K;
 }

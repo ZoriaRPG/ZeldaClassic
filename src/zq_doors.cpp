@@ -29,6 +29,7 @@
 #include "zq_tiles.h"
 #include "zquest.h"
 
+extern void large_dialog(DIALOG *d, float RESIZE_AMT);
 extern int d_dummy_proc(int msg,DIALOG *d,int c);
 extern int d_combo_proc(int msg,DIALOG *d,int c);
 extern void refresh(int flags);
@@ -192,13 +193,14 @@ int onDoors()
     
     for(int i=0; i<4; i++)
         old_door[i] = Map.CurrScr()->door[i];
-
-	DIALOG *door_select_cpy = resizeDialog(door_select_dlg, 1.5);
+        
+    if(is_large)
+        large_dialog(door_select_dlg, 1.5);
         
     do
     {
-        ret = zc_popup_dialog(door_select_cpy,-1);
-        Map.CurrScr()->door_combo_set= door_select_cpy[9].d1;
+        ret = zc_popup_dialog(door_select_dlg,-1);
+        Map.CurrScr()->door_combo_set=door_select_dlg[9].d1;
         
         switch(ret)
         {
@@ -207,7 +209,7 @@ int onDoors()
         case 4:
         case 5:
             edit_door(ret-2);
-			door_select_cpy[ret].dp = (void *)doors_string[door_to_index(Map.CurrScr()->door[ret-2])];
+            door_select_dlg[ret].dp = (void *)doors_string[door_to_index(Map.CurrScr()->door[ret-2])];
             break;
             
         case 6:
@@ -232,8 +234,6 @@ int onDoors()
         }
     }
     while(!done);
-
-	delete[] door_select_cpy;
     
     return D_O_K;
 }
@@ -1436,14 +1436,17 @@ int edit_dcs(int index)
     fill_dcs_dlg();
     
     doorcomboset_dlg[294].flags = get_bit(working_dcs.flags,df_walktrans) ? D_SELECTED : 0;
-
-	DIALOG *doorcomboset_cpy = resizeDialog(doorcomboset_dlg, 2);
+    
+    if(is_large)
+    {
+        large_dialog(doorcomboset_dlg, 2.0);
+    }
     
     int ret;
     
     do
     {
-        ret = zc_popup_dialog(doorcomboset_cpy,4);
+        ret = zc_popup_dialog(doorcomboset_dlg,4);
         
         if(ret==1)
         {
@@ -1468,7 +1471,7 @@ int edit_dcs(int index)
             
             fix_dcs(selected);
             fill_dcs_dlg();
-            object_message(doorcomboset_cpy +7,MSG_DRAW,0);
+            object_message(doorcomboset_dlg+7,MSG_DRAW,0);
         }
     }
     while(ret==1);
@@ -1477,7 +1480,7 @@ int edit_dcs(int index)
     {
         sprintf(working_dcs.name, "%s", door_combo_set_name);
         extract_dcs_dlg();
-        set_bit(working_dcs.flags,df_walktrans, doorcomboset_cpy[294].flags);
+        set_bit(working_dcs.flags,df_walktrans,doorcomboset_dlg[294].flags);
         DoorComboSets[index]=working_dcs;
         
         if(index==door_combo_set_count)
@@ -1487,8 +1490,6 @@ int edit_dcs(int index)
         
         saved=false;
     }
-
-	delete[] doorcomboset_cpy;
     
     return D_O_K;
 }
@@ -1647,8 +1648,6 @@ int onDoorCombos()
     int index=0;
     doorcombosetlist_dlg[0].dp2=lfont;
     
-	DIALOG *doorcombosetlist_cpy = resizeDialog(doorcombosetlist_dlg, 1.5);
-
     while(index!=-1)
     {
         bool hasroom=false;
@@ -1658,9 +1657,12 @@ int onDoorCombos()
             hasroom=true;
             strcpy(DoorComboSets[door_combo_set_count++].name,"<New Door Combo Set>");
         }
-   
-        int ret=zc_popup_dialog(doorcombosetlist_cpy,2);
-        index= doorcombosetlist_cpy[2].d1;
+        
+        if(is_large)
+            large_dialog(doorcombosetlist_dlg,1.5);
+            
+        int ret=zc_popup_dialog(doorcombosetlist_dlg,2);
+        index=doorcombosetlist_dlg[2].d1;
         
         int doedit=false;
         
@@ -1686,8 +1688,6 @@ int onDoorCombos()
             refresh(rMENU);
         }
     }
-
-	delete[] doorcombosetlist_cpy;
     
     comeback();
     return D_O_K;

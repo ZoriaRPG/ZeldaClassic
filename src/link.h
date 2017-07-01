@@ -33,7 +33,7 @@
 #include "zc_custom.h"
 #include "subscr.h"
 
-extern movingblock *mblock2;                                 //mblock[4]?
+extern movingblock mblock2;                                 //mblock[4]?
 extern sprite_list  guys, items, Ewpns, Lwpns, Sitems, chainlinks, decorations;
 
 extern const byte lsteps[8];
@@ -233,9 +233,6 @@ class LinkClass : public sprite
     bool dontdraw;
     bool diagonalMovement;
     bool bigHitbox;
-    bool flickerorflash, preventsubscreenfalling; // Enable invincibility effects, disable dropping the subscreen.
-    int hurtsfx; //Link's Hurt SOund
-    int walkspeed; //Link's walking speed.
     
     // Methods below here.
     void movelink();
@@ -400,34 +397,6 @@ public:
     bool ffpit;
     void setscriptnohit(bool);
     bool getscriptnohit();
-    
-    //2.6
-    
-    bool getCanLinkFlicker(); //enable or disable flicker or flash
-    void setCanLinkFlicker(bool v);
-    
-    void setHurtSFX(int sfx); //Set Link;s hurt sfx
-    int getHurtSFX();
-    
-     int getDirectItem();
-    int getDirectItemA();
-    int getDirectItemB();
-    
-    void setDirectItem(int itm);
-    void setDirectItemA(int itm);
-    void setDirectItemB(int itm);
-      //Prevent the subscreen from falling by script.
-    bool stopSubscreenFalling();
-    void stopSubscreenFalling(bool v);
-    
-    //Set the button items by brute force
-    void setAButtonItem(int itm);
-    void setBButtonItem(int itm);
-    
-    bool getDiagMove(); //Diagonal movement.
-    void setDiagMove(bool newdiag);
-    bool getBigHitbox(); //Large H-itbox
-    void setBigHitbox(bool newbighitbox);
 };
 
 bool isRaftFlag(int flag);

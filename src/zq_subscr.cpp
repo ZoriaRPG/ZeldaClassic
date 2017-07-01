@@ -14,6 +14,8 @@
 
 #include "precompiled.h" //always first
 
+#include <map>
+
 #include "gui.h"
 #include "subscr.h"
 #include "zq_subscr.h"
@@ -26,7 +28,6 @@
 #include "init.h"
 #include <assert.h>
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 #ifndef _MSC_VER
 #include <strings.h>
@@ -37,11 +38,16 @@
 #define stricmp _stricmp
 #endif
 
+extern void large_dialog(DIALOG *d);
+extern void large_dialog(DIALOG *d, float RESIZE_AMT);
+
+using namespace std;
+
 int curr_subscreen_object;
 char *str_oname;
 subscreen_group *css;
 bool sso_selection[MAXSUBSCREENITEMS];
-static int ss_propCopySrc=-1;
+static int propCopySrc=-1;
 
 void replacedp(DIALOG &d, const char *newdp, size_t size=256);
 
@@ -101,7 +107,7 @@ int d_cs_color_proc(int msg,DIALOG *d,int c)
         break;
         
     case MSG_CLICK:
-        d->d1=vbound((Backend::mouse->getVirtualScreenX()-d->x-2)/w,0,15);
+        d->d1=vbound((gui_mouse_x()-d->x-2)/w,0,15);
         d->flags|=D_DIRTY;
         break;
     }
@@ -143,7 +149,7 @@ int d_sys_color_proc(int msg,DIALOG *d,int c)
         break;
         
     case MSG_CLICK:
-        d->d1=vbound((Backend::mouse->getVirtualScreenX()-d->x-2)/w,0,16)-1;
+        d->d1=vbound((gui_mouse_x()-d->x-2)/w,0,16)-1;
         d->flags|=D_DIRTY;
         break;
     }
@@ -477,7 +483,7 @@ int d_stilelist_proc(int msg,DIALOG *d,int c)
     
     if(d->d1!=old_d1)
     {
-        (d-14)->h= is_large() ?32:16;
+        (d-14)->h=is_large?32:16;
         (d-15)->h=(d-14)->h+4;
         
         switch(d->d1-1)
@@ -501,7 +507,7 @@ int d_stilelist_proc(int msg,DIALOG *d,int c)
             break;
         }
         
-        (d-14)->w*= is_large() ?2:1;
+        (d-14)->w*=is_large?2:1;
         (d-15)->w=(d-14)->w+4;
         (d-14)->bg=vbound((d-14)->bg,0,((d-14)->w-1)>>2);
         (d-17)->flags|=D_DIRTY;
@@ -548,18 +554,18 @@ DIALOG *sso_properties_dlg;
 int jwin_tflpcheck_proc(int msg,DIALOG *d,int c)
 {
     bool selected=(d->flags&D_SELECTED)!=0;
-    int ret= is_large() ? jwin_checkfont_proc(msg,d,c) : jwin_check_proc(msg, d, c);
+    int ret= is_large ? jwin_checkfont_proc(msg,d,c) : jwin_check_proc(msg, d, c);
     bool new_selected=(d->flags&D_SELECTED)!=0;
     
     if(new_selected!=selected)
     {
-        (d-3)->w=(new_selected?32:16)*(is_large() +1);
-        (d-3)->h=(new_selected?48:16)*(is_large() +1);
+        (d-3)->w=(new_selected?32:16)*(is_large+1);
+        (d-3)->h=(new_selected?48:16)*(is_large+1);
         (d-4)->w=(d-3)->w+4;
         (d-4)->h=(d-3)->h+4;
 //    (d-5)->x=((d-4)->x)+(((d-4)->w)/2);
-        (d-6)->w=(new_selected?112:96)*(is_large() +1);
-        (d-6)->h=(new_selected?112:48)*(is_large() +1);
+        (d-6)->w=(new_selected?112:96)*(is_large+1);
+        (d-6)->h=(new_selected?112:48)*(is_large+1);
         (d-7)->w=(d-6)->w+4;
         (d-7)->h=(d-6)->h+4;
 //    (d-8)->x=((d-7)->x)+(((d-7)->w)/2);
@@ -578,13 +584,13 @@ int jwin_tflpcheck_proc(int msg,DIALOG *d,int c)
 int jwin_lscheck_proc(int msg,DIALOG *d,int c)
 {
     bool selected=(d->flags&D_SELECTED)!=0;
-    int ret=is_large() ? jwin_checkfont_proc(msg,d,c) : jwin_check_proc(msg, d, c);
+    int ret=is_large ? jwin_checkfont_proc(msg,d,c) : jwin_check_proc(msg, d, c);
     bool new_selected=(d->flags&D_SELECTED)!=0;
     
     if(new_selected!=selected || msg==MSG_START)
     {
-        (d-6)->w=(new_selected?32:16)*(is_large() ? 2 : 1);
-        (d-6)->h=(new_selected?48:16)*(is_large() ? 2 : 1);
+        (d-6)->w=(new_selected?32:16)*(is_large+1);
+        (d-6)->h=(new_selected?48:16)*(is_large+1);
         (d-7)->w=(d-6)->w+4;
         (d-7)->h=(d-6)->h+4;
         (d-6)->flags|=D_DIRTY;
@@ -605,7 +611,7 @@ int d_qtile_proc(int msg,DIALOG *d,int c)
         int dw = d->w;
         int dh = d->h;
         
-        if(is_large())
+        if(is_large)
         {
             dw /= 2;
             dh /= 2;
@@ -632,7 +638,7 @@ int d_qtile_proc(int msg,DIALOG *d,int c)
                  ((t2&2)<<2),
                  (t<<4)+((t2&1)<<3)+7,
                  ((t2&2)<<2)+7, jwin_pal[jcTITLER]);
-            stretch_blit(buf,screen,0,0,dw,dh,d->x-(is_large() ? 1 : 0),d->y- (is_large() ? 1 : 0),dw*(is_large()?2:1),dh*(is_large()?2:1));
+            stretch_blit(buf,screen,0,0,dw,dh,d->x-is_large,d->y-is_large,dw*(is_large?2:1),dh*(is_large?2:1));
             destroy_bitmap(buf);
         }
         
@@ -645,13 +651,13 @@ int d_qtile_proc(int msg,DIALOG *d,int c)
     {
         int old_fg=d->fg;
         
-        if(Backend::mouse->rightButtonClicked())  //right mouse button
+        if(gui_mouse_b()&2)  //right mouse button
         {
             int old_bg=d->bg;
-            int mx=vbound(Backend::mouse->getVirtualScreenX()-d->x,0,d->w-1);
-            int my=vbound(Backend::mouse->getVirtualScreenY()-d->y,0,d->h-1);
+            int mx=vbound(gui_mouse_x()-d->x,0,d->w-1);
+            int my=vbound(gui_mouse_y()-d->y,0,d->h-1);
             
-            if(is_large())
+            if(is_large)
             {
                 mx/=2;
                 my/=2;
@@ -691,12 +697,12 @@ int d_spectile_proc(int msg,DIALOG *d,int c)
     int d1=d->d1;
     int ret=d_qtile_proc(msg,d,c);
     
-	if (d1 != d->d1)
-	{
-		(d + 14)->d1 = 0;
-		(d + 14)->d2 = 0;
-		(d + 14)->flags |= D_DIRTY;
-		d->w = 16 * (is_large() ? 2 : 1);
+    if(d1!=d->d1)
+    {
+        (d+14)->d1=0;
+        (d+14)->d2=0;
+        (d+14)->flags|=D_DIRTY;
+        d->w=16*(is_large+1);
         (d-1)->w=d->w+4;
         d->flags|=D_DIRTY;
         (d-1)->flags|=D_DIRTY;
@@ -1009,12 +1015,11 @@ int sso_raw_data(subscreen_object *tempsso)
     sso_raw_data_dlg[0].dp2=lfont;
     sso_raw_data_dlg[2].dp=raw_text;
     sso_raw_data_dlg[2].d2=0;
-
-	DIALOG *sso_raw_data_cpy = resizeDialog(sso_raw_data_dlg, 1.5);
-            
-    zc_popup_dialog(sso_raw_data_cpy,2);
-
-	delete[] sso_raw_data_cpy;
+    
+    if(is_large)
+        large_dialog(sso_raw_data_dlg);
+        
+    zc_popup_dialog(sso_raw_data_dlg,2);
     return D_O_K;
 }
 
@@ -1444,30 +1449,29 @@ int sso_properties(subscreen_object *tempsso)
     
     if(biic_cnt==-1)
         build_biic_list();
-
-	DIALOG *sso_properties_cpy = resizeDialog(sso_properties_dlg, 1.5);
         
-    if(is_large())
+    if(is_large && !sso_properties_dlg[0].d1)
     {
-		sso_properties_cpy[126].proc = sso_properties_cpy[136].proc = sso_properties_cpy[137].proc =
-			sso_properties_cpy[138].proc = jwin_droplist_proc; // jwin_edit_proc, but sometimes jwin_droplist_proc
-		sso_properties_cpy[126].proc = sso_properties_cpy[136].proc = sso_properties_cpy[137].proc =
-			sso_properties_cpy[138].proc = jwin_edit_proc;
+        sso_properties_dlg[126].proc = sso_properties_dlg[136].proc = sso_properties_dlg[137].proc =
+                                           sso_properties_dlg[138].proc = jwin_droplist_proc; // jwin_edit_proc, but sometimes jwin_droplist_proc
+        large_dialog(sso_properties_dlg);
+        sso_properties_dlg[126].proc = sso_properties_dlg[136].proc = sso_properties_dlg[137].proc =
+                                           sso_properties_dlg[138].proc = jwin_edit_proc;
                                            
-		sso_properties_cpy[95].w=(156*2)+1; // d_box_proc
-		sso_properties_cpy[95].h=(122*2)+1;
+        sso_properties_dlg[95].w=(156*2)+1; // d_box_proc
+        sso_properties_dlg[95].h=(122*2)+1;
         
-		sso_properties_cpy[97].x = sso_properties_cpy[98].x-2; // d_frame_proc
-		sso_properties_cpy[97].y = sso_properties_cpy[98].y-2;
+        sso_properties_dlg[97].x = sso_properties_dlg[98].x-2; // d_frame_proc
+        sso_properties_dlg[97].y = sso_properties_dlg[98].y-2;
         
         for(int i = 99; i <= 104; i++)
-			sso_properties_cpy[i].x += (i >=102 ? 80:64);
+            sso_properties_dlg[i].x += (i >=102 ? 80:64);
             
         for(int i = 158; i <= 162; i++)
-			sso_properties_cpy[i].y += 8;
+            sso_properties_dlg[i].y += 8;
             
-		sso_properties_cpy[100].x = sso_properties_cpy[101].x-2; // d_frame_proc
-		sso_properties_cpy[100].y = sso_properties_cpy[101].y-2;
+        sso_properties_dlg[100].x = sso_properties_dlg[101].x-2; // d_frame_proc
+        sso_properties_dlg[100].y = sso_properties_dlg[101].y-2;
     }
     
     //item specific
@@ -1476,11 +1480,11 @@ int sso_properties(subscreen_object *tempsso)
     case ssoNONE:
     {
         // I'd just disable it entirely if I knew how...
-        dummy_dialog_proc(sso_properties_cpy +6);
+        dummy_dialog_proc(sso_properties_dlg+6);
         
         for(int i=11; i<=213; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
     }
     break;
@@ -1489,22 +1493,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=99; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
 //      draw_block_flip(dest,x,y,css->objects[i].d1,subscreen_cset(misc, css->objects[i].colortype1, css->objects[i].color1),css->objects[i].w,css->objects[i].h,css->objects[i].d2,css->objects[i].d3,css->objects[i].d4);
@@ -1518,44 +1522,44 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", tempsso->w);
         sprintf(h_str, "%d", tempsso->h);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
         
-        replacedp(sso_properties_cpy[36],cset_caption1);
-        replacedp(sso_properties_cpy[37],cset_caption2);
+        replacedp(sso_properties_dlg[36],cset_caption1);
+        replacedp(sso_properties_dlg[37],cset_caption2);
         
-        ListData csettype_list(csettypelist, is_large() ? &lfont_l : &font);
-		sso_properties_cpy[38].proc=d_csl_proc;
+        ListData csettype_list(csettypelist, is_large ? &lfont_l : &font);
+        sso_properties_dlg[38].proc=d_csl_proc;
         //A dubious cast, but I think correct -DD
-        replacedp(sso_properties_cpy[38],(char *)&csettype_list);
+        replacedp(sso_properties_dlg[38],(char *)&csettype_list);
         
-        replacedp(sso_properties_cpy[39],scset_caption);
+        replacedp(sso_properties_dlg[39],scset_caption);
         
-        extract_cset(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].proc=d_csl2_proc;
-        ListData misccset_list(misccsetlist, is_large()? &lfont_l : &font);
-        replacedp(sso_properties_cpy[40],(char *)&misccset_list);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_csl_proc(sso_properties_cpy +39, sso_properties_cpy[38].d1);
+        extract_cset(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].proc=d_csl2_proc;
+        ListData misccset_list(misccsetlist, is_large? &lfont_l : &font);
+        replacedp(sso_properties_dlg[40],(char *)&misccset_list);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_csl_proc(sso_properties_dlg+39, sso_properties_dlg[38].d1);
         //sso_properties_dlg[98].fg=sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:sso_properties_dlg[40].d1;
-		sso_properties_cpy[98].fg=subscreen_cset(&misc, sso_properties_cpy[38].d1? sso_properties_cpy[38].d1-1:ssctMISC, sso_properties_cpy[40].d1);
+        sso_properties_dlg[98].fg=subscreen_cset(&misc,sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:ssctMISC, sso_properties_dlg[40].d1);
         
-		sso_properties_cpy[98].d1=tempsso->d1;
-		sso_properties_cpy[98].d2=tempsso->d2;
-		sso_properties_cpy[98].proc=d_tileblock_proc;
-		sso_properties_cpy[98].w=is_large()?64:32;
-		sso_properties_cpy[98].h=is_large()?64:32;
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[102].flags=tempsso->d3?D_SELECTED:0;
-		sso_properties_cpy[103].flags=tempsso->d4?D_SELECTED:0;
+        sso_properties_dlg[98].d1=tempsso->d1;
+        sso_properties_dlg[98].d2=tempsso->d2;
+        sso_properties_dlg[98].proc=d_tileblock_proc;
+        sso_properties_dlg[98].w=is_large?64:32;
+        sso_properties_dlg[98].h=is_large?64:32;
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[102].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[103].flags=tempsso->d4?D_SELECTED:0;
     }
     break;
     
@@ -1563,17 +1567,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=123; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -1593,38 +1597,38 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
-        replacedp(sso_properties_cpy[122],buf);
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
+        replacedp(sso_properties_dlg[122],buf);
         bufi=122;
-		sso_properties_cpy[122].dp2=ss_font(tempsso->d1);
-		sso_properties_cpy[122].h=text_height(ss_font(tempsso->d1))+8;
+        sso_properties_dlg[122].dp2=ss_font(tempsso->d1);
+        sso_properties_dlg[122].h=text_height(ss_font(tempsso->d1))+8;
     }
     break;
     
@@ -1632,17 +1636,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char lc_color_caption[80];
@@ -1651,23 +1655,23 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],lc_color_caption);
+        replacedp(sso_properties_dlg[36],lc_color_caption);
         
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-		sso_properties_cpy[102].flags|=(tempsso->d3)?D_SELECTED:0;
-		sso_properties_cpy[103].flags|=(tempsso->d4)?D_SELECTED:0;
+        sso_properties_dlg[102].flags|=(tempsso->d3)?D_SELECTED:0;
+        sso_properties_dlg[103].flags|=(tempsso->d4)?D_SELECTED:0;
     }
     break;
     
@@ -1675,17 +1679,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=47; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char ol_color_caption[80];
@@ -1698,29 +1702,29 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],ol_color_caption);
-        replacedp(sso_properties_cpy[42],f_color_caption);
+        replacedp(sso_properties_dlg[36],ol_color_caption);
+        replacedp(sso_properties_dlg[42],f_color_caption);
         
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-		sso_properties_cpy[102].flags|=(tempsso->d1)?D_SELECTED:0;
-        replacedp(sso_properties_cpy[102],filled_caption);
-		sso_properties_cpy[103].flags|=(tempsso->d2)?D_SELECTED:0;
+        sso_properties_dlg[102].flags|=(tempsso->d1)?D_SELECTED:0;
+        replacedp(sso_properties_dlg[102],filled_caption);
+        sso_properties_dlg[103].flags|=(tempsso->d2)?D_SELECTED:0;
     }
     break;
     
@@ -1728,19 +1732,19 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +118);
+        dummy_dialog_proc(sso_properties_dlg+118);
         
         for(int i=122; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -1753,34 +1757,34 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
     }
     break;
     
@@ -1788,19 +1792,19 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +118);
+        dummy_dialog_proc(sso_properties_dlg+118);
         
         for(int i=122; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -1813,34 +1817,34 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
     }
     break;
     
@@ -1848,19 +1852,19 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +118);
+        dummy_dialog_proc(sso_properties_dlg+118);
         
         for(int i=122; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -1873,33 +1877,33 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
     }
     break;
     
@@ -1907,17 +1911,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=11; i<=93; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=95; i<=169; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=171; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char no_prop[80];
@@ -1930,12 +1934,12 @@ int sso_properties(subscreen_object *tempsso)
         //sso_properties_dlg[10].dp=y_str;
         //sso_properties_dlg[94].dp=no_prop;
         //sso_properties_dlg[170].dp=no_prop;
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[94],no_prop);
-        replacedp(sso_properties_cpy[170],no_prop);
+        replacedp(sso_properties_dlg[94],no_prop);
+        replacedp(sso_properties_dlg[170],no_prop);
         
     }
     break;
@@ -1944,35 +1948,35 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=11; i<=93; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=95; i<=138; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=140; i<=173; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=176; i<=210; i++)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char bs_style[80];
         sprintf(x_str, "%d", tempsso->x);
         sprintf(y_str, "%d", tempsso->y);
         sprintf(bs_style, "BS-Zelda Style");
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[139],bs_style);
-		sso_properties_cpy[139].flags=tempsso->d2?D_SELECTED:0;
-		sso_properties_cpy[175].d1 = tempsso->d3;
+        replacedp(sso_properties_dlg[139],bs_style);
+        sso_properties_dlg[139].flags=tempsso->d2?D_SELECTED:0;
+        sso_properties_dlg[175].d1 = tempsso->d3;
     }
     break;
     
@@ -1980,22 +1984,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=102; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=116; i<=118; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=120; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char button_caption[80];
@@ -2004,22 +2008,22 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-		sso_properties_cpy[103].flags|=(tempsso->d2)?D_SELECTED:0;
+        sso_properties_dlg[103].flags|=(tempsso->d2)?D_SELECTED:0;
         
-        replacedp(sso_properties_cpy[115],button_caption);
-        ListData button_list(buttonlist, is_large()? &lfont_l : &font);
-        replacedp(sso_properties_cpy[119],(char *)&button_list);
+        replacedp(sso_properties_dlg[115],button_caption);
+        ListData button_list(buttonlist, is_large? &lfont_l : &font);
+        replacedp(sso_properties_dlg[119],(char *)&button_list);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
+        sso_properties_dlg[119].d1=tempsso->d1;
     }
     break;
     
@@ -2032,37 +2036,37 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +118);
-        dummy_dialog_proc(sso_properties_cpy +122);
+        dummy_dialog_proc(sso_properties_dlg+118);
+        dummy_dialog_proc(sso_properties_dlg+122);
         
         for(int i=127; i<=129; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=133; i<=135; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +139);
+        dummy_dialog_proc(sso_properties_dlg+139);
         
         for(int i=142; i<=166; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=169; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -2096,44 +2100,44 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(buf, "%d", tempsso->d4);
         sprintf(buf2, "%c", tempsso->d5);
         
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
-        replacedp(sso_properties_cpy[123],digits_caption);
-        replacedp(sso_properties_cpy[124],infinite_caption);
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
+        replacedp(sso_properties_dlg[123],digits_caption);
+        replacedp(sso_properties_dlg[124],infinite_caption);
         
         //why, guys, why?!?? :(
-		sso_properties_cpy[125].dp = NULL;
-		sso_properties_cpy[125].proc=jwin_edit_proc;
-        replacedp(sso_properties_cpy[125],buf);
+        sso_properties_dlg[125].dp = NULL;
+        sso_properties_dlg[125].proc=jwin_edit_proc;
+        replacedp(sso_properties_dlg[125],buf);
         bufi = 125;
-		sso_properties_cpy[125].d1 = 255;
-		sso_properties_cpy[125].x-=8;
-		sso_properties_cpy[125].w+=24;
+        sso_properties_dlg[125].d1 = 255;
+        sso_properties_dlg[125].x-=8;
+        sso_properties_dlg[125].w+=24;
         
         //Infinite Item
         if(bii_cnt==-1)
@@ -2153,41 +2157,41 @@ int sso_properties(subscreen_object *tempsso)
             }
         }
         
-		sso_properties_cpy[126].proc=jwin_droplist_proc;
-        replacedp(sso_properties_cpy[126],(char *)&item_list);
-		sso_properties_cpy[126].d1=itemid;
-		sso_properties_cpy[126].x-=8;
-		sso_properties_cpy[126].w+=24;
+        sso_properties_dlg[126].proc=jwin_droplist_proc;
+        replacedp(sso_properties_dlg[126],(char *)&item_list);
+        sso_properties_dlg[126].d1=itemid;
+        sso_properties_dlg[126].x-=8;
+        sso_properties_dlg[126].w+=24;
         
-        replacedp(sso_properties_cpy[130],item_1_caption);
-        replacedp(sso_properties_cpy[131],item_2_caption);
-        replacedp(sso_properties_cpy[132],item_3_caption);
-		sso_properties_cpy[136].proc=jwin_droplist_proc;
-        ListData icounter_list(icounterlist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[136],(char *)&icounter_list);
-		sso_properties_cpy[136].d1=tempsso->d7;
-		sso_properties_cpy[136].x-=13;
-		sso_properties_cpy[136].w+=56;
-		sso_properties_cpy[137].proc=jwin_droplist_proc;
-        replacedp(sso_properties_cpy[137],(char *)&icounter_list);
-		sso_properties_cpy[137].d1=tempsso->d8;
-		sso_properties_cpy[137].x-=13;
-		sso_properties_cpy[137].w+=56;
-		sso_properties_cpy[138].proc=jwin_droplist_proc;
-        replacedp(sso_properties_cpy[138],(char *)&icounter_list);
-		sso_properties_cpy[138].d1=tempsso->d9;
-		sso_properties_cpy[138].x-=13;
-		sso_properties_cpy[138].w+=56;
-        replacedp(sso_properties_cpy[168],buf2);
+        replacedp(sso_properties_dlg[130],item_1_caption);
+        replacedp(sso_properties_dlg[131],item_2_caption);
+        replacedp(sso_properties_dlg[132],item_3_caption);
+        sso_properties_dlg[136].proc=jwin_droplist_proc;
+        ListData icounter_list(icounterlist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[136],(char *)&icounter_list);
+        sso_properties_dlg[136].d1=tempsso->d7;
+        sso_properties_dlg[136].x-=13;
+        sso_properties_dlg[136].w+=56;
+        sso_properties_dlg[137].proc=jwin_droplist_proc;
+        replacedp(sso_properties_dlg[137],(char *)&icounter_list);
+        sso_properties_dlg[137].d1=tempsso->d8;
+        sso_properties_dlg[137].x-=13;
+        sso_properties_dlg[137].w+=56;
+        sso_properties_dlg[138].proc=jwin_droplist_proc;
+        replacedp(sso_properties_dlg[138],(char *)&icounter_list);
+        sso_properties_dlg[138].d1=tempsso->d9;
+        sso_properties_dlg[138].x-=13;
+        sso_properties_dlg[138].w+=56;
+        replacedp(sso_properties_dlg[168],buf2);
         buf2i=168;
-		sso_properties_cpy[168].dp2=ss_font(tempsso->d1);
-		sso_properties_cpy[168].h=text_height(ss_font(tempsso->d1))+8;
-        replacedp(sso_properties_cpy[140],zero_caption);
-		sso_properties_cpy[140].flags=tempsso->d6&1?D_SELECTED:0;
-		sso_properties_cpy[140].x += 40;
-        replacedp(sso_properties_cpy[141],selected_caption);
-		sso_properties_cpy[141].flags=tempsso->d6&2?D_SELECTED:0;
-		sso_properties_cpy[141].x += 40;
+        sso_properties_dlg[168].dp2=ss_font(tempsso->d1);
+        sso_properties_dlg[168].h=text_height(ss_font(tempsso->d1))+8;
+        replacedp(sso_properties_dlg[140],zero_caption);
+        sso_properties_dlg[140].flags=tempsso->d6&1?D_SELECTED:0;
+        sso_properties_dlg[140].x += 40;
+        replacedp(sso_properties_dlg[141],selected_caption);
+        sso_properties_dlg[141].flags=tempsso->d6&2?D_SELECTED:0;
+        sso_properties_dlg[141].x += 40;
         
     }
     break;
@@ -2196,34 +2200,34 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +117);
-        dummy_dialog_proc(sso_properties_cpy +118);
-        dummy_dialog_proc(sso_properties_cpy +121);
-        dummy_dialog_proc(sso_properties_cpy +122);
-        dummy_dialog_proc(sso_properties_cpy +123);
-        dummy_dialog_proc(sso_properties_cpy +125);
+        dummy_dialog_proc(sso_properties_dlg+117);
+        dummy_dialog_proc(sso_properties_dlg+118);
+        dummy_dialog_proc(sso_properties_dlg+121);
+        dummy_dialog_proc(sso_properties_dlg+122);
+        dummy_dialog_proc(sso_properties_dlg+123);
+        dummy_dialog_proc(sso_properties_dlg+125);
         
         for(int i=127; i<=139; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=141; i<=166; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=169; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -2249,43 +2253,43 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(buf, "%d", tempsso->d4);
         sprintf(buf2, "%c", tempsso->d5);
         
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-        replacedp(sso_properties_cpy[124],digits_caption);
-        replacedp(sso_properties_cpy[126],buf);
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        replacedp(sso_properties_dlg[124],digits_caption);
+        replacedp(sso_properties_dlg[126],buf);
         bufi=126;
-		sso_properties_cpy[126].x-=8;
-		sso_properties_cpy[126].w+=24;
-        replacedp(sso_properties_cpy[168],buf2);
+        sso_properties_dlg[126].x-=8;
+        sso_properties_dlg[126].w+=24;
+        replacedp(sso_properties_dlg[168],buf2);
         buf2i=168;
-		sso_properties_cpy[168].dp2=ss_font(tempsso->d1);
-		sso_properties_cpy[168].h=text_height(ss_font(tempsso->d1))+8;
-        replacedp(sso_properties_cpy[140],x_caption);
-		sso_properties_cpy[140].flags=tempsso->d2?D_SELECTED:0;
+        sso_properties_dlg[168].dp2=ss_font(tempsso->d1);
+        sso_properties_dlg[168].h=text_height(ss_font(tempsso->d1))+8;
+        replacedp(sso_properties_dlg[140],x_caption);
+        sso_properties_dlg[140].flags=tempsso->d2?D_SELECTED:0;
         
     }
     break;
@@ -2294,19 +2298,19 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
-        dummy_dialog_proc(sso_properties_cpy +118);
+        dummy_dialog_proc(sso_properties_dlg+118);
         
         for(int i=122; i<=210; ++i)
         {
-            if(i!=139) dummy_dialog_proc(sso_properties_cpy +i);
+            if(i!=139) dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -2321,35 +2325,35 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
-        replacedp(sso_properties_cpy[139],map_rule_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
+        replacedp(sso_properties_dlg[139],map_rule_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
-		sso_properties_cpy[139].flags=tempsso->d4?D_SELECTED:0;
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
+        sso_properties_dlg[139].flags=tempsso->d4?D_SELECTED:0;
     }
     break;
     
@@ -2357,17 +2361,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=11; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=170; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=174; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -2384,32 +2388,32 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(show3, " Show Compass ");
         sprintf(x_str, "%d", tempsso->x);
         sprintf(y_str, "%d", tempsso->y);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
-        replacedp(sso_properties_cpy[171],show1);
-        replacedp(sso_properties_cpy[172],show2);
-        replacedp(sso_properties_cpy[173],show3);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
+        replacedp(sso_properties_dlg[171],show1);
+        replacedp(sso_properties_dlg[172],show2);
+        replacedp(sso_properties_dlg[173],show3);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[171].flags=tempsso->d1?D_SELECTED:0;
-		sso_properties_cpy[172].flags=tempsso->d2?D_SELECTED:0;
-		sso_properties_cpy[173].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[171].flags=tempsso->d1?D_SELECTED:0;
+        sso_properties_dlg[172].flags=tempsso->d2?D_SELECTED:0;
+        sso_properties_dlg[173].flags=tempsso->d3?D_SELECTED:0;
     }
     break;
     
@@ -2417,22 +2421,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=11; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=47; i<=138; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=140; i<=170; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=174; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -2449,30 +2453,30 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(x_str, "%d", tempsso->x);
         sprintf(y_str, "%d", tempsso->y);
         sprintf(bs_style, "Large");
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[139],bs_style);
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[171],show1);
-        replacedp(sso_properties_cpy[172],show2);
-        replacedp(sso_properties_cpy[173],show3);
+        replacedp(sso_properties_dlg[139],bs_style);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[171],show1);
+        replacedp(sso_properties_dlg[172],show2);
+        replacedp(sso_properties_dlg[173],show3);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-		sso_properties_cpy[171].flags=tempsso->d1?D_SELECTED:0;
-		sso_properties_cpy[172].flags=tempsso->d2?D_SELECTED:0;
-		sso_properties_cpy[173].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[171].flags=tempsso->d1?D_SELECTED:0;
+        sso_properties_dlg[172].flags=tempsso->d2?D_SELECTED:0;
+        sso_properties_dlg[173].flags=tempsso->d3?D_SELECTED:0;
         
-		sso_properties_cpy[139].flags=tempsso->d10?D_SELECTED:0;
+        sso_properties_dlg[139].flags=tempsso->d10?D_SELECTED:0;
     }
     break;
     
@@ -2480,20 +2484,20 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=7; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char ss_color_caption[80];
         sprintf(ss_color_caption, " Subscreen Color ");
-        replacedp(sso_properties_cpy[36],ss_color_caption);
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        replacedp(sso_properties_dlg[36],ss_color_caption);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
     }
     break;
     
@@ -2501,22 +2505,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=93; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=95; i<=126; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=140; i<=175; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=178; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         sprintf(x_str, "%d", tempsso->x);
@@ -2530,24 +2534,24 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(buf4, "%d", tempsso->d6);
         sprintf(buf5, "%d", tempsso->d7);
         
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-        replacedp(sso_properties_cpy[134],buf);
+        replacedp(sso_properties_dlg[134],buf);
         bufi=134;
-        replacedp(sso_properties_cpy[135],buf2);
+        replacedp(sso_properties_dlg[135],buf2);
         buf2i=135;
-        replacedp(sso_properties_cpy[136],buf3);
+        replacedp(sso_properties_dlg[136],buf3);
         buf3i=136;
-        replacedp(sso_properties_cpy[137],buf4);
+        replacedp(sso_properties_dlg[137],buf4);
         buf4i=137;
-        replacedp(sso_properties_cpy[138],buf5);
+        replacedp(sso_properties_dlg[138],buf5);
         buf5i=138;
         // Item Override droplist
         
@@ -2564,17 +2568,17 @@ int sso_properties(subscreen_object *tempsso)
             }
         }
         
-		sso_properties_cpy[176].proc=jwin_droplist_proc;
-        replacedp(sso_properties_cpy[176],(char *)&item_list);
-		sso_properties_cpy[176].d1 = itemid;
+        sso_properties_dlg[176].proc=jwin_droplist_proc;
+        replacedp(sso_properties_dlg[176],(char *)&item_list);
+        sso_properties_dlg[176].d1 = itemid;
         
         for(int j=0; j<biic_cnt; j++)
         {
             if(biic[j].i == tempsso->d1)
-				sso_properties_cpy[133].d1 = j;
+                sso_properties_dlg[133].d1 = j;
         }
         
-		sso_properties_cpy[139].flags=tempsso->d2?0:D_SELECTED;
+        sso_properties_dlg[139].flags=tempsso->d2?0:D_SELECTED;
     }
     break;
     
@@ -2587,17 +2591,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=47; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=105; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char fo_color_caption[80];
@@ -2612,42 +2616,42 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],fo_color_caption);
-        replacedp(sso_properties_cpy[42],n_color_caption);
+        replacedp(sso_properties_dlg[36],fo_color_caption);
+        replacedp(sso_properties_dlg[42],n_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-		sso_properties_cpy[98].w=(tempsso->d7?112:96)*(is_large() ? 2 : 1);
-		sso_properties_cpy[98].h=(tempsso->d7?112:48)*(is_large() ? 2 : 1);
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[98].d1=tempsso->d1;
-		sso_properties_cpy[98].fg=tempsso->d2;
-		sso_properties_cpy[101].w=(tempsso->d7?32:16)*(is_large() ? 2 : 1);
-		sso_properties_cpy[101].h=(tempsso->d7?48:16)*(is_large() ? 2 : 1);
-		sso_properties_cpy[100].w= sso_properties_cpy[101].w+4;
-		sso_properties_cpy[100].h= sso_properties_cpy[101].h+4;
-		sso_properties_cpy[101].d1=tempsso->d3;
-		sso_properties_cpy[101].fg=tempsso->d4;
-        replacedp(sso_properties_cpy[102],show_frame_caption);
-		sso_properties_cpy[102].flags=tempsso->d5?D_SELECTED:0;
-        replacedp(sso_properties_cpy[103],show_pieces_caption);
-		sso_properties_cpy[103].flags=tempsso->d6?D_SELECTED:0;
-		sso_properties_cpy[104].flags=tempsso->d7?D_SELECTED:0;
+        sso_properties_dlg[98].w=(tempsso->d7?112:96)*(is_large+1);
+        sso_properties_dlg[98].h=(tempsso->d7?112:48)*(is_large+1);
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[98].d1=tempsso->d1;
+        sso_properties_dlg[98].fg=tempsso->d2;
+        sso_properties_dlg[101].w=(tempsso->d7?32:16)*(is_large+1);
+        sso_properties_dlg[101].h=(tempsso->d7?48:16)*(is_large+1);
+        sso_properties_dlg[100].w=sso_properties_dlg[101].w+4;
+        sso_properties_dlg[100].h=sso_properties_dlg[101].h+4;
+        sso_properties_dlg[101].d1=tempsso->d3;
+        sso_properties_dlg[101].fg=tempsso->d4;
+        replacedp(sso_properties_dlg[102],show_frame_caption);
+        sso_properties_dlg[102].flags=tempsso->d5?D_SELECTED:0;
+        replacedp(sso_properties_dlg[103],show_pieces_caption);
+        sso_properties_dlg[103].flags=tempsso->d6?D_SELECTED:0;
+        sso_properties_dlg[104].flags=tempsso->d7?D_SELECTED:0;
     }
     break;
     
@@ -2655,27 +2659,27 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=99; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=163; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=166; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char cset_caption1[80];
@@ -2691,42 +2695,42 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(w_str, "%d", tempsso->w);
         sprintf(h_str, "%d", tempsso->h);
         sprintf(buf, "%d", tempsso->d5);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-        replacedp(sso_properties_cpy[36],cset_caption1);
-        replacedp(sso_properties_cpy[37],cset_caption2);
-		sso_properties_cpy[38].proc=d_csl_proc;
-        ListData csettype_list(csettypelist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[38],(char *)&csettype_list);
-        replacedp(sso_properties_cpy[39],scset_caption);
+        replacedp(sso_properties_dlg[36],cset_caption1);
+        replacedp(sso_properties_dlg[37],cset_caption2);
+        sso_properties_dlg[38].proc=d_csl_proc;
+        ListData csettype_list(csettypelist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[38],(char *)&csettype_list);
+        replacedp(sso_properties_dlg[39],scset_caption);
         
-        extract_cset(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].proc=d_csl2_proc;
-        ListData misccset_list(misccsetlist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[40],(char *)&misccset_list);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_csl_proc(sso_properties_cpy +39, sso_properties_cpy[38].d1);
+        extract_cset(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].proc=d_csl2_proc;
+        ListData misccset_list(misccsetlist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[40],(char *)&misccset_list);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_csl_proc(sso_properties_dlg+39, sso_properties_dlg[38].d1);
         //sso_properties_dlg[98].fg=sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:sso_properties_dlg[40].d1;
-		sso_properties_cpy[98].fg=subscreen_cset(&misc, sso_properties_cpy[38].d1? sso_properties_cpy[38].d1-1:ssctMISC, sso_properties_cpy[40].d1);
+        sso_properties_dlg[98].fg=subscreen_cset(&misc,sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:ssctMISC, sso_properties_dlg[40].d1);
         
-		sso_properties_cpy[98].d1=tempsso->d1;
-		sso_properties_cpy[98].d2=tempsso->d2;
-		sso_properties_cpy[98].w=is_large()?32:16;
-		sso_properties_cpy[98].h=is_large()?32:16;
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[98].proc=d_tileblock_proc;
-		sso_properties_cpy[102].flags=tempsso->d3?D_SELECTED:0;
-		sso_properties_cpy[103].flags=tempsso->d4?D_SELECTED:0;
-        replacedp(sso_properties_cpy[164],piece_caption);
-        replacedp(sso_properties_cpy[165],buf);
+        sso_properties_dlg[98].d1=tempsso->d1;
+        sso_properties_dlg[98].d2=tempsso->d2;
+        sso_properties_dlg[98].w=is_large?32:16;
+        sso_properties_dlg[98].h=is_large?32:16;
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[98].proc=d_tileblock_proc;
+        sso_properties_dlg[102].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[103].flags=tempsso->d4?D_SELECTED:0;
+        replacedp(sso_properties_dlg[164],piece_caption);
+        replacedp(sso_properties_dlg[165],buf);
         bufi=165;
     }
     break;
@@ -2735,22 +2739,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=99; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
 //      draw_block_flip(dest,x,y,css->objects[i].d1,subscreen_cset(misc, css->objects[i].colortype1, css->objects[i].color1),css->objects[i].w,css->objects[i].h,css->objects[i].d2,css->objects[i].d3,css->objects[i].d4);
@@ -2764,39 +2768,39 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", tempsso->w);
         sprintf(h_str, "%d", tempsso->h);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-		sso_properties_cpy[38].proc=d_csl_proc;
-        ListData csettype_list(csettypelist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[36],cset_caption1);
-        replacedp(sso_properties_cpy[37],cset_caption2);
-        replacedp(sso_properties_cpy[38],(char *)&csettype_list);
-        replacedp(sso_properties_cpy[39],scset_caption);
+        sso_properties_dlg[38].proc=d_csl_proc;
+        ListData csettype_list(csettypelist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[36],cset_caption1);
+        replacedp(sso_properties_dlg[37],cset_caption2);
+        replacedp(sso_properties_dlg[38],(char *)&csettype_list);
+        replacedp(sso_properties_dlg[39],scset_caption);
         
-        extract_cset(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].proc=d_csl2_proc;
-        ListData misccset_list(misccsetlist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[40],(char *)&misccset_list);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_csl_proc(sso_properties_cpy +39, sso_properties_cpy[38].d1);
-		sso_properties_cpy[98].fg=subscreen_cset(&misc, sso_properties_cpy[38].d1? sso_properties_cpy[38].d1-1:ssctMISC, sso_properties_cpy[40].d1);
+        extract_cset(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].proc=d_csl2_proc;
+        ListData misccset_list(misccsetlist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[40],(char *)&misccset_list);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_csl_proc(sso_properties_dlg+39, sso_properties_dlg[38].d1);
+        sso_properties_dlg[98].fg=subscreen_cset(&misc,sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:ssctMISC, sso_properties_dlg[40].d1);
         
-		sso_properties_cpy[98].d1=tempsso->d1;
-		sso_properties_cpy[98].d2=tempsso->d2;
-		sso_properties_cpy[98].w=is_large()?32:16;
-		sso_properties_cpy[98].h=is_large()?32:16;
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[98].proc=d_tileblock_proc;
-		sso_properties_cpy[102].flags=tempsso->d3?D_SELECTED:0;
-		sso_properties_cpy[103].flags=tempsso->d4?D_SELECTED:0;
+        sso_properties_dlg[98].d1=tempsso->d1;
+        sso_properties_dlg[98].d2=tempsso->d2;
+        sso_properties_dlg[98].w=is_large?32:16;
+        sso_properties_dlg[98].h=is_large?32:16;
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[98].proc=d_tileblock_proc;
+        sso_properties_dlg[102].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[103].flags=tempsso->d4?D_SELECTED:0;
     }
     break;
     
@@ -2804,27 +2808,27 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=99; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=104; i<=110; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=113; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
 //      draw_block_flip(dest,x,y,css->objects[i].d1,subscreen_cset(misc, css->objects[i].colortype1, css->objects[i].color1),css->objects[i].w,css->objects[i].h,css->objects[i].d2,css->objects[i].d3,css->objects[i].d4);
@@ -2838,75 +2842,75 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", tempsso->w);
         sprintf(h_str, "%d", tempsso->h);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-		sso_properties_cpy[38].proc=d_csl_proc;
-        ListData csettype_list(csettypelist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[36],cset_caption1);
-        replacedp(sso_properties_cpy[37],cset_caption2);
-        replacedp(sso_properties_cpy[38],(char *)&csettype_list);
-        replacedp(sso_properties_cpy[39],scset_caption);
+        sso_properties_dlg[38].proc=d_csl_proc;
+        ListData csettype_list(csettypelist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[36],cset_caption1);
+        replacedp(sso_properties_dlg[37],cset_caption2);
+        replacedp(sso_properties_dlg[38],(char *)&csettype_list);
+        replacedp(sso_properties_dlg[39],scset_caption);
         
         
-        extract_cset(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].proc=d_csl2_proc;
-        ListData misccset_list(misccsetlist, is_large() ? &lfont_l : &font);
-        replacedp(sso_properties_cpy[40],(char *)&misccset_list);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_csl_proc(sso_properties_cpy +39, sso_properties_cpy[38].d1);
+        extract_cset(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].proc=d_csl2_proc;
+        ListData misccset_list(misccsetlist, is_large ? &lfont_l : &font);
+        replacedp(sso_properties_dlg[40],(char *)&misccset_list);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_csl_proc(sso_properties_dlg+39, sso_properties_dlg[38].d1);
         //sso_properties_dlg[98].fg=sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:sso_properties_dlg[40].d1;
-		sso_properties_cpy[98].fg=subscreen_cset(&misc, sso_properties_cpy[38].d1? sso_properties_cpy[38].d1-1:ssctMISC, sso_properties_cpy[40].d1);
+        sso_properties_dlg[98].fg=subscreen_cset(&misc,sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:ssctMISC, sso_properties_dlg[40].d1);
         
         if(tempsso->d1!=-1)
         {
-			sso_properties_cpy[98].d1=tempsso->d1>>2;
-			sso_properties_cpy[98].bg=vbound(tempsso->d1-(sso_properties_cpy[98].d1<<2)+tempsso->d3,0,3);
-			sso_properties_cpy[112].d1=0;
-			sso_properties_cpy[112].d2=0;
-			sso_properties_cpy[97].w=20;
-			sso_properties_cpy[98].w=16;
+            sso_properties_dlg[98].d1=tempsso->d1>>2;
+            sso_properties_dlg[98].bg=vbound(tempsso->d1-(sso_properties_dlg[98].d1<<2)+tempsso->d3,0,3);
+            sso_properties_dlg[112].d1=0;
+            sso_properties_dlg[112].d2=0;
+            sso_properties_dlg[97].w=20;
+            sso_properties_dlg[98].w=16;
         }
         else
         {
             switch(tempsso->d2)
             {
             case ssmstSSVINETILE:
-				sso_properties_cpy[98].d1=wpnsbuf[iwSubscreenVine].tile;
-				sso_properties_cpy[97].w=52;
-				sso_properties_cpy[98].w=48;
+                sso_properties_dlg[98].d1=wpnsbuf[iwSubscreenVine].tile;
+                sso_properties_dlg[97].w=52;
+                sso_properties_dlg[98].w=48;
                 break;
                 
             case ssmstMAGICMETER:
-				sso_properties_cpy[98].d1=wpnsbuf[iwMMeter].tile;
-				sso_properties_cpy[97].w=148;
-				sso_properties_cpy[98].w=144;
+                sso_properties_dlg[98].d1=wpnsbuf[iwMMeter].tile;
+                sso_properties_dlg[97].w=148;
+                sso_properties_dlg[98].w=144;
                 break;
                 
             default:
-				sso_properties_cpy[97].w=20;
-				sso_properties_cpy[98].w=16;
+                sso_properties_dlg[97].w=20;
+                sso_properties_dlg[98].w=16;
             }
             
-			sso_properties_cpy[98].bg=tempsso->d3;
-			sso_properties_cpy[112].d1=tempsso->d2+1;
-			sso_properties_cpy[112].d2= sso_properties_cpy[112].d1;
+            sso_properties_dlg[98].bg=tempsso->d3;
+            sso_properties_dlg[112].d1=tempsso->d2+1;
+            sso_properties_dlg[112].d2=sso_properties_dlg[112].d1;
         }
         
-		sso_properties_cpy[98].w*=(is_large()?2:1);
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[98].h=is_large()?32:16;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[98].d2=tempsso->d4;
-		sso_properties_cpy[98].proc=d_spectile_proc;
-		sso_properties_cpy[102].flags=tempsso->d5?D_SELECTED:0;
-		sso_properties_cpy[103].flags=tempsso->d6?D_SELECTED:0;
+        sso_properties_dlg[98].w*=(is_large?2:1);
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[98].h=is_large?32:16;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[98].d2=tempsso->d4;
+        sso_properties_dlg[98].proc=d_spectile_proc;
+        sso_properties_dlg[102].flags=tempsso->d5?D_SELECTED:0;
+        sso_properties_dlg[103].flags=tempsso->d6?D_SELECTED:0;
     }
     break;
     
@@ -2915,22 +2919,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=11; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=41; i<=94; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=99; i<=101; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=105; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
 //      draw_block_flip(dest,x,y,css->objects[i].d1,subscreen_cset(misc, css->objects[i].colortype1, css->objects[i].color1),css->objects[i].w,css->objects[i].h,css->objects[i].d2,css->objects[i].d3,css->objects[i].d4);
@@ -2944,39 +2948,39 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(large_caption, "Large");
         sprintf(x_str, "%d", tempsso->x);
         sprintf(y_str, "%d", tempsso->y);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
         
-        ListData csettype_list(csettypelist, is_large() ? &lfont_l : &font);
-		sso_properties_cpy[38].proc=d_csl_proc;
-        replacedp(sso_properties_cpy[36],cset_caption1);
-        replacedp(sso_properties_cpy[37],cset_caption2);
-        replacedp(sso_properties_cpy[38],(char *)&csettype_list);
-        replacedp(sso_properties_cpy[39],scset_caption);
+        ListData csettype_list(csettypelist, is_large ? &lfont_l : &font);
+        sso_properties_dlg[38].proc=d_csl_proc;
+        replacedp(sso_properties_dlg[36],cset_caption1);
+        replacedp(sso_properties_dlg[37],cset_caption2);
+        replacedp(sso_properties_dlg[38],(char *)&csettype_list);
+        replacedp(sso_properties_dlg[39],scset_caption);
         
-        extract_cset(sso_properties_cpy +38, tempsso, 1);
-        ListData misccset_list(misccsetlist,is_large() ? &lfont_l : &font);
-		sso_properties_cpy[40].proc=d_csl2_proc;
-        replacedp(sso_properties_cpy[40],(char *)&misccset_list);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_csl_proc(sso_properties_cpy +39, sso_properties_cpy[38].d1);
+        extract_cset(sso_properties_dlg+38, tempsso, 1);
+        ListData misccset_list(misccsetlist,is_large ? &lfont_l : &font);
+        sso_properties_dlg[40].proc=d_csl2_proc;
+        replacedp(sso_properties_dlg[40],(char *)&misccset_list);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_csl_proc(sso_properties_dlg+39, sso_properties_dlg[38].d1);
         //sso_properties_dlg[98].fg=sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:sso_properties_dlg[40].d1;
-		sso_properties_cpy[98].fg=subscreen_cset(&misc, sso_properties_cpy[38].d1? sso_properties_cpy[38].d1-1:ssctMISC, sso_properties_cpy[40].d1);
+        sso_properties_dlg[98].fg=subscreen_cset(&misc,sso_properties_dlg[38].d1?sso_properties_dlg[38].d1-1:ssctMISC, sso_properties_dlg[40].d1);
         
-		sso_properties_cpy[98].d1=tempsso->d1;
-		sso_properties_cpy[98].d2=tempsso->d2;
-		sso_properties_cpy[98].proc=d_tileblock_proc;
-		sso_properties_cpy[98].w=is_large()?64:32;
-		sso_properties_cpy[98].h=is_large()?64:32;
-		sso_properties_cpy[97].w= sso_properties_cpy[98].w+4;
-		sso_properties_cpy[97].h= sso_properties_cpy[98].h+4;
-		sso_properties_cpy[102].flags=tempsso->d3?D_SELECTED:0;
-		sso_properties_cpy[103].flags=tempsso->d4?D_SELECTED:0;
-        replacedp(sso_properties_cpy[104],large_caption);
-		sso_properties_cpy[104].proc=jwin_lscheck_proc;
-		sso_properties_cpy[104].flags=tempsso->d5?D_SELECTED:0;
+        sso_properties_dlg[98].d1=tempsso->d1;
+        sso_properties_dlg[98].d2=tempsso->d2;
+        sso_properties_dlg[98].proc=d_tileblock_proc;
+        sso_properties_dlg[98].w=is_large?64:32;
+        sso_properties_dlg[98].h=is_large?64:32;
+        sso_properties_dlg[97].w=sso_properties_dlg[98].w+4;
+        sso_properties_dlg[97].h=sso_properties_dlg[98].h+4;
+        sso_properties_dlg[102].flags=tempsso->d3?D_SELECTED:0;
+        sso_properties_dlg[103].flags=tempsso->d4?D_SELECTED:0;
+        replacedp(sso_properties_dlg[104],large_caption);
+        sso_properties_dlg[104].proc=jwin_lscheck_proc;
+        sso_properties_dlg[104].flags=tempsso->d5?D_SELECTED:0;
     }
     break;
     
@@ -2984,22 +2988,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=93; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=95; i<=104; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=111; i<=141; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=167; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         sprintf(x_str, "%d", tempsso->x);
@@ -3013,66 +3017,66 @@ int sso_properties(subscreen_object *tempsso)
         // container
         sprintf(buf, "%d", tempsso->d1);
         
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-        replacedp(sso_properties_cpy[108],f_str);
+        replacedp(sso_properties_dlg[108],f_str);
         f_stri=108;
-        replacedp(sso_properties_cpy[109],s_str);
+        replacedp(sso_properties_dlg[109],s_str);
         s_stri=109;
-        replacedp(sso_properties_cpy[110],d_str);
+        replacedp(sso_properties_dlg[110],d_str);
         d_stri=110;
         
-		sso_properties_cpy[145].d1=(tempsso->d2)>>2;
-		sso_properties_cpy[145].d2=0;
-		sso_properties_cpy[145].fg=tempsso->colortype1;
-		sso_properties_cpy[145].bg=(tempsso->d2)%4;
-		sso_properties_cpy[144].w = sso_properties_cpy[145].w+4;
-		sso_properties_cpy[144].h = sso_properties_cpy[145].h+4;
-		sso_properties_cpy[144].x = sso_properties_cpy[145].x-3;
-		sso_properties_cpy[144].y = sso_properties_cpy[145].y-3;
+        sso_properties_dlg[145].d1=(tempsso->d2)>>2;
+        sso_properties_dlg[145].d2=0;
+        sso_properties_dlg[145].fg=tempsso->colortype1;
+        sso_properties_dlg[145].bg=(tempsso->d2)%4;
+        sso_properties_dlg[144].w = sso_properties_dlg[145].w+4;
+        sso_properties_dlg[144].h = sso_properties_dlg[145].h+4;
+        sso_properties_dlg[144].x = sso_properties_dlg[145].x-3;
+        sso_properties_dlg[144].y = sso_properties_dlg[145].y-3;
         
-		sso_properties_cpy[149].d1=(tempsso->d3)>>2;
-		sso_properties_cpy[149].d2=0;
-		sso_properties_cpy[149].fg=tempsso->color1;
-		sso_properties_cpy[149].bg=(tempsso->d3)%4;
-		sso_properties_cpy[148].w = sso_properties_cpy[149].w+4;
-		sso_properties_cpy[148].h = sso_properties_cpy[149].h+4;
-		sso_properties_cpy[148].x = sso_properties_cpy[149].x-3;
-		sso_properties_cpy[148].y = sso_properties_cpy[149].y-3;
+        sso_properties_dlg[149].d1=(tempsso->d3)>>2;
+        sso_properties_dlg[149].d2=0;
+        sso_properties_dlg[149].fg=tempsso->color1;
+        sso_properties_dlg[149].bg=(tempsso->d3)%4;
+        sso_properties_dlg[148].w = sso_properties_dlg[149].w+4;
+        sso_properties_dlg[148].h = sso_properties_dlg[149].h+4;
+        sso_properties_dlg[148].x = sso_properties_dlg[149].x-3;
+        sso_properties_dlg[148].y = sso_properties_dlg[149].y-3;
         
-		sso_properties_cpy[153].d1=(tempsso->d4)>>2;
-		sso_properties_cpy[153].d2=0;
-		sso_properties_cpy[153].fg=tempsso->colortype2;
-		sso_properties_cpy[153].bg=(tempsso->d4)%4;
-		sso_properties_cpy[152].w = sso_properties_cpy[153].w+4;
-		sso_properties_cpy[152].h = sso_properties_cpy[153].h+4;
-		sso_properties_cpy[152].x = sso_properties_cpy[153].x-3;
-		sso_properties_cpy[152].y = sso_properties_cpy[153].y-3;
+        sso_properties_dlg[153].d1=(tempsso->d4)>>2;
+        sso_properties_dlg[153].d2=0;
+        sso_properties_dlg[153].fg=tempsso->colortype2;
+        sso_properties_dlg[153].bg=(tempsso->d4)%4;
+        sso_properties_dlg[152].w = sso_properties_dlg[153].w+4;
+        sso_properties_dlg[152].h = sso_properties_dlg[153].h+4;
+        sso_properties_dlg[152].x = sso_properties_dlg[153].x-3;
+        sso_properties_dlg[152].y = sso_properties_dlg[153].y-3;
         
-		sso_properties_cpy[157].d1=(tempsso->d5)>>2;
-		sso_properties_cpy[157].d2=0;
-		sso_properties_cpy[157].fg=tempsso->color2;
-		sso_properties_cpy[157].bg=(tempsso->d5)%4;
-		sso_properties_cpy[156].w = sso_properties_cpy[157].w+4;
-		sso_properties_cpy[156].h = sso_properties_cpy[157].h+4;
-		sso_properties_cpy[156].x = sso_properties_cpy[157].x-3;
-		sso_properties_cpy[156].y = sso_properties_cpy[157].y-3;
+        sso_properties_dlg[157].d1=(tempsso->d5)>>2;
+        sso_properties_dlg[157].d2=0;
+        sso_properties_dlg[157].fg=tempsso->color2;
+        sso_properties_dlg[157].bg=(tempsso->d5)%4;
+        sso_properties_dlg[156].w = sso_properties_dlg[157].w+4;
+        sso_properties_dlg[156].h = sso_properties_dlg[157].h+4;
+        sso_properties_dlg[156].x = sso_properties_dlg[157].x-3;
+        sso_properties_dlg[156].y = sso_properties_dlg[157].y-3;
         
-		sso_properties_cpy[158].flags=((tempsso->d10)&1)?D_SELECTED:0;
-		sso_properties_cpy[159].flags=((tempsso->d10)&2)?D_SELECTED:0;
-		sso_properties_cpy[160].flags=((tempsso->d10)&4)?D_SELECTED:0;
-		sso_properties_cpy[161].flags=((tempsso->d10)&8)?D_SELECTED:0;
-		sso_properties_cpy[163].d1=tempsso->d9;
-        replacedp(sso_properties_cpy[165],buf);
+        sso_properties_dlg[158].flags=((tempsso->d10)&1)?D_SELECTED:0;
+        sso_properties_dlg[159].flags=((tempsso->d10)&2)?D_SELECTED:0;
+        sso_properties_dlg[160].flags=((tempsso->d10)&4)?D_SELECTED:0;
+        sso_properties_dlg[161].flags=((tempsso->d10)&8)?D_SELECTED:0;
+        sso_properties_dlg[163].d1=tempsso->d9;
+        replacedp(sso_properties_dlg[165],buf);
         bufi=165;
-		sso_properties_cpy[166].flags=((tempsso->d10)&16)?D_SELECTED:0;
+        sso_properties_dlg[166].flags=((tempsso->d10)&16)?D_SELECTED:0;
     }
     break;
     
@@ -3080,22 +3084,22 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=93; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=95; i<=104; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=111; i<=141; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=167; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         sprintf(x_str, "%d", tempsso->x);
@@ -3109,66 +3113,66 @@ int sso_properties(subscreen_object *tempsso)
         // container
         sprintf(buf, "%d", tempsso->d1);
         
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
         
-        replacedp(sso_properties_cpy[108],f_str);
+        replacedp(sso_properties_dlg[108],f_str);
         f_stri=108;
-        replacedp(sso_properties_cpy[109],s_str);
+        replacedp(sso_properties_dlg[109],s_str);
         s_stri=109;
-        replacedp(sso_properties_cpy[110],d_str);
+        replacedp(sso_properties_dlg[110],d_str);
         d_stri=110;
         
-		sso_properties_cpy[145].d1=(tempsso->d2)>>2;
-		sso_properties_cpy[145].d2=0;
-		sso_properties_cpy[145].fg=tempsso->colortype1;
-		sso_properties_cpy[145].bg=(tempsso->d2)%4;
-		sso_properties_cpy[144].w = sso_properties_cpy[145].w+4;
-		sso_properties_cpy[144].h = sso_properties_cpy[145].h+4;
-		sso_properties_cpy[144].x = sso_properties_cpy[145].x-3;
-		sso_properties_cpy[144].y = sso_properties_cpy[145].y-3;
+        sso_properties_dlg[145].d1=(tempsso->d2)>>2;
+        sso_properties_dlg[145].d2=0;
+        sso_properties_dlg[145].fg=tempsso->colortype1;
+        sso_properties_dlg[145].bg=(tempsso->d2)%4;
+        sso_properties_dlg[144].w = sso_properties_dlg[145].w+4;
+        sso_properties_dlg[144].h = sso_properties_dlg[145].h+4;
+        sso_properties_dlg[144].x = sso_properties_dlg[145].x-3;
+        sso_properties_dlg[144].y = sso_properties_dlg[145].y-3;
         
-		sso_properties_cpy[149].d1=(tempsso->d3)>>2;
-		sso_properties_cpy[149].d2=0;
-		sso_properties_cpy[149].fg=tempsso->color1;
-		sso_properties_cpy[149].bg=(tempsso->d3)%4;
-		sso_properties_cpy[148].w = sso_properties_cpy[149].w+4;
-		sso_properties_cpy[148].h = sso_properties_cpy[149].h+4;
-		sso_properties_cpy[148].x = sso_properties_cpy[149].x-3;
-		sso_properties_cpy[148].y = sso_properties_cpy[149].y-3;
+        sso_properties_dlg[149].d1=(tempsso->d3)>>2;
+        sso_properties_dlg[149].d2=0;
+        sso_properties_dlg[149].fg=tempsso->color1;
+        sso_properties_dlg[149].bg=(tempsso->d3)%4;
+        sso_properties_dlg[148].w = sso_properties_dlg[149].w+4;
+        sso_properties_dlg[148].h = sso_properties_dlg[149].h+4;
+        sso_properties_dlg[148].x = sso_properties_dlg[149].x-3;
+        sso_properties_dlg[148].y = sso_properties_dlg[149].y-3;
         
-		sso_properties_cpy[153].d1=(tempsso->d4)>>2;
-		sso_properties_cpy[153].d2=0;
-		sso_properties_cpy[153].fg=tempsso->colortype2;
-		sso_properties_cpy[153].bg=(tempsso->d4)%4;
-		sso_properties_cpy[152].w = sso_properties_cpy[153].w+4;
-		sso_properties_cpy[152].h = sso_properties_cpy[153].h+4;
-		sso_properties_cpy[152].x = sso_properties_cpy[153].x-3;
-		sso_properties_cpy[152].y = sso_properties_cpy[153].y-3;
+        sso_properties_dlg[153].d1=(tempsso->d4)>>2;
+        sso_properties_dlg[153].d2=0;
+        sso_properties_dlg[153].fg=tempsso->colortype2;
+        sso_properties_dlg[153].bg=(tempsso->d4)%4;
+        sso_properties_dlg[152].w = sso_properties_dlg[153].w+4;
+        sso_properties_dlg[152].h = sso_properties_dlg[153].h+4;
+        sso_properties_dlg[152].x = sso_properties_dlg[153].x-3;
+        sso_properties_dlg[152].y = sso_properties_dlg[153].y-3;
         
-		sso_properties_cpy[157].d1=(tempsso->d5)>>2;
-		sso_properties_cpy[157].d2=0;
-		sso_properties_cpy[157].fg=tempsso->color2;
-		sso_properties_cpy[157].bg=(tempsso->d5)%4;
-		sso_properties_cpy[156].w = sso_properties_cpy[157].w+4;
-		sso_properties_cpy[156].h = sso_properties_cpy[157].h+4;
-		sso_properties_cpy[156].x = sso_properties_cpy[157].x-3;
-		sso_properties_cpy[156].y = sso_properties_cpy[157].y-3;
+        sso_properties_dlg[157].d1=(tempsso->d5)>>2;
+        sso_properties_dlg[157].d2=0;
+        sso_properties_dlg[157].fg=tempsso->color2;
+        sso_properties_dlg[157].bg=(tempsso->d5)%4;
+        sso_properties_dlg[156].w = sso_properties_dlg[157].w+4;
+        sso_properties_dlg[156].h = sso_properties_dlg[157].h+4;
+        sso_properties_dlg[156].x = sso_properties_dlg[157].x-3;
+        sso_properties_dlg[156].y = sso_properties_dlg[157].y-3;
         
-		sso_properties_cpy[158].flags=((tempsso->d10)&1)?D_SELECTED:0;
-		sso_properties_cpy[159].flags=((tempsso->d10)&2)?D_SELECTED:0;
-		sso_properties_cpy[160].flags=((tempsso->d10)&4)?D_SELECTED:0;
-		sso_properties_cpy[161].flags=((tempsso->d10)&8)?D_SELECTED:0;
-		sso_properties_cpy[163].d1=tempsso->d9;
-        replacedp(sso_properties_cpy[165],buf);
+        sso_properties_dlg[158].flags=((tempsso->d10)&1)?D_SELECTED:0;
+        sso_properties_dlg[159].flags=((tempsso->d10)&2)?D_SELECTED:0;
+        sso_properties_dlg[160].flags=((tempsso->d10)&4)?D_SELECTED:0;
+        sso_properties_dlg[161].flags=((tempsso->d10)&8)?D_SELECTED:0;
+        sso_properties_dlg[163].d1=tempsso->d9;
+        replacedp(sso_properties_dlg[165],buf);
         bufi=165;
-		sso_properties_cpy[166].flags=((tempsso->d10)&16)?D_SELECTED:0;
+        sso_properties_dlg[166].flags=((tempsso->d10)&16)?D_SELECTED:0;
     }
     break;
     
@@ -3176,17 +3180,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=127; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -3200,40 +3204,40 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", tempsso->w);
         sprintf(h_str, "%d", tempsso->h);
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
-        replacedp(sso_properties_cpy[122],buf);
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
+        replacedp(sso_properties_dlg[122],buf);
         bufi=122;
-		sso_properties_cpy[122].dp2=ss_font(tempsso->d1);
-		sso_properties_cpy[122].h=text_height(ss_font(tempsso->d1))+8;
-		sso_properties_cpy[125].d1=tempsso->d4;
+        sso_properties_dlg[122].dp2=ss_font(tempsso->d1);
+        sso_properties_dlg[122].h=text_height(ss_font(tempsso->d1))+8;
+        sso_properties_dlg[125].d1=tempsso->d4;
         sprintf(buf2, "%d", tempsso->d5);
-        replacedp(sso_properties_cpy[126],buf2);
+        replacedp(sso_properties_dlg[126],buf2);
         buf2i=126;
     }
     break;
@@ -3262,17 +3266,17 @@ int sso_properties(subscreen_object *tempsso)
     {
         for(int i=15; i<=34; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=53; i<=114; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         for(int i=127; i<=210; ++i)
         {
-            dummy_dialog_proc(sso_properties_cpy +i);
+            dummy_dialog_proc(sso_properties_dlg+i);
         }
         
         char t_color_caption[80];
@@ -3286,40 +3290,40 @@ int sso_properties(subscreen_object *tempsso)
         sprintf(y_str, "%d", tempsso->y);
         sprintf(w_str, "%d", sso_w(tempsso));
         sprintf(h_str, "%d", sso_h(tempsso));
-        replacedp(sso_properties_cpy[8],x_str);
+        replacedp(sso_properties_dlg[8],x_str);
         x_stri=8;
-        replacedp(sso_properties_cpy[10],y_str);
+        replacedp(sso_properties_dlg[10],y_str);
         y_stri=10;
-        replacedp(sso_properties_cpy[12],w_str);
+        replacedp(sso_properties_dlg[12],w_str);
         w_stri=12;
-        replacedp(sso_properties_cpy[14],h_str);
+        replacedp(sso_properties_dlg[14],h_str);
         h_stri=14;
-        replacedp(sso_properties_cpy[36],t_color_caption);
-        replacedp(sso_properties_cpy[42],s_color_caption);
-        replacedp(sso_properties_cpy[48],b_color_caption);
+        replacedp(sso_properties_dlg[36],t_color_caption);
+        replacedp(sso_properties_dlg[42],s_color_caption);
+        replacedp(sso_properties_dlg[48],b_color_caption);
         
-        extract_colortype(sso_properties_cpy +38, tempsso, 1);
-		sso_properties_cpy[40].d1=tempsso->color1;
-        update_ctl_proc(sso_properties_cpy +40, sso_properties_cpy[38].d1);
+        extract_colortype(sso_properties_dlg+38, tempsso, 1);
+        sso_properties_dlg[40].d1=tempsso->color1;
+        update_ctl_proc(sso_properties_dlg+40, sso_properties_dlg[38].d1);
         
-        extract_colortype(sso_properties_cpy +44, tempsso, 2);
-		sso_properties_cpy[46].d1=tempsso->color2;
-        update_ctl_proc(sso_properties_cpy +46, sso_properties_cpy[44].d1);
+        extract_colortype(sso_properties_dlg+44, tempsso, 2);
+        sso_properties_dlg[46].d1=tempsso->color2;
+        update_ctl_proc(sso_properties_dlg+46, sso_properties_dlg[44].d1);
         
-        extract_colortype(sso_properties_cpy +50, tempsso, 3);
-		sso_properties_cpy[52].d1=tempsso->color3;
-        update_ctl_proc(sso_properties_cpy +52, sso_properties_cpy[50].d1);
+        extract_colortype(sso_properties_dlg+50, tempsso, 3);
+        sso_properties_dlg[52].d1=tempsso->color3;
+        update_ctl_proc(sso_properties_dlg+52, sso_properties_dlg[50].d1);
         
-		sso_properties_cpy[119].d1=tempsso->d1;
-		sso_properties_cpy[120].d1=tempsso->d3;
-		sso_properties_cpy[121].d1=tempsso->d2;
-        replacedp(sso_properties_cpy[122],buf);
+        sso_properties_dlg[119].d1=tempsso->d1;
+        sso_properties_dlg[120].d1=tempsso->d3;
+        sso_properties_dlg[121].d1=tempsso->d2;
+        replacedp(sso_properties_dlg[122],buf);
         bufi=122;
-		sso_properties_cpy[122].dp2=ss_font(tempsso->d1);
-		sso_properties_cpy[122].h=text_height(ss_font(tempsso->d1))+8;
-		sso_properties_cpy[125].d1=tempsso->d4;
+        sso_properties_dlg[122].dp2=ss_font(tempsso->d1);
+        sso_properties_dlg[122].h=text_height(ss_font(tempsso->d1))+8;
+        sso_properties_dlg[125].d1=tempsso->d4;
         sprintf(buf2, "%d", tempsso->d5);
-        replacedp(sso_properties_cpy[126],buf2);
+        replacedp(sso_properties_dlg[126],buf2);
         buf2i=126;
     }
     break;
@@ -3345,7 +3349,7 @@ int sso_properties(subscreen_object *tempsso)
     break;
     }
     
-    ret=zc_popup_dialog(sso_properties_cpy,2);
+    ret=zc_popup_dialog(sso_properties_dlg,2);
     
     //Bad idea
     //leaks memory -DD
@@ -3359,13 +3363,13 @@ int sso_properties(subscreen_object *tempsso)
         //for everything
         tempsso->pos = 0;
         
-        if((sso_properties_cpy[6].flags & D_SELECTED) != 0)
+        if((sso_properties_dlg[6].flags & D_SELECTED) != 0)
             tempsso->pos |= sspUP;
             
-        if((sso_properties_cpy[212].flags & D_SELECTED) != 0)
+        if((sso_properties_dlg[212].flags & D_SELECTED) != 0)
             tempsso->pos |= sspDOWN;
             
-        if((sso_properties_cpy[213].flags & D_SELECTED) != 0)
+        if((sso_properties_dlg[213].flags & D_SELECTED) != 0)
             tempsso->pos |= sspSCROLLING;
             
         //item specific
@@ -3378,40 +3382,40 @@ int sso_properties(subscreen_object *tempsso)
         
         case sso2X2FRAME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
             
-            insert_cset(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
-            tempsso->d1= sso_properties_cpy[98].d1;
-            tempsso->d2= sso_properties_cpy[98].d2;
-            tempsso->d3= sso_properties_cpy[102].flags&D_SELECTED?1:0;
-            tempsso->d4= sso_properties_cpy[103].flags&D_SELECTED?1:0;
+            insert_cset(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
+            tempsso->d1=sso_properties_dlg[98].d1;
+            tempsso->d2=sso_properties_dlg[98].d2;
+            tempsso->d3=sso_properties_dlg[102].flags&D_SELECTED?1:0;
+            tempsso->d4=sso_properties_dlg[103].flags&D_SELECTED?1:0;
         }
         break;
         
         case ssoTEXT:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
             
             if(tempsso->dp1!=NULL)
             {
@@ -3420,135 +3424,135 @@ int sso_properties(subscreen_object *tempsso)
             }
             
             //(tempsso->dp1)=(char *)zc_malloc(strlen((char *)sso_properties_dlg[bufi].dp)+1);
-            tempsso->dp1 = new char[strlen((char *)sso_properties_cpy[bufi].dp)+1];
-            strcpy((char *)tempsso->dp1, (char *)sso_properties_cpy[bufi].dp);
+            tempsso->dp1 = new char[strlen((char *)sso_properties_dlg[bufi].dp)+1];
+            strcpy((char *)tempsso->dp1, (char *)sso_properties_dlg[bufi].dp);
         }
         break;
         
         case ssoLINE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            tempsso->d1=(sso_properties_cpy[102].flags&D_SELECTED)?1:0;
-            tempsso->d2=(sso_properties_cpy[103].flags&D_SELECTED)?1:0;
+            tempsso->d1=(sso_properties_dlg[102].flags&D_SELECTED)?1:0;
+            tempsso->d2=(sso_properties_dlg[103].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoRECT:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            tempsso->d1=(sso_properties_cpy[102].flags&D_SELECTED)?1:0;
-            tempsso->d2=(sso_properties_cpy[103].flags&D_SELECTED)?1:0;
+            tempsso->d1=(sso_properties_dlg[102].flags&D_SELECTED)?1:0;
+            tempsso->d2=(sso_properties_dlg[103].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoBSTIME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
         }
         break;
         
         case ssoTIME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
         }
         break;
         
         case ssoSSTIME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
         }
         break;
         
         case ssoMAGICMETER:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
         }
         break;
         
         case ssoLIFEMETER:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->d2=(sso_properties_cpy[139].flags&D_SELECTED)?1:0;
-            tempsso->d3= sso_properties_cpy[175].d1;
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->d2=(sso_properties_dlg[139].flags&D_SELECTED)?1:0;
+            tempsso->d3= sso_properties_dlg[175].d1;
         }
         break;
         
         case ssoBUTTONITEM:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            tempsso->d2=(sso_properties_cpy[103].flags&D_SELECTED)?1:0;
-            tempsso->d1= sso_properties_cpy[119].d1;
+            tempsso->d2=(sso_properties_dlg[103].flags&D_SELECTED)?1:0;
+            tempsso->d1=sso_properties_dlg[119].d1;
         }
         break;
         
@@ -3559,142 +3563,142 @@ int sso_properties(subscreen_object *tempsso)
         
         case ssoCOUNTER:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
             
-            tempsso->d4=atoi((char *)sso_properties_cpy[bufi].dp);
-            tempsso->d5=((char *)sso_properties_cpy[buf2i].dp)[0];
-            tempsso->d6=(sso_properties_cpy[140].flags&D_SELECTED?1:0)+(sso_properties_cpy[141].flags&D_SELECTED?2:0);
-            tempsso->d7= sso_properties_cpy[136].d1;
-            tempsso->d8= sso_properties_cpy[137].d1;
-            tempsso->d9= sso_properties_cpy[138].d1;
-            tempsso->d10=bii[sso_properties_cpy[126].d1].i;
+            tempsso->d4=atoi((char *)sso_properties_dlg[bufi].dp);
+            tempsso->d5=((char *)sso_properties_dlg[buf2i].dp)[0];
+            tempsso->d6=(sso_properties_dlg[140].flags&D_SELECTED?1:0)+(sso_properties_dlg[141].flags&D_SELECTED?2:0);
+            tempsso->d7=sso_properties_dlg[136].d1;
+            tempsso->d8=sso_properties_dlg[137].d1;
+            tempsso->d9=sso_properties_dlg[138].d1;
+            tempsso->d10=bii[sso_properties_dlg[126].d1].i;
         }
         break;
         
         case ssoCOUNTERS:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
             
-            tempsso->d4=atoi((char *)sso_properties_cpy[bufi].dp);
-            tempsso->d5=((char *)sso_properties_cpy[buf2i].dp)[0];
-            tempsso->d2= sso_properties_cpy[140].flags&D_SELECTED?1:0;
+            tempsso->d4=atoi((char *)sso_properties_dlg[bufi].dp);
+            tempsso->d5=((char *)sso_properties_dlg[buf2i].dp)[0];
+            tempsso->d2=sso_properties_dlg[140].flags&D_SELECTED?1:0;
         }
         break;
         
         case ssoMINIMAPTITLE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
-            tempsso->d4=(sso_properties_cpy[139].flags&D_SELECTED)?1:0;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
+            tempsso->d4=(sso_properties_dlg[139].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoMINIMAP:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1=(sso_properties_cpy[171].flags&D_SELECTED)?1:0;
-            tempsso->d2=(sso_properties_cpy[172].flags&D_SELECTED)?1:0;
-            tempsso->d3=(sso_properties_cpy[173].flags&D_SELECTED)?1:0;
+            tempsso->d1=(sso_properties_dlg[171].flags&D_SELECTED)?1:0;
+            tempsso->d2=(sso_properties_dlg[172].flags&D_SELECTED)?1:0;
+            tempsso->d3=(sso_properties_dlg[173].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoLARGEMAP:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            tempsso->d1=(sso_properties_cpy[171].flags&D_SELECTED)?1:0;
-            tempsso->d2=(sso_properties_cpy[172].flags&D_SELECTED)?1:0;
-            tempsso->d3=(sso_properties_cpy[173].flags&D_SELECTED)?1:0;
-            tempsso->d10=(sso_properties_cpy[139].flags&D_SELECTED)?1:0;
+            tempsso->d1=(sso_properties_dlg[171].flags&D_SELECTED)?1:0;
+            tempsso->d2=(sso_properties_dlg[172].flags&D_SELECTED)?1:0;
+            tempsso->d3=(sso_properties_dlg[173].flags&D_SELECTED)?1:0;
+            tempsso->d10=(sso_properties_dlg[139].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoCLEAR:
         {
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
         }
         break;
         
         case ssoCURRENTITEM:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            tempsso->d3=atoi((char *)sso_properties_cpy[bufi].dp);
-            tempsso->d4=atoi((char *)sso_properties_cpy[buf2i].dp);
-            tempsso->d5=atoi((char *)sso_properties_cpy[buf3i].dp);
-            tempsso->d6=atoi((char *)sso_properties_cpy[buf4i].dp);
-            tempsso->d7=atoi((char *)sso_properties_cpy[buf5i].dp);
-            tempsso->d8=vbound(bii[sso_properties_cpy[176].d1].i+1, 0, 255);
+            tempsso->d3=atoi((char *)sso_properties_dlg[bufi].dp);
+            tempsso->d4=atoi((char *)sso_properties_dlg[buf2i].dp);
+            tempsso->d5=atoi((char *)sso_properties_dlg[buf3i].dp);
+            tempsso->d6=atoi((char *)sso_properties_dlg[buf4i].dp);
+            tempsso->d7=atoi((char *)sso_properties_dlg[buf5i].dp);
+            tempsso->d8=vbound(bii[sso_properties_dlg[176].d1].i+1, 0, 255);
             
-            tempsso->d1=vbound(biic[sso_properties_cpy[133].d1].i, 0, 255);
-            tempsso->d2= sso_properties_cpy[139].flags&D_SELECTED?0:1;
+            tempsso->d1=vbound(biic[sso_properties_dlg[133].d1].i, 0, 255);
+            tempsso->d2=sso_properties_dlg[139].flags&D_SELECTED?0:1;
             tempsso->d8=vbound(tempsso->d8,0,256);
         }
         break;
@@ -3706,201 +3710,201 @@ int sso_properties(subscreen_object *tempsso)
         
         case ssoTRIFRAME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            tempsso->d1= sso_properties_cpy[98].d1;
-            tempsso->d2= sso_properties_cpy[98].fg;
-            tempsso->d3= sso_properties_cpy[101].d1;
-            tempsso->d4= sso_properties_cpy[101].fg;
-            tempsso->d5=(sso_properties_cpy[102].flags&D_SELECTED)?1:0;
-            tempsso->d6=(sso_properties_cpy[103].flags&D_SELECTED)?1:0;
-            tempsso->d7=(sso_properties_cpy[104].flags&D_SELECTED)?1:0;
+            tempsso->d1=sso_properties_dlg[98].d1;
+            tempsso->d2=sso_properties_dlg[98].fg;
+            tempsso->d3=sso_properties_dlg[101].d1;
+            tempsso->d4=sso_properties_dlg[101].fg;
+            tempsso->d5=(sso_properties_dlg[102].flags&D_SELECTED)?1:0;
+            tempsso->d6=(sso_properties_dlg[103].flags&D_SELECTED)?1:0;
+            tempsso->d7=(sso_properties_dlg[104].flags&D_SELECTED)?1:0;
         }
         break;
         
         case ssoTRIFORCE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
             
-            insert_cset(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
-            tempsso->d1= sso_properties_cpy[98].d1;
-            tempsso->d2= sso_properties_cpy[98].d2;
-            tempsso->d3= sso_properties_cpy[102].flags&D_SELECTED?1:0;
-            tempsso->d4= sso_properties_cpy[103].flags&D_SELECTED?1:0;
-            tempsso->d5=atoi((char *)sso_properties_cpy[bufi].dp);
+            insert_cset(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
+            tempsso->d1=sso_properties_dlg[98].d1;
+            tempsso->d2=sso_properties_dlg[98].d2;
+            tempsso->d3=sso_properties_dlg[102].flags&D_SELECTED?1:0;
+            tempsso->d4=sso_properties_dlg[103].flags&D_SELECTED?1:0;
+            tempsso->d5=atoi((char *)sso_properties_dlg[bufi].dp);
         }
         break;
         
         case ssoTILEBLOCK:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
             
-            insert_cset(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
-            tempsso->d1= sso_properties_cpy[98].d1;
-            tempsso->d2= sso_properties_cpy[98].d2;
-            tempsso->d3= sso_properties_cpy[102].flags&D_SELECTED?1:0;
-            tempsso->d4= sso_properties_cpy[103].flags&D_SELECTED?1:0;
+            insert_cset(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
+            tempsso->d1=sso_properties_dlg[98].d1;
+            tempsso->d2=sso_properties_dlg[98].d2;
+            tempsso->d3=sso_properties_dlg[102].flags&D_SELECTED?1:0;
+            tempsso->d4=sso_properties_dlg[103].flags&D_SELECTED?1:0;
         }
         break;
         
         case ssoMINITILE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_cset(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_cset(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            switch(sso_properties_cpy[112].d1-1)
+            switch(sso_properties_dlg[112].d1-1)
             {
             case ssmstSSVINETILE:
             case ssmstMAGICMETER:
                 tempsso->d1=-1;
-                tempsso->d2= sso_properties_cpy[112].d1-1;
-                tempsso->d3= sso_properties_cpy[98].bg;
+                tempsso->d2=sso_properties_dlg[112].d1-1;
+                tempsso->d3=sso_properties_dlg[98].bg;
                 break;
                 
             case -1:
             default:
-                tempsso->d1=(sso_properties_cpy[98].d1<<2)+ sso_properties_cpy[98].bg;
+                tempsso->d1=(sso_properties_dlg[98].d1<<2)+sso_properties_dlg[98].bg;
                 tempsso->d2=0;
                 tempsso->d3=0;
                 break;
             }
             
-            tempsso->d4= sso_properties_cpy[98].d2;
-            tempsso->d5= sso_properties_cpy[102].flags&D_SELECTED?1:0;
-            tempsso->d6= sso_properties_cpy[103].flags&D_SELECTED?1:0;
+            tempsso->d4=sso_properties_dlg[98].d2;
+            tempsso->d5=sso_properties_dlg[102].flags&D_SELECTED?1:0;
+            tempsso->d6=sso_properties_dlg[103].flags&D_SELECTED?1:0;
         }
         break;
         
         case ssoSELECTOR1:
         case ssoSELECTOR2:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
             //tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
             //tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
             
-            insert_cset(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
-            tempsso->d1= sso_properties_cpy[98].d1;
-            tempsso->d2= sso_properties_cpy[98].d2;
-            tempsso->d3= sso_properties_cpy[102].flags&D_SELECTED?1:0;
-            tempsso->d4= sso_properties_cpy[103].flags&D_SELECTED?1:0;
-            tempsso->d5= sso_properties_cpy[104].flags&D_SELECTED?1:0;
+            insert_cset(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
+            tempsso->d1=sso_properties_dlg[98].d1;
+            tempsso->d2=sso_properties_dlg[98].d2;
+            tempsso->d3=sso_properties_dlg[102].flags&D_SELECTED?1:0;
+            tempsso->d4=sso_properties_dlg[103].flags&D_SELECTED?1:0;
+            tempsso->d5=sso_properties_dlg[104].flags&D_SELECTED?1:0;
         }
         break;
         
         case ssoMAGICGAUGE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            tempsso->d6=atoi((char *)sso_properties_cpy[f_stri].dp);
-            tempsso->d7=atoi((char *)sso_properties_cpy[s_stri].dp);
-            tempsso->d8=atoi((char *)sso_properties_cpy[d_stri].dp);
+            tempsso->d6=atoi((char *)sso_properties_dlg[f_stri].dp);
+            tempsso->d7=atoi((char *)sso_properties_dlg[s_stri].dp);
+            tempsso->d8=atoi((char *)sso_properties_dlg[d_stri].dp);
             
-            tempsso->d2=(sso_properties_cpy[145].d1<<2)+ sso_properties_cpy[145].bg;
-            tempsso->colortype1= sso_properties_cpy[145].fg;
+            tempsso->d2=(sso_properties_dlg[145].d1<<2)+sso_properties_dlg[145].bg;
+            tempsso->colortype1=sso_properties_dlg[145].fg;
             
-            tempsso->d3=(sso_properties_cpy[149].d1<<2)+ sso_properties_cpy[149].bg;
-            tempsso->color1= sso_properties_cpy[149].fg;
+            tempsso->d3=(sso_properties_dlg[149].d1<<2)+sso_properties_dlg[149].bg;
+            tempsso->color1=sso_properties_dlg[149].fg;
             
-            tempsso->d4=(sso_properties_cpy[153].d1<<2)+ sso_properties_cpy[153].bg;
-            tempsso->colortype2= sso_properties_cpy[153].fg;
+            tempsso->d4=(sso_properties_dlg[153].d1<<2)+sso_properties_dlg[153].bg;
+            tempsso->colortype2=sso_properties_dlg[153].fg;
             
-            tempsso->d5=(sso_properties_cpy[157].d1<<2)+ sso_properties_cpy[157].bg;
-            tempsso->color2= sso_properties_cpy[157].fg;
+            tempsso->d5=(sso_properties_dlg[157].d1<<2)+sso_properties_dlg[157].bg;
+            tempsso->color2=sso_properties_dlg[157].fg;
             
-            tempsso->d10=((sso_properties_cpy[158].flags&D_SELECTED)?1:0)+
-                         ((sso_properties_cpy[159].flags&D_SELECTED)?2:0)+
-                         ((sso_properties_cpy[160].flags&D_SELECTED)?4:0)+
-                         ((sso_properties_cpy[161].flags&D_SELECTED)?8:0)+
-                         ((sso_properties_cpy[166].flags&D_SELECTED)?16:0);
+            tempsso->d10=((sso_properties_dlg[158].flags&D_SELECTED)?1:0)+
+                         ((sso_properties_dlg[159].flags&D_SELECTED)?2:0)+
+                         ((sso_properties_dlg[160].flags&D_SELECTED)?4:0)+
+                         ((sso_properties_dlg[161].flags&D_SELECTED)?8:0)+
+                         ((sso_properties_dlg[166].flags&D_SELECTED)?16:0);
                          
-            tempsso->d9= sso_properties_cpy[163].d1;
-            tempsso->d1=atoi((char *)sso_properties_cpy[bufi].dp);
+            tempsso->d9=sso_properties_dlg[163].d1;
+            tempsso->d1=atoi((char *)sso_properties_dlg[bufi].dp);
         }
         break;
         
         case ssoLIFEGAUGE:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            tempsso->d6=atoi((char *)sso_properties_cpy[f_stri].dp);
-            tempsso->d7=atoi((char *)sso_properties_cpy[s_stri].dp);
-            tempsso->d8=atoi((char *)sso_properties_cpy[d_stri].dp);
+            tempsso->d6=atoi((char *)sso_properties_dlg[f_stri].dp);
+            tempsso->d7=atoi((char *)sso_properties_dlg[s_stri].dp);
+            tempsso->d8=atoi((char *)sso_properties_dlg[d_stri].dp);
             
-            tempsso->d2=(sso_properties_cpy[145].d1<<2)+ sso_properties_cpy[145].bg;
-            tempsso->colortype1= sso_properties_cpy[145].fg;
+            tempsso->d2=(sso_properties_dlg[145].d1<<2)+sso_properties_dlg[145].bg;
+            tempsso->colortype1=sso_properties_dlg[145].fg;
             
-            tempsso->d3=(sso_properties_cpy[149].d1<<2)+ sso_properties_cpy[149].bg;
-            tempsso->color1= sso_properties_cpy[149].fg;
+            tempsso->d3=(sso_properties_dlg[149].d1<<2)+sso_properties_dlg[149].bg;
+            tempsso->color1=sso_properties_dlg[149].fg;
             
-            tempsso->d4=(sso_properties_cpy[153].d1<<2)+ sso_properties_cpy[153].bg;
-            tempsso->colortype2= sso_properties_cpy[153].fg;
+            tempsso->d4=(sso_properties_dlg[153].d1<<2)+sso_properties_dlg[153].bg;
+            tempsso->colortype2=sso_properties_dlg[153].fg;
             
-            tempsso->d5=(sso_properties_cpy[157].d1<<2)+ sso_properties_cpy[157].bg;
-            tempsso->color2= sso_properties_cpy[157].fg;
+            tempsso->d5=(sso_properties_dlg[157].d1<<2)+sso_properties_dlg[157].bg;
+            tempsso->color2=sso_properties_dlg[157].fg;
             
-            tempsso->d10=((sso_properties_cpy[158].flags&D_SELECTED)?1:0)+
-                         ((sso_properties_cpy[159].flags&D_SELECTED)?2:0)+
-                         ((sso_properties_cpy[160].flags&D_SELECTED)?4:0)+
-                         ((sso_properties_cpy[161].flags&D_SELECTED)?8:0)+
-                         ((sso_properties_cpy[166].flags&D_SELECTED)?16:0);
+            tempsso->d10=((sso_properties_dlg[158].flags&D_SELECTED)?1:0)+
+                         ((sso_properties_dlg[159].flags&D_SELECTED)?2:0)+
+                         ((sso_properties_dlg[160].flags&D_SELECTED)?4:0)+
+                         ((sso_properties_dlg[161].flags&D_SELECTED)?8:0)+
+                         ((sso_properties_dlg[166].flags&D_SELECTED)?16:0);
                          
-            tempsso->d9= sso_properties_cpy[163].d1;
-            tempsso->d1=atoi((char *)sso_properties_cpy[bufi].dp);
+            tempsso->d9=sso_properties_dlg[163].d1;
+            tempsso->d1=atoi((char *)sso_properties_dlg[bufi].dp);
         }
         break;
         
         case ssoTEXTBOX:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
             
             if(tempsso->dp1!=NULL)
             {
@@ -3909,10 +3913,10 @@ int sso_properties(subscreen_object *tempsso)
             }
             
             //(tempsso->dp1)=(char *)zc_malloc(strlen((char *)sso_properties_dlg[bufi].dp)+1);
-            tempsso->dp1 = new char[strlen((char *)sso_properties_cpy[bufi].dp)+1];
-            strcpy((char *)tempsso->dp1, (char *)sso_properties_cpy[bufi].dp);
-            tempsso->d4= sso_properties_cpy[125].d1;
-            tempsso->d5=atoi((char *)sso_properties_cpy[buf2i].dp);
+            tempsso->dp1 = new char[strlen((char *)sso_properties_dlg[bufi].dp)+1];
+            strcpy((char *)tempsso->dp1, (char *)sso_properties_dlg[bufi].dp);
+            tempsso->d4=sso_properties_dlg[125].d1;
+            tempsso->d5=atoi((char *)sso_properties_dlg[buf2i].dp);
         }
         break;
         
@@ -3938,25 +3942,25 @@ int sso_properties(subscreen_object *tempsso)
         
         case ssoSELECTEDITEMNAME:
         {
-            tempsso->x=atoi((char *)sso_properties_cpy[x_stri].dp);
-            tempsso->y=atoi((char *)sso_properties_cpy[y_stri].dp);
-            tempsso->w=atoi((char *)sso_properties_cpy[w_stri].dp);
-            tempsso->h=atoi((char *)sso_properties_cpy[h_stri].dp);
+            tempsso->x=atoi((char *)sso_properties_dlg[x_stri].dp);
+            tempsso->y=atoi((char *)sso_properties_dlg[y_stri].dp);
+            tempsso->w=atoi((char *)sso_properties_dlg[w_stri].dp);
+            tempsso->h=atoi((char *)sso_properties_dlg[h_stri].dp);
             
-            insert_colortype(sso_properties_cpy +38, tempsso, 1);
-            tempsso->color1= sso_properties_cpy[40].d1;
+            insert_colortype(sso_properties_dlg+38, tempsso, 1);
+            tempsso->color1=sso_properties_dlg[40].d1;
             
-            insert_colortype(sso_properties_cpy +44, tempsso, 2);
-            tempsso->color2= sso_properties_cpy[46].d1;
+            insert_colortype(sso_properties_dlg+44, tempsso, 2);
+            tempsso->color2=sso_properties_dlg[46].d1;
             
-            insert_colortype(sso_properties_cpy +50, tempsso, 3);
-            tempsso->color3= sso_properties_cpy[52].d1;
+            insert_colortype(sso_properties_dlg+50, tempsso, 3);
+            tempsso->color3=sso_properties_dlg[52].d1;
             
-            tempsso->d1= sso_properties_cpy[119].d1;
-            tempsso->d3= sso_properties_cpy[120].d1;
-            tempsso->d2= sso_properties_cpy[121].d1;
-            tempsso->d4= sso_properties_cpy[125].d1;
-            tempsso->d5=atoi((char *)sso_properties_cpy[buf2i].dp);
+            tempsso->d1=sso_properties_dlg[119].d1;
+            tempsso->d3=sso_properties_dlg[120].d1;
+            tempsso->d2=sso_properties_dlg[121].d1;
+            tempsso->d4=sso_properties_dlg[125].d1;
+            tempsso->d5=atoi((char *)sso_properties_dlg[buf2i].dp);
         }
         break;
         
@@ -3982,8 +3986,6 @@ int sso_properties(subscreen_object *tempsso)
         }
         
     }
-
-	delete[] sso_properties_cpy;
     
     free_dialog(&sso_properties_dlg);
     //for(map<int, char *>::iterator it = itemclassnames.begin(); it != itemclassnames.end(); it++)
@@ -4073,10 +4075,10 @@ int onDeleteSubscreenObject()
     css->objects[objs-1].type=ssoNULL;
     sso_selection[objs-1]=false;
     
-    if(ss_propCopySrc==curr_subscreen_object)
-        ss_propCopySrc=-1;
-    else if(ss_propCopySrc>curr_subscreen_object)
-        ss_propCopySrc--;
+    if(propCopySrc==curr_subscreen_object)
+        propCopySrc=-1;
+    else if(propCopySrc>curr_subscreen_object)
+        propCopySrc--;
     
     if(curr_subscreen_object==objs-1)
     {
@@ -4209,10 +4211,10 @@ int d_subscreen_proc(int msg,DIALOG *d,int)
     {
         for(int i=ss_objects(css)-1; i>=0; --i)
         {
-			int x = sso_x(&css->objects[i])*(is_large() ? 2 : 1);
-            int y=sso_y(&css->objects[i])*(is_large() ? 2 : 1);
-            int w=sso_w(&css->objects[i])*(is_large() ? 2 : 1);
-            int h=sso_h(&css->objects[i])*(is_large() ? 2 : 1);
+            int x=sso_x(&css->objects[i])*(1+is_large);
+            int y=sso_y(&css->objects[i])*(1+is_large);
+            int w=sso_w(&css->objects[i])*(1+is_large);
+            int h=sso_h(&css->objects[i])*(1+is_large);
             
             switch(get_alignment(&css->objects[i]))
             {
@@ -4229,7 +4231,7 @@ int d_subscreen_proc(int msg,DIALOG *d,int)
                 break;
             }
             
-            if(isinRect(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY(),d->x+x, d->y+y, d->x+x+w-1, d->y+y+h-1))
+            if(isinRect(gui_mouse_x(),gui_mouse_y(),d->x+x, d->y+y, d->x+x+w-1, d->y+y+h-1))
             {
                 if(key[KEY_LSHIFT]||key[KEY_RSHIFT])
                 {
@@ -4257,17 +4259,17 @@ int d_subscreen_proc(int msg,DIALOG *d,int)
             }
         }
         
-        if(Backend::mouse->rightButtonClicked()) //right mouse button
+        if(gui_mouse_b()&2) //right mouse button
         {
             object_message(d,MSG_DRAW,0);
             
             // Disable "Paste Properties" if the copy source is invalid
-            if(ss_propCopySrc<0 || css->objects[ss_propCopySrc].type==ssoNULL)
+            if(propCopySrc<0 || css->objects[propCopySrc].type==ssoNULL)
                 subscreen_rc_menu[3].flags|=D_DISABLED;
             else
                 subscreen_rc_menu[3].flags&=~D_DISABLED;
             
-            int m = popup_menu(subscreen_rc_menu, Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY());
+            int m = popup_menu(subscreen_rc_menu,gui_mouse_x(),gui_mouse_y());
             
             switch(m)
             {
@@ -4280,19 +4282,19 @@ int d_subscreen_proc(int msg,DIALOG *d,int)
                 break;
             
             case 2: // Copy Properties
-                ss_propCopySrc=curr_subscreen_object;
+                propCopySrc=curr_subscreen_object;
                 break;
                 
             case 3: // Paste Properties
-                if(ss_propCopySrc>=0) // Hopefully unnecessary)
+                if(propCopySrc>=0) // Hopefully unnecessary)
                 {
-                    copySSOProperties(css->objects[ss_propCopySrc], css->objects[curr_subscreen_object]);
+                    copySSOProperties(css->objects[propCopySrc], css->objects[curr_subscreen_object]);
                     for(int i=0; i<MAXSUBSCREENITEMS; i++)
                     {
                         if(!sso_selection[i])
                             continue;
                         
-                        copySSOProperties(css->objects[ss_propCopySrc], css->objects[i]);
+                        copySSOProperties(css->objects[propCopySrc], css->objects[i]);
                     }
                 }
                 break;
@@ -4338,9 +4340,9 @@ int d_subscreen_proc(int msg,DIALOG *d,int)
                 }
             }
             
-            if(is_large())
+            if(is_large)
             {
-                stretch_blit(buf,screen,0,0,d->w/(is_large() ? 2 : 1),d->h/(is_large() ? 2 : 1),d->x,d->y,d->w,d->h);
+                stretch_blit(buf,screen,0,0,d->w/(1+is_large),d->h/(1+is_large),d->x,d->y,d->w,d->h);
             }
             else
             {
@@ -5610,13 +5612,13 @@ int onActivePassive()
     if(css->ss_type == sstACTIVE)
     {
         css->ss_type = sstPASSIVE;
-        subscreen_dlg[3].h=60*(is_large() ? 2 : 1)-(is_large()?4:0);
+        subscreen_dlg[3].h=60*(1+is_large)-(is_large?4:0);
         subscreen_dlg[4].h=subscreen_dlg[3].h-4;
     }
     else if(css->ss_type == sstPASSIVE)
     {
         css->ss_type = sstACTIVE;
-        subscreen_dlg[3].h=172*(is_large() ? 2 : 1)-(is_large()?4:0);
+        subscreen_dlg[3].h=172*(1+is_large)-(is_large?4:0);
         subscreen_dlg[4].h=subscreen_dlg[3].h-4;
     }
     
@@ -5773,10 +5775,11 @@ int onNewSubscreenObject()
     int ret=-1;
     ssolist_dlg[0].dp2=lfont;
     build_bisso_list();
-
-	DIALOG *ssolist_cpy = resizeDialog(ssolist_dlg, 1.5);
     
-    ret=zc_popup_dialog(ssolist_cpy,2);
+    if(is_large)
+        large_dialog(ssolist_dlg);
+        
+    ret=zc_popup_dialog(ssolist_dlg,2);
     
     if(ret!=0&&ret!=4)
     {
@@ -5784,7 +5787,7 @@ int onNewSubscreenObject()
         //tempsso.dp1=(char *)zc_malloc(2);
         tempsso.dp1 = new char[2];
         ((char *)tempsso.dp1)[0]=0;
-        tempsso.type=bisso[ssolist_cpy[2].d1].i;
+        tempsso.type=bisso[ssolist_dlg[2].d1].i;
         tempsso.pos = sspUP | sspDOWN | sspSCROLLING;
         tempsso.w=1;
         tempsso.h=1;
@@ -5812,8 +5815,6 @@ int onNewSubscreenObject()
             curr_subscreen_object=temp_cso;
         }
     }
-
-	delete[] ssolist_cpy;
     
     return D_O_K;
 }
@@ -6342,10 +6343,11 @@ static int onEditGrid()
     grid_dlg[8].dp=xoffset;
     grid_dlg[10].dp=yoffset;
     grid_dlg[12].d1=zinit.ss_grid_color;
-
-	DIALOG *grid_cpy = resizeDialog(grid_dlg, 1.5);
     
-    int ret = zc_popup_dialog(grid_cpy,2);
+    if(is_large)
+        large_dialog(grid_dlg);
+        
+    int ret = zc_popup_dialog(grid_dlg,2);
     
     if(ret==1)
     {
@@ -6353,10 +6355,8 @@ static int onEditGrid()
         zinit.ss_grid_xofs=atoi(xoffset);
         zinit.ss_grid_y=zc_max(atoi(ysize),1);
         zinit.ss_grid_yofs=atoi(yoffset);
-        zinit.ss_grid_color= grid_cpy[12].d1;
+        zinit.ss_grid_color=grid_dlg[12].d1;
     }
-
-	delete[] grid_cpy;
     
     return D_O_K;
 }
@@ -6375,19 +6375,18 @@ int onSelectionOptions()
     sel_options_dlg[0].dp2=lfont;
     sel_options_dlg[6].d1=zinit.ss_bbox_1_color;
     sel_options_dlg[8].d1=zinit.ss_bbox_2_color;
-
-	DIALOG *sel_options_cpy = resizeDialog(sel_options_dlg, 1.5);
     
-	int ret = zc_popup_dialog(sel_options_cpy,2);
+    if(is_large)
+        large_dialog(sel_options_dlg);
+        
+    int ret = zc_popup_dialog(sel_options_dlg,2);
     
     if(ret==1)
     {
-        zinit.ss_bbox_1_color= sel_options_cpy[6].d1;
-        zinit.ss_bbox_2_color= sel_options_cpy[8].d1;
+        zinit.ss_bbox_1_color=sel_options_dlg[6].d1;
+        zinit.ss_bbox_2_color=sel_options_dlg[8].d1;
     }
     
-	delete[] sel_options_cpy;
-
     return D_O_K;
 }
 
@@ -6607,7 +6606,7 @@ void edit_subscreen()
     subscreen_dlg[0].dp2=lfont;
     load_Sitems(&misc);
     curr_subscreen_object=0;
-    ss_propCopySrc=-1;
+    propCopySrc=-1;
     subscreen_group tempss;
     memset(&tempss, 0, sizeof(subscreen_group));
     int i;
@@ -6674,24 +6673,28 @@ void edit_subscreen()
     }
     
     selectBwpn(0, 0);
-
-	DIALOG *subscreen_cpy = resizeDialog(subscreen_dlg, 2.0);
     
-    if(is_large())
+    if(is_large)
     {
-		subscreen_cpy[4].y-=32;
-		subscreen_cpy[3].y-=31;
-		subscreen_cpy[3].x+=1;
+        bool enlarge = subscreen_dlg[0].d1==0;
+        
+        if(enlarge)
+        {
+            large_dialog(subscreen_dlg,2);
+            subscreen_dlg[4].y-=32;
+            subscreen_dlg[3].y-=31;
+            subscreen_dlg[3].x+=1;
             
-        if(css->ss_type == sstPASSIVE)
-			subscreen_cpy[3].h=60*(is_large() ? 2 : 1)-(is_large() ?4:0);
-        else if(css->ss_type == sstACTIVE)
-			subscreen_cpy[3].h=172*(is_large() ? 2 : 1)-(is_large() ?4:0);
+            if(css->ss_type == sstPASSIVE)
+                subscreen_dlg[3].h=60*(1+is_large)-(is_large?4:0);
+            else if(css->ss_type == sstACTIVE)
+                subscreen_dlg[3].h=172*(1+is_large)-(is_large?4:0);
                 
-		subscreen_cpy[4].h= subscreen_cpy[3].h-4;
+            subscreen_dlg[4].h=subscreen_dlg[3].h-4;
+        }
     }
     
-    int ret = zc_popup_dialog(subscreen_cpy,2);
+    int ret = zc_popup_dialog(subscreen_dlg,2);
     
     if(ret==1)
     {
@@ -6727,8 +6730,6 @@ void edit_subscreen()
         sprintf(css->name, tempss.name);
         reset_subscreen(&tempss);
     }
-
-	delete[] subscreen_cpy;
     
     delete game;
     game=NULL;
@@ -6964,12 +6965,13 @@ int onEditSubscreens()
     int ret=-1;
     sslist_dlg[0].dp2=lfont;
     sstemplatelist_dlg[0].dp2=lfont;
-
-	DIALOG *sslist_cpy = resizeDialog(sslist_dlg, 1.5);
     
-	while(ret!=0&&ret!=5)
+    if(is_large)
+        large_dialog(sslist_dlg);
+        
+    while(ret!=0&&ret!=5)
     {
-        ret=zc_popup_dialog(sslist_cpy,2);
+        ret=zc_popup_dialog(sslist_dlg,2);
         
         if(ret==4)
         {
@@ -6977,53 +6979,54 @@ int onEditSubscreens()
             
             if(confirm==1)
             {
-                delete_subscreen(sslist_cpy[2].d1);
+                delete_subscreen(sslist_dlg[2].d1);
                 saved=false;
             }
         }
         else if(ret==2 || ret ==3)
         {
-            if(custom_subscreen[sslist_cpy[2].d1].ss_type==sstACTIVE)
+            if(custom_subscreen[sslist_dlg[2].d1].ss_type==sstACTIVE)
             {
-                subscreen_dlg[3].h=172*(is_large() ? 2 :1)-(is_large() ?4:0);
+                subscreen_dlg[3].h=172*(1+is_large)-(is_large?4:0);
                 subscreen_dlg[4].h=subscreen_dlg[3].h-4;
             }
-            else if(custom_subscreen[sslist_cpy[2].d1].ss_type==sstPASSIVE)
+            else if(custom_subscreen[sslist_dlg[2].d1].ss_type==sstPASSIVE)
             {
-                subscreen_dlg[3].h=60*(is_large() ? 2 : 1)-(is_large() ?4:0);
+                subscreen_dlg[3].h=60*(1+is_large)-(is_large?4:0);
                 subscreen_dlg[4].h=subscreen_dlg[3].h-4;
                 //iu;hukl;kh;
             }
             else
             {
-                subscreen_dlg[3].h=20*(is_large() ? 2 : 1);
+                subscreen_dlg[3].h=20*(1+is_large);
                 subscreen_dlg[4].h=subscreen_dlg[3].h-4;
             }
             
-            css = &custom_subscreen[sslist_cpy[2].d1];
+            css = &custom_subscreen[sslist_dlg[2].d1];
             bool edit_it=true;
             
             if(css->objects[0].type==ssoNULL)
             {
-				DIALOG *sstemplatelist_cpy = resizeDialog(sstemplatelist_dlg, 1.5);
+                if(is_large)
+                    large_dialog(sstemplatelist_dlg);
                     
-                ret=zc_popup_dialog(sstemplatelist_cpy,4);
+                ret=zc_popup_dialog(sstemplatelist_dlg,4);
                 
                 if(ret==6)
                 {
-                    if(sstemplatelist_cpy[5].d1<15)
+                    if(sstemplatelist_dlg[5].d1<15)
                     {
-                        if(sstemplatelist_cpy[5].d1 != 0)
+                        if(sstemplatelist_dlg[5].d1 != 0)
                         {
                             subscreen_object *tempsub;
                             
-                            if(sstemplatelist_cpy[4].d1==0)
+                            if(sstemplatelist_dlg[4].d1==0)
                             {
-                                tempsub = default_subscreen_active[(sstemplatelist_cpy[5].d1-1)/2][(sstemplatelist_cpy[5].d1-1)&1];
+                                tempsub = default_subscreen_active[(sstemplatelist_dlg[5].d1-1)/2][(sstemplatelist_dlg[5].d1-1)&1];
                             }
                             else
                             {
-                                tempsub = default_subscreen_passive[(sstemplatelist_cpy[5].d1-1)/2][(sstemplatelist_cpy[5].d1-1)&1];
+                                tempsub = default_subscreen_passive[(sstemplatelist_dlg[5].d1-1)/2][(sstemplatelist_dlg[5].d1-1)&1];
                             }
                             
                             int i;
@@ -7051,18 +7054,18 @@ int onEditSubscreens()
                             }
                         }
                         
-                        if(sstemplatelist_cpy[4].d1==0)
+                        if(sstemplatelist_dlg[4].d1==0)
                         {
                             css->ss_type=sstACTIVE;
-                            sprintf(css->name, activesubscrtype_str[sstemplatelist_cpy[5].d1]);
-                            subscreen_dlg[3].h=172*(is_large() ? 2 : 1);
+                            sprintf(css->name, activesubscrtype_str[sstemplatelist_dlg[5].d1]);
+                            subscreen_dlg[3].h=172*(1+is_large);
                             subscreen_dlg[4].h=subscreen_dlg[3].h-4;
                         }
                         else
                         {
                             css->ss_type=sstPASSIVE;
-                            sprintf(css->name, passivesubscrtype_str[sstemplatelist_cpy[5].d1]);
-                            subscreen_dlg[3].h=60*(is_large() ? 2 : 1);
+                            sprintf(css->name, passivesubscrtype_str[sstemplatelist_dlg[5].d1]);
+                            subscreen_dlg[3].h=60*(1+is_large);
                             subscreen_dlg[4].h=subscreen_dlg[3].h-4;
                         }
                     }
@@ -7070,7 +7073,7 @@ int onEditSubscreens()
                     {
                         subscreen_object *tempsub;
                         
-                        if(sstemplatelist_cpy[4].d1==0)
+                        if(sstemplatelist_dlg[4].d1==0)
                         {
                             tempsub = z3_active_a;
                         }
@@ -7103,19 +7106,19 @@ int onEditSubscreens()
                             }
                         }
                         
-                        if(sstemplatelist_cpy[4].d1==0)
+                        if(sstemplatelist_dlg[4].d1==0)
                         {
                             css->ss_type=sstACTIVE;
-                            sprintf(css->name, activesubscrtype_str[sstemplatelist_cpy[5].d1]);
-                            subscreen_dlg[3].h=172*(is_large() ? 2 : 1);
+                            sprintf(css->name, activesubscrtype_str[sstemplatelist_dlg[5].d1]);
+                            subscreen_dlg[3].h=172*(1+is_large);
                             subscreen_dlg[4].h=subscreen_dlg[3].h-4;
                             
                         }
                         else
                         {
                             css->ss_type=sstPASSIVE;
-                            sprintf(css->name, passivesubscrtype_str[sstemplatelist_cpy[5].d1]);
-                            subscreen_dlg[3].h=60*(is_large() ? 2 : 1);
+                            sprintf(css->name, passivesubscrtype_str[sstemplatelist_dlg[5].d1]);
+                            subscreen_dlg[3].h=60*(1+is_large);
                             subscreen_dlg[4].h=subscreen_dlg[3].h-4;
                         }
                     }
@@ -7124,8 +7127,6 @@ int onEditSubscreens()
                 {
                     edit_it=false;
                 }
-
-				delete[] sstemplatelist_cpy;
             }
             
             if(edit_it)
@@ -7134,10 +7135,8 @@ int onEditSubscreens()
             }
         }
     }
-
-	delete[] sslist_cpy;
     
-	Backend::mouse->setWheelPosition(0);
+    position_mouse_z(0);
     return D_O_K;
 }
 

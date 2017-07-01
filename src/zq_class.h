@@ -12,7 +12,6 @@
 #define _ZQ_CLASS_H_
 
 #include "zdefs.h"
-#include "scripting/ZASMdefs.h"
 #include <stdio.h>
 
 #define COMBOPOS(x,y) (((y)&0xF0)+((x)>>4))
@@ -212,7 +211,6 @@ int quest_access(const char *filename, zquestheader *hdr, bool compressed);
 bool write_midi(MIDI *m,PACKFILE *f);
 int load_quest(const char *filename, bool compressed, bool encrypted);
 int save_unencoded_quest(const char *filename, bool compressed);
-
 int save_quest(const char *filename, bool timed_save);
 
 int writemapscreen(PACKFILE *f, int i, int j);
@@ -255,14 +253,13 @@ bool save_zqt(const char *path);
 void center_zq_class_dialogs();
 
 int writeitems(PACKFILE *f, zquestheader *Header);
-int writeitems250(PACKFILE *f, zquestheader *Header);
 int writeweapons(PACKFILE *f, zquestheader *Header);
 int writemisccolors(PACKFILE *f, zquestheader *Header, miscQdata *Misc);
 int writegameicons(PACKFILE *f, zquestheader *Header, miscQdata *Misc);
 int writedoorcombosets(PACKFILE *f, zquestheader *Header);
 int write_one_subscreen(PACKFILE *f, zquestheader *Header, int i);
 int writeffscript(PACKFILE *f, zquestheader *Header, bool keepdata);
-int write_one_script(PACKFILE *f, zquestheader *Header, int i, const ZAsmScript &script);
+int write_one_ffscript(PACKFILE *f, zquestheader *Header, int i, ffscript **script);
 int writeitemdropsets(PACKFILE *f, zquestheader *Header);
 int writefavorites(PACKFILE *f, zquestheader *Header);
 #endif

@@ -42,7 +42,6 @@
 #include "zq_strings.h"
 #include "zq_subscr.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 using std::string;
 using std::pair;
@@ -56,7 +55,6 @@ extern string zScript;
 extern std::map<int, pair<string, string> > ffcmap;
 extern std::map<int, pair<string, string> > globalmap;
 extern std::map<int, pair<string, string> > itemmap;
-extern GameScripts scripts;
 zmap Map;
 int prv_mode=0;
 short ffposx[32]= {-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,-1000,
@@ -998,7 +996,7 @@ bool zmap::ishookshottable(int bx, int by, int i)
 bool zmap::isstepable(int combo)
 {
     // This is kind of odd but it's true to the engine (see maps.cpp)
-    return (combo_class_buf[combobuf[combo].type].ladder_pass != 0);
+    return (combo_class_buf[combobuf[combo].type].ladder_pass);
 }
 
 // Returns the letter of the warp combo.
@@ -2640,7 +2638,7 @@ void zmap::draw(BITMAP* dest,int x,int y,int flags,int map,int scr)
             {
                 if(((i^j)&1)==0)
                 {
-                    putpixel(dest,x+i,y+j,vc(blackout_color()));
+                    putpixel(dest,x+i,y+j,vc(blackout_color));
                 }
             }
         }
@@ -5284,7 +5282,7 @@ bool load_zgp(const char *path)
     
     if(section_id==ID_ITEMS)
     {
-        if(readitems(f, ZELDA_VERSION, VERSION_BUILD, NULL, false, true)!=0)
+        if(readitems(f, ZELDA_VERSION, VERSION_BUILD, false, true)!=0)
         {
             pack_fclose(f);
             return false;
@@ -5912,11 +5910,10 @@ int quest_access(const char *filename, zquestheader *hdr, bool compressed)
     
     pwd_dlg[6].dp=prompt;
     
-	DIALOG *pwd_cpy = resizeDialog(pwd_dlg, 1.5);
+    if(is_large)
+        large_dialog(pwd_dlg);
         
-    int cancel = zc_popup_dialog(pwd_cpy,6);
-
-	delete[] pwd_cpy;
+    int cancel = zc_popup_dialog(pwd_dlg,6);
     
     if(cancel == 8)
         return 2;
@@ -7419,33 +7416,6 @@ int writeitems(PACKFILE *f, zquestheader *Header)
             {
                 new_return(48);
             }
-	    
-	    //New itemdata vars -Z
-	    //! I need help with this. THis should wori, but ZQuest is crashing on reading items. -Z
-	    
-	    if(!p_putc(itemsbuf[i].useweapon,f))
-            {
-                new_return(49);
-            }
-	    if(!p_putc(itemsbuf[i].usedefence,f))
-            {
-                new_return(50);
-            }
-	    if(!p_iputl(itemsbuf[i].weaprange,f))
-            {
-                new_return(51);
-            }
-	    if(!p_iputl(itemsbuf[i].weapduration,f))
-            {
-                new_return(52);
-            }
-	    for ( int q = 0; q < ITEM_MOVEMENT_PATTERNS; q++ ) {
-		    if(!p_iputl(itemsbuf[i].weap_pattern[q],f))
-		    {
-			new_return(53);
-		    }
-	    }
-	    
         }
         
         if(writecycle==0)
@@ -7463,7 +7433,6 @@ int writeitems(PACKFILE *f, zquestheader *Header)
     
     new_return(0);
 }
-
 
 int writeweapons(PACKFILE *f, zquestheader *Header)
 {
@@ -7945,7 +7914,7 @@ int writemapscreen(PACKFILE *f, int i, int j)
                 return qe_invalid;
             }
         }
-        catch(std::out_of_range& )
+        catch(std::out_of_range& e)
         {
             return qe_invalid;
         }
@@ -7960,7 +7929,7 @@ int writemapscreen(PACKFILE *f, int i, int j)
                 return qe_invalid;
             }
         }
-        catch(std::out_of_range& )
+        catch(std::out_of_range& e)
         {
             return qe_invalid;
         }
@@ -7975,7 +7944,7 @@ int writemapscreen(PACKFILE *f, int i, int j)
                 return qe_invalid;
             }
         }
-        catch(std::out_of_range& )
+        catch(std::out_of_range& e)
         {
             return qe_invalid;
         }
@@ -9307,67 +9276,6 @@ int writeguys(PACKFILE *f, zquestheader *Header)
             {
                 new_return(50);
             }
-	    
-	    //New 2.6 defences
-	    for(int j=edefLAST; j < edefLAST255; j++)
-            {
-                if(!p_putc(guysbuf[i].defense[j],f))
-                {
-                    new_return(51);
-                }
-            }
-	    
-	    //tilewidth, tileheight, hitwidth, hitheight, hitzheight, hitxofs, hityofs, hitzofs
-	    if(!p_iputl(guysbuf[i].txsz,f))
-            {
-                new_return(52);
-            }
-	    if(!p_iputl(guysbuf[i].tysz,f))
-            {
-                new_return(53);
-            }
-	    if(!p_iputl(guysbuf[i].hxsz,f))
-            {
-                new_return(54);
-            }
-	    if(!p_iputl(guysbuf[i].hysz,f))
-            {
-                new_return(55);
-            }
-	    if(!p_iputl(guysbuf[i].hzsz,f))
-            {
-                new_return(56);
-            }
-	    // These are not fixed types, but ints, so they are safe to use here. 
-	    if(!p_iputl(guysbuf[i].hxofs,f))
-            {
-                new_return(57);
-            }
-	    if(!p_iputl(guysbuf[i].hyofs,f))
-            {
-                new_return(58);
-            }
-	    if(!p_iputl(guysbuf[i].xofs,f))
-            {
-                new_return(59);
-            }
-	    if(!p_iputl(guysbuf[i].yofs,f))
-            {
-                new_return(60);
-            }
-	    if(!p_iputl(guysbuf[i].zofs,f))
-            {
-                new_return(61);
-            }
-	    if(!p_iputl(guysbuf[i].wpnsprite,f))
-            {
-                new_return(62);
-            }
-	    if(!p_iputl(guysbuf[i].SIZEflags,f))
-            {
-                new_return(62);
-            }
-	    
         }
         
         if(writecycle==0)
@@ -9385,9 +9293,6 @@ int writeguys(PACKFILE *f, zquestheader *Header)
     
     new_return(0);
 }
-
-
-
 
 int writelinksprites(PACKFILE *f, zquestheader *Header)
 {
@@ -9916,7 +9821,15 @@ int write_one_subscreen(PACKFILE *f, zquestheader *Header, int i)
     new_return(0);
 }
 
-int writescripts(PACKFILE *f, zquestheader *Header)
+extern ffscript *ffscripts[512];
+extern ffscript *itemscripts[256];
+extern ffscript *guyscripts[256];
+extern ffscript *wpnscripts[256];
+extern ffscript *globalscripts[NUMSCRIPTGLOBAL];
+extern ffscript *linkscripts[3];
+extern ffscript *screenscripts[256];
+
+int writeffscript(PACKFILE *f, zquestheader *Header)
 {
     dword section_id       = ID_FFSCRIPT;
     dword section_version  = V_FFSCRIPT;
@@ -9954,14 +9867,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
         
         writesize=0;
         
-		if (!p_iputw(scripts.ffscripts.size(), f))
-		{
-			new_return(5);
-		}
-
-        for(int i=0; i<(int)scripts.ffscripts.size(); i++)
+        for(int i=0; i<512; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.ffscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &ffscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -9970,14 +9878,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
             }
         }
         
-		if (!p_iputw(scripts.itemscripts.size(), f))
-		{
-			new_return(6);
-		}
-
-        for(int i=0; i<(int)scripts.itemscripts.size(); i++)
+        for(int i=0; i<256; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.itemscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &itemscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -9986,13 +9889,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
             }
         }
         
-		if (!p_iputw(scripts.guyscripts.size(), f))
-		{
-			new_return(7);
-		}
-        for(int i=0; i<NUMSCRIPTGUYS; i++)
+        for(int i=0; i<256; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.guyscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &guyscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -10001,13 +9900,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
             }
         }
         
-		if (!p_iputw(scripts.wpnscripts.size(), f))
-		{
-			new_return(8);
-		}
-        for(int i=0; i<(int)scripts.wpnscripts.size(); i++)
+        for(int i=0; i<256; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.wpnscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &wpnscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -10016,13 +9911,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
             }
         }
         
-		if (!p_iputw(scripts.screenscripts.size(), f))
-		{
-			new_return(9);
-		}
-        for(int i=0; i<(int)scripts.screenscripts.size(); i++)
+        for(int i=0; i<256; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.screenscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &screenscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -10033,7 +9924,7 @@ int writescripts(PACKFILE *f, zquestheader *Header)
         
         for(int i=0; i<NUMSCRIPTGLOBAL; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.globalscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &globalscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -10042,14 +9933,9 @@ int writescripts(PACKFILE *f, zquestheader *Header)
             }
         }
         
-		if (!p_iputw(scripts.linkscripts.size(), f))
-		{
-			new_return(10);
-		}
-
-        for(int i=0; i<NUMSCRIPTLINK; i++)
+        for(int i=0; i<3; i++)
         {
-            int ret = write_one_script(f, Header, i, scripts.linkscripts[i]);
+            int ret = write_one_ffscript(f, Header, i, &linkscripts[i]);
             fake_pack_writing=(writecycle==0);
             
             if(ret!=0)
@@ -10194,57 +10080,47 @@ int writescripts(PACKFILE *f, zquestheader *Header)
     //the irony is that it causes an "unreachable code" warning.
 }
 
-int write_one_script(PACKFILE *f, zquestheader *Header, int i, const ZAsmScript &script)
+int write_one_ffscript(PACKFILE *f, zquestheader *Header, int i, ffscript **script)
 {
     //these are here to bypass compiler warnings about unused arguments
     Header=Header;
     i=i;
-
-	if (!p_iputw(script.version, f))
-	{
-		new_return(1);
-	}
-
-	if (!p_iputw(script.type, f))
-	{
-		new_return(2);
-	}
-
-	if (!p_iputw(script.name_len, f))
-	{
-		new_return(3);
-	}
-
-	if (!pfwrite(script.name, script.name_len, f))
-	{
-		new_return(4);
-	}
     
-      
-    if(!p_iputl(script.commands_len,f))
+    int num_commands;
+    
+    for(int j=0;; j++)
+    {
+        if((*script)[j].command==0xFFFF)
+        {
+            num_commands = j+1;
+            break;
+        }
+    }
+    
+    if(!p_iputl(num_commands,f))
     {
         new_return(6);
     }
     
-    for(int j=0; j<script.commands_len; j++)
+    for(int j=0; j<num_commands; j++)
     {
-        if(!p_iputw(script.commands[j].command,f))
+        if(!p_iputw((*script)[j].command,f))
         {
             new_return(7);
         }
         
-        if(script.commands[j].command==0xFFFF)
+        if((*script)[j].command==0xFFFF)
         {
             break;
         }
         else
         {
-            if(!p_iputl(script.commands[j].arg1,f))
+            if(!p_iputl((*script)[j].arg1,f))
             {
                 new_return(8);
             }
             
-            if(!p_iputl(script.commands[j].arg2,f))
+            if(!p_iputl((*script)[j].arg2,f))
             {
                 new_return(9);
             }
@@ -10253,6 +10129,9 @@ int write_one_script(PACKFILE *f, zquestheader *Header, int i, const ZAsmScript 
     
     new_return(0);
 }
+
+extern SAMPLE customsfxdata[WAV_COUNT];
+extern unsigned char customsfxflag[WAV_COUNT>>3];
 
 int writesfx(PACKFILE *f, zquestheader *Header)
 {
@@ -10292,95 +10171,77 @@ int writesfx(PACKFILE *f, zquestheader *Header)
         }
         
         writesize=0;
-
-        int sfxcount = Backend::sfx->numSlots();
-        if (!p_iputw(sfxcount, f))
+        
+        for(int i=0; i<WAV_COUNT>>3; i++)
         {
-            new_return(5);
-        }
-                
-        for(int i=1; i<sfxcount; i++)
-        {
-            const SFXSample *sample = Backend::sfx->getSample(i);
-            char iscustom = 0;
-            if (sample && sample->iscustom)
-                iscustom = 1;
-            if(!p_putc(iscustom,f))
+            if(!p_putc(customsfxflag[i],f))
             {
-                new_return(6);
+                new_return(5);
             }
         }
         
-        for(int i=1; i<sfxcount; i++)
+        for(int i=1; i<WAV_COUNT; i++)
         {
-            const SFXSample *sample = Backend::sfx->getSample(i);
-            if(!sample || !sample->iscustom)
+            if(get_bit(customsfxflag, i-1) == 0)
                 continue;
-
-            int namelen = sample->name.length();
-            if (!p_iputw(namelen, f))
-            {
-                new_return(7);
-            }
                 
-            if(!pfwrite((void *)sample->name.c_str(), namelen+1, f))
+            if(!pfwrite(sfx_string[i], 36, f))
             {
-                new_return(8);
+                new_return(5);
             }
         }
         
-        for(int i=1; i<sfxcount; i++)
+        for(int i=1; i<WAV_COUNT; i++)
         {
-            const SFXSample *sample = Backend::sfx->getSample(i);
-            if(!sample || !sample->iscustom)
+            if(get_bit(customsfxflag, i-1) == 0)
                 continue;
                 
-            if(!p_iputl(sample->sample.bits,f))
+            if(!p_iputl(customsfxdata[i].bits,f))
             {
                 new_return(5);
             }
             
-            if(!p_iputl(sample->sample.stereo,f))
+            if(!p_iputl(customsfxdata[i].stereo,f))
             {
                 new_return(6);
             }
             
-            if(!p_iputl(sample->sample.freq,f))
+            if(!p_iputl(customsfxdata[i].freq,f))
             {
                 new_return(7);
             }
             
-            if(!p_iputl(sample->sample.priority,f))
+            if(!p_iputl(customsfxdata[i].priority,f))
             {
                 new_return(8);
             }
             
-            if(!p_iputl(sample->sample.len,f))
+            if(!p_iputl(customsfxdata[i].len,f))
             {
                 new_return(9);
             }
             
-            if(!p_iputl(sample->sample.loop_start,f))
+            if(!p_iputl(customsfxdata[i].loop_start,f))
             {
                 new_return(10);
             }
             
-            if(!p_iputl(sample->sample.loop_end,f))
+            if(!p_iputl(customsfxdata[i].loop_end,f))
             {
                 new_return(11);
             }
             
-            if(!p_iputl(sample->sample.param,f))
+            if(!p_iputl(customsfxdata[i].param,f))
             {
                 new_return(12);
             }
             
             //de-endianfy the data
-            int wordstowrite = (sample->sample.bits==8?1:2)*(sample->sample.stereo==0?1:2)*sample->sample.len/sizeof(word);
+            int wordstowrite = (customsfxdata[i].bits==8?1:2)*(customsfxdata[i].stereo==0?1:2)*customsfxdata[i].len/sizeof(word);
             
             for(int j=0; j<wordstowrite; j++)
             {
-                if(!p_iputw(((word *)sample->sample.data)[j],f))
+                if(!p_iputw(((word *)customsfxdata[i].data)[j],f))
                 {
                     new_return(13);
                 }
@@ -10884,8 +10745,6 @@ int writefavorites(PACKFILE *f, zquestheader*)
     new_return(0);
 }
 
-
-
 int save_unencoded_quest(const char *filename, bool compressed)
 {
     reset_combo_animations();
@@ -11137,7 +10996,7 @@ int save_unencoded_quest(const char *filename, bool compressed)
     
     box_out("Writing FF Script Data...");
     
-    if(writescripts(f,&header)!=0)
+    if(writeffscript(f,&header)!=0)
     {
         new_return(23);
     }

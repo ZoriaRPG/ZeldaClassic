@@ -29,7 +29,7 @@ public:
     volatile bool isValid;
     
     //call from main thread.
-    void Update();
+    void Update(int frameskip);
 };
 extern Win32Data win32data;
 

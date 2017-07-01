@@ -28,9 +28,9 @@
 #include "title.h"
 #include "subscr.h"
 #include "init.h"
-#include "backend/AllBackends.h"
+#include "gamedata.h"
 
-extern LinkClass   *Link;
+extern LinkClass   Link;
 extern sprite_list  guys, items, Ewpns, Lwpns, Sitems, chainlinks, decorations;
 extern int draw_screen_clip_rect_x1;
 extern int draw_screen_clip_rect_x2;
@@ -105,7 +105,7 @@ namespace
         { "You finished a",   72, 816, white },
         { "custom quest.",    76, 832, white },
         { "ZELDA CLASSIC",    76, 880, white },
-        { "\2741999-" COPYRIGHT_YEAR,    88, 896, white },
+        { "\2741999-2014",    88, 896, white },
         { "Armageddon Games", 64, 912, blue }
     };
 }
@@ -136,7 +136,7 @@ void putendmsg(const char *s,int x,int y,int speed,void(proc)())
         if((f%speed)==0)
         {
             if(s[i]!=' ')
-                Backend::sfx->play(WAV_MSG,128);
+                sfx(WAV_MSG);
                 
             textprintf_ex(framebuf,zfont,x+(i<<3),y,WHITE,0,"%c",s[i]);
             ++i;
@@ -210,8 +210,8 @@ void ending()
     decorations.clear();
     
     music_stop();
-    Backend::sfx->stopAll();
-    Backend::sfx->play(WAV_ZELDA,128);
+    kill_sfx();
+    sfx(WAV_ZELDA);
     Quit=0;
     
     game->set_cheat(game->get_cheat() | (cheat>1)?1:0);
@@ -240,7 +240,7 @@ void ending()
             }
             
             guys.draw(framebuf,true);
-            Link->draw(framebuf);
+            Link.draw(framebuf);
         }
         
         if(f>=288 && ((f-288)%5 == 0))
@@ -445,7 +445,6 @@ void ending()
         
     case 3:
     case 4:
-    case 5:
         endText=quest34End;
         numEndTextLines=numQuest34EndLines;
         deathsYPos=792;
@@ -580,6 +579,8 @@ void ending()
         
         ringcolor(false);
     }
+    
+    
     
     stop_midi();
     

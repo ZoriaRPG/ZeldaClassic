@@ -29,7 +29,6 @@
 #include "init.h"
 #include "zelda.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 #ifdef _MSC_VER
 #define stricmp _stricmp
@@ -51,16 +50,13 @@ extern itemdata *itemsbuf;
 extern byte quest_rules[20];
 extern char *item_string[];
 
-int oldselection;
-zinitdata tempdata;
-
 void initPopulate(int &i, DIALOG_PROC proc, int x, int y, int w, int h, int fg, int bg, int key, int flags, int d1, int d2,
                   void *dp, void *dp2 = NULL, void *dp3 = NULL);
 void getitem(int id, bool nosound);
 
 static const int endEquipField = 33;
 
-void doFamily(int family, zinitdata *data, DIALOG *d);
+void doFamily(int family, zinitdata *data);
 int jwin_initlist_proc(int msg,DIALOG *d,int c);
 
 class Family
@@ -98,7 +94,7 @@ int d_line_proc(int msg, DIALOG *d, int c)
     if(msg==MSG_DRAW)
     {
         int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
-        line(screen, d->x, d->y, d->x+d->w, d->y+d->h, Backend::palette->virtualColorOfEntry(fg));
+        line(screen, d->x, d->y, d->x+d->w, d->y+d->h, palette_color[fg]);
     }
     
     return D_O_K;
@@ -816,6 +812,7 @@ int d_maxbombsedit_proc(int msg,DIALOG *d,int c)
     
     if(msg==MSG_DRAW)
     {
+        scare_mouse();
         int div = atoi((char*)((d+1589)->dp));
         
         if(div == 0)
@@ -823,6 +820,7 @@ int d_maxbombsedit_proc(int msg,DIALOG *d,int c)
             
         sprintf((char*)((d+6)->dp), "%d", atoi((char*)(d->dp))/div);
         (d+6)->proc(MSG_DRAW,d+6,0);
+        unscare_mouse();
     }
     
     return ret;
@@ -843,8 +841,10 @@ int d_bombratioedit_proc(int msg,DIALOG *d,int c)
         if(atoi((char*)(d->dp)))
             sbombmax = atoi((char*)((d-1589)->dp))/div;
             
+        scare_mouse();
         sprintf((char*)((d-1583)->dp), "%d", sbombmax);
         (d-1583)->proc(MSG_DRAW,d-1583,0);
+        unscare_mouse();
     }
     
     return ret;
@@ -898,7 +898,7 @@ void PopulateInitDialog()
     initPopulate(i, jwin_button_proc,          47,    209,     61,     21,    vc(14),                 vc(1),                  13,    D_EXIT,         0,             0, (void *) "OK",                                         NULL,   NULL);
     initPopulate(i, d_keyboard_proc,            0,      0,      0,      0,    0,                      0,                       0,    0,              KEY_F1,        0, (void *) onHelp,                                       NULL,   NULL);
     initPopulate(i, jwin_tab_proc,              6,     25,    284,    178,    vc(14),                 vc(1),                   0,    0,              1,             0, (void *) init_tabs,                                    NULL, (void *)init_dlg);
-    initPopulate(i, d_dummy_proc,              11,     47,    117,    152,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,              0,             0,  NULL,                                                  NULL, (void *)init_dlg);
+    initPopulate(i, d_dummy_proc,              11,     47,    117,    152,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,              0,             0,  NULL,                                                  NULL,   NULL);
     initPopulate(i, jwin_frame_proc,          130,     47,    154,    152,    vc(0),                  vc(11),                  0,    0,              FR_ETCHED,     0,  NULL,                                                  NULL,   NULL);
     initPopulate(i, jwin_check_proc,          134,     57,     74,      9,    vc(0),                  vc(11),                  0,    0,              1,             0, (void *) "1",                                          NULL,   NULL);
     initPopulate(i, jwin_check_proc,          134,     67,     74,      9,    vc(0),                  vc(11),                  0,    0,              1,             0, (void *) "2",                                          NULL,   NULL);
@@ -1558,6 +1558,7 @@ const char *item_class_list(int index, int *list_size)
     return biic[index].s;
 }
 
+
 int doInit(zinitdata *local_zinit)
 {
     for(int i=0; i<MAXITEMS; i++)
@@ -1606,20 +1607,23 @@ int doInit(zinitdata *local_zinit)
     
     ListData family_list(familylist, &pfont);
     init_dlg[5].proc = jwin_initlist_proc;
-	init_dlg[5].dp = (void *)&family_list;
+    init_dlg[5].dp = (void *)&family_list;
     init_dlg[5].d1 = -1;
-        
-    memcpy(&tempdata, local_zinit,sizeof(zinitdata));
     
+    zinitdata tempdata;
+    memcpy(&tempdata, local_zinit,sizeof(zinitdata));
+    int oldselection;
+    std::pair<int *, zinitdata *> p(&oldselection,&tempdata);
+    init_dlg[5].dp3 = &p;
     
     if(families.size() == 0)
     {
-        doFamily(-1, &tempdata, init_dlg);
+        doFamily(-1, &tempdata);
         oldselection = -1;
     }
     else
     {
-        doFamily(listidx2biic[0],&tempdata, init_dlg);
+        doFamily(listidx2biic[0],&tempdata);
         oldselection = 0;
     }
     
@@ -1729,9 +1733,13 @@ int doInit(zinitdata *local_zinit)
     init_dlg[1704].dp=terminalvstring;
     init_dlg[1705].dp=thresholdstring;
     
-	DIALOG *init_cpy = resizeDialog(init_dlg, 1.5);
+    if(is_large)
+    {
+        large_dialog(init_dlg);
+        init_dlg[0].d1 = 1;
+    }
     
-    int ret = zc_popup_dialog(init_cpy,1);
+    int ret = zc_popup_dialog(init_dlg,1);
     
     if(ret==2)
     {
@@ -1748,7 +1756,7 @@ int doInit(zinitdata *local_zinit)
                 
                 for(int j=7; it2 != f.end() && j<endEquipField; it2++,j++)
                 {
-                    tempdata.items[it2->itemid] = 0 != (init_cpy[j].flags & D_SELECTED);
+                    tempdata.items[it2->itemid] = 0 != (init_dlg[j].flags & D_SELECTED);
                 }
             }
         }
@@ -1763,27 +1771,27 @@ int doInit(zinitdata *local_zinit)
         // dmap items
         for(int i=0; i<256; i++)
         {
-            set_bit(local_zinit->map,i, init_cpy[i+631].flags & D_SELECTED);
-            set_bit(local_zinit->compass,i, init_cpy[i+887].flags & D_SELECTED);
-            set_bit(local_zinit->boss_key,i, init_cpy[i+1143].flags & D_SELECTED);
+            set_bit(local_zinit->map,i,init_dlg[i+631].flags & D_SELECTED);
+            set_bit(local_zinit->compass,i,init_dlg[i+887].flags & D_SELECTED);
+            set_bit(local_zinit->boss_key,i,init_dlg[i+1143].flags & D_SELECTED);
             local_zinit->level_keys[i]=vbound(atoi(key_list[i]),0,255);
         }
         
         for(int i=256; i<512; i++)
         {
-            set_bit(local_zinit->map,i, init_cpy[i+2240-256].flags & D_SELECTED);
-            set_bit(local_zinit->compass,i, init_cpy[i+2496-256].flags & D_SELECTED);
-            set_bit(local_zinit->boss_key,i, init_cpy[i+2752-256].flags & D_SELECTED);
+            set_bit(local_zinit->map,i,init_dlg[i+2240-256].flags & D_SELECTED);
+            set_bit(local_zinit->compass,i,init_dlg[i+2496-256].flags & D_SELECTED);
+            set_bit(local_zinit->boss_key,i,init_dlg[i+2752-256].flags & D_SELECTED);
             local_zinit->level_keys[i]=vbound(atoi(key_list[i]),0,255);
         }
         
         // misc
-        local_zinit->start_dmap = init_cpy[1656].d1;
+        local_zinit->start_dmap = init_dlg[1656].d1;
         local_zinit->hc = zc_max(atoi(hcstring),0);
         local_zinit->start_heart = vbound(atoi(sheartstring),0,local_zinit->hc);
         local_zinit->hcp_per_hc = vbound(atoi(hcpperstring),0,255);
         local_zinit->hcp = vbound(atoi(hcpstring),0,local_zinit->hcp_per_hc-1);
-        set_bit(local_zinit->misc,idM_CONTPERCENT,((init_cpy[1667].flags & D_SELECTED) != 0 ? 1 : 0));
+        set_bit(local_zinit->misc,idM_CONTPERCENT,((init_dlg[1667].flags & D_SELECTED) != 0 ? 1 : 0));
         
         if(get_bit(local_zinit->misc,idM_CONTPERCENT))
         {
@@ -1800,14 +1808,14 @@ int doInit(zinitdata *local_zinit)
         // triforce
         for(int i=0; i<8; i++)
         {
-            set_bit(&local_zinit->triforce,i, init_cpy[1676+i].flags & D_SELECTED);
+            set_bit(&local_zinit->triforce,i,init_dlg[1676+i].flags & D_SELECTED);
         }
         
         
-        set_bit(local_zinit->misc,idM_CANSLASH, init_cpy[1684].flags & D_SELECTED);
+        set_bit(local_zinit->misc,idM_CANSLASH,init_dlg[1684].flags & D_SELECTED);
         local_zinit->max_magic = atoi(maxmagicstring);
         local_zinit->magic = zc_min(atoi(magicstring),local_zinit->max_magic);
-        set_bit(local_zinit->misc,idM_DOUBLEMAGIC, init_cpy[1691].flags & D_SELECTED);
+        set_bit(local_zinit->misc,idM_DOUBLEMAGIC,init_dlg[1691].flags & D_SELECTED);
         local_zinit->max_rupees = vbound(atoi(maxrupeestring), 0, 0xFFFF);
         local_zinit->max_keys = vbound(atoi(maxkeystring), 0, 0xFFFF);
         local_zinit->bomb_ratio = vbound(atoi(bombratiostring),0,255);
@@ -1816,8 +1824,6 @@ int doInit(zinitdata *local_zinit)
         local_zinit->jump_link_layer_threshold = vbound(atoi(thresholdstring),0,255);
         onInitOK();
     }
-
-	delete[] init_cpy;
     
     //for(map<int, char *>::iterator it = famnames.begin(); it != famnames.end(); it++)
     //  delete[] it->second;
@@ -1838,13 +1844,13 @@ const char *familylist(int index, int *list_size)
     return biic[listidx2biic[index]].s;
 }
 
-void doFamily(int biicindx, zinitdata *local_zinit, DIALOG *d)
+void doFamily(int biicindx, zinitdata *local_zinit)
 {
     if(biicindx == -1 || families.find(biic[biicindx].i) == families.end())
     {
         for(int i=7; i<endEquipField; i++)
         {
-            d[i].proc = d_dummy_proc;
+            init_dlg[i].proc = d_dummy_proc;
         }
         
         return;
@@ -1856,14 +1862,14 @@ void doFamily(int biicindx, zinitdata *local_zinit, DIALOG *d)
     
     for(i=7; i < endEquipField && it != f.end(); i++, it++)
     {
-        d[i].proc = jwin_checkfont_proc;
-        d[i].dp2 = is_large() ? lfont_l : pfont;
-        d[i].dp = (void *)item_string[it->itemid];
-        d[i].flags = local_zinit->items[it->itemid] ? D_SELECTED : 0;
+        init_dlg[i].proc = jwin_checkfont_proc;
+        init_dlg[i].dp2 = is_large? lfont_l : pfont;
+        init_dlg[i].dp = (void *)item_string[it->itemid];
+        init_dlg[i].flags = local_zinit->items[it->itemid] ? D_SELECTED : 0;
     }
     
     for(; i<endEquipField; i++)
-        d[i].proc = d_dummy_proc;
+        init_dlg[i].proc = d_dummy_proc;
 }
 
 int jwin_initlist_proc(int msg,DIALOG *d,int c)
@@ -1881,17 +1887,18 @@ int jwin_initlist_proc(int msg,DIALOG *d,int c)
       case MSG_DRAW:
         font=tempfont;
         break;
-    }*/    
-    
-	static int index=-1;
+    }*/
+    std::pair<int *, zinitdata *> *p = (std::pair<int *, zinitdata *> *)(d->dp3);
+    int *oldselection = p->first;
+    static int index=-1;
     index = d->d1;
     
-    if(oldselection != d->d1 && d->d1 != -1)
+    if(*oldselection != d->d1 && d->d1 != -1)
     {
         //save old selection
-        if(oldselection != -1)
+        if(*oldselection != -1)
         {
-            std::map<int, std::vector<Family> >::iterator it = families.find(biic[listidx2biic[oldselection]].i);
+            std::map<int, std::vector<Family> >::iterator it = families.find(biic[listidx2biic[*oldselection]].i);
             
             if(it != families.end())
             {
@@ -1900,16 +1907,19 @@ int jwin_initlist_proc(int msg,DIALOG *d,int c)
                 
                 for(int j=7; it2 != f.end() && j<endEquipField; it2++,j++)
                 {
-                    tempdata.items[it2->itemid] = 0 != (((DIALOG *)d->dp3)[j].flags & D_SELECTED);
+                    p->second->items[it2->itemid] = 0 != (init_dlg[j].flags & D_SELECTED);
                 }
             }
         }
         
-        oldselection = d->d1;
-        doFamily(listidx2biic[d->d1], &tempdata, ((DIALOG *)d->dp3));
-        //acquire_screen();
-        ((DIALOG *)d->dp3)[4].proc(MSG_DRAW, &( ((DIALOG *)d->dp3)[4]), 0);
-        //release_screen();
+        *(p->first) = d->d1;
+        doFamily(listidx2biic[d->d1], p->second);
+        acquire_screen();
+        scare_mouse();
+        init_dlg[4].proc(MSG_DRAW, &init_dlg[4], 0);
+        //	broadcast_dialog_message(MSG_DRAW, 0);
+        unscare_mouse();
+        release_screen();
     }
     
     return rval;

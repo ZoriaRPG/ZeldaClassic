@@ -33,7 +33,6 @@
 #include "ffasm.h"
 #include "defdata.h"
 #include "zc_malloc.h"
-#include "backend/AllBackends.h"
 
 extern int ex;
 extern void reset_itembuf(itemdata *item, int id);
@@ -88,7 +87,7 @@ int d_cstile_proc(int msg,DIALOG *d,int c)
     break;
     
     case MSG_DRAW:
-        if(is_large())
+        if(is_large)
         {
             d->w = 36;
             d->h = 36;
@@ -112,7 +111,7 @@ int d_cstile_proc(int msg,DIALOG *d,int c)
         }
         
         //    text_mode(d->bg);
-        FONT *fonty = is_large() ? font : pfont;
+        FONT *fonty = is_large ? font : pfont;
         textprintf_ex(screen,fonty,d->x+d->w,d->y+2,jwin_pal[jcBOXFG],jwin_pal[jcBOX],"Tile: %d",d->d1);
         textprintf_ex(screen,fonty,d->x+d->w,d->y+text_height(fonty)+3,jwin_pal[jcBOXFG],jwin_pal[jcBOX],"CSet: %d",d->d2);
         break;
@@ -121,160 +120,129 @@ int d_cstile_proc(int msg,DIALOG *d,int c)
     return D_O_K;
 }
 
-extern int d_msg_preview_proc(int msg, DIALOG *d, int c);
-extern int d_msg_edit_proc(int msg, DIALOG *d, int c);
-extern int d_itemdropedit_proc(int msg, DIALOG *d, int c);
-extern int d_misccolors_tab_proc(int msg, DIALOG *d, int c);
-extern int fs_edit_proc(int msg, DIALOG *d, int c);
-extern int fs_elist_proc(int msg, DIALOG *d, int c);
-extern int fs_flist_proc(int msg, DIALOG *d, int c);
-extern int fs_dlist_proc(int msg, DIALOG *d, int c);
-
-DIALOG *resizeDialog(DIALOG *d, float largeSize)
+void large_dialog(DIALOG *d)
 {
-	int len = 0;
-	while (d[len].proc != NULL)
-		len++;
+    large_dialog(d, 1.5f);
+}
 
-	len++;
-
-	DIALOG *newd = new DIALOG[len];
-	memcpy(newd, d, len * sizeof(DIALOG));
-
-	for (int i = 0; i < len; i++)
-	{
-		if ( (newd[i].proc == jwin_tab_proc 
-			|| newd[i].proc == d_msg_preview_proc
-			|| newd[i].proc == d_itemdropedit_proc
-			|| newd[i].proc == d_misccolors_tab_proc
-			|| newd[i].proc == d_ffcombolist_proc
-			|| newd[i].proc == fs_edit_proc
-			|| newd[i].proc == fs_elist_proc
-			|| newd[i].proc == fs_flist_proc
-			|| newd[i].proc == fs_dlist_proc			
-			|| newd[i].proc == d_msg_edit_proc
-			|| newd[i].proc == jwin_initlist_proc
-			|| newd[i].proc == d_ecstile_proc
-			)			
-			&& newd[i].dp3 == d)
-			newd[i].dp3 = newd;
-	}
-
-	if (is_large())
-	{
-		int oldwidth = newd[0].w;
-		int oldheight = newd[0].h;
-		int oldx = newd[0].x;
-		int oldy = newd[0].y;
-		newd[0].x -= int(float(newd[0].w) / largeSize);
-		newd[0].y -= int(float(newd[0].h) / largeSize);
-		newd[0].w = int(float(newd[0].w)*largeSize);
-		newd[0].h = int(float(newd[0].h)*largeSize);
-
-		for (int i = 1; newd[i].proc != NULL; i++)
-		{
-			// Place elements horizontally
-			double xpc = ((double)(newd[i].x - oldx) / (double)oldwidth);
-			newd[i].x = int(newd[0].x + (xpc*double(newd[0].w)));
-
-			// Horizontally resize elements
-			if ((newd[i].proc == d_maptile_proc && newd[i].dp2 != (void*)1) || newd[i].proc == d_intro_edit_proc || newd[i].proc == d_title_edit_proc)
-			{
-				newd[i].x += (int)(float(newd[i].w) / 4.f);
-			}
-			else if (newd[i].proc == d_comboframe_proc)
-			{
-				newd[i].w *= 2;
-				newd[i].w -= 4;
-			}
-			else if (newd[i].proc == d_wflag_proc || newd[i].proc == d_bitmap_proc || newd[i].proc == d_maptile_proc || newd[i].proc == d_qtile_proc || newd[i].proc == d_tileblock_proc)
-			{
-				newd[i].w *= 2;
-			}
-			else if (newd[i].proc == jwin_button_proc)
-				newd[i].w = int(newd[i].w*1.5);
-			else newd[i].w = int(float(newd[i].w)*largeSize);
-
-			// Place elements vertically
-			double ypc = ((double)(newd[i].y - oldy) / (double)oldheight);
-			newd[i].y = int(newd[0].y + (ypc*double(newd[0].h)));
-
-			// Vertically resize elements
-			if ((newd[i].proc == d_maptile_proc && newd[i].dp2 != (void*)1) || newd[i].proc == d_intro_edit_proc || newd[i].proc == d_title_edit_proc)
-			{
-			}
-			else if (newd[i].proc == jwin_edit_proc || newd[i].proc == jwin_check_proc || newd[i].proc == jwin_checkfont_proc || newd[i].proc == jwin_tflpcheck_proc || newd[i].proc == jwin_lscheck_proc)
-			{
-				newd[i].h = int((double)newd[i].h*1.5);
-			}
-			else if (newd[i].proc == jwin_droplist_proc || newd[i].proc == d_ndroplist_proc || newd[i].proc == d_idroplist_proc || newd[i].proc == d_nidroplist_proc || newd[i].proc == d_dropdmaplist_proc
-				|| newd[i].proc == d_dropdmaptypelist_proc || newd[i].proc == jwin_as_droplist_proc || newd[i].proc == d_ffcombolist_proc || newd[i].proc == sstype_drop_proc || newd[i].proc == d_ctl_proc
-				|| newd[i].proc == jwin_fontdrop_proc || newd[i].proc == d_csl_proc || newd[i].proc == d_csl2_proc || newd[i].proc == d_stilelist_proc || newd[i].proc == d_comboalist_proc)
-			{
-				newd[i].y += int((double)newd[i].h*0.25);
-				newd[i].h = int((double)newd[i].h*1.25);
-			}
-			else if (newd[i].proc == d_comboframe_proc)
-			{
-				newd[i].h *= 2;
-				newd[i].h -= 4;
-			}
-			else if (newd[i].proc == d_wflag_proc || newd[i].proc == d_bitmap_proc || newd[i].proc == d_maptile_proc || newd[i].proc == d_qtile_proc || newd[i].proc == d_tileblock_proc)
-			{
-				newd[i].h *= 2;
-			}
-			else if (newd[i].proc == jwin_button_proc)
-				newd[i].h = int(newd[i].h*1.5);
-			else newd[i].h = int(float(newd[i].h)*largeSize);
-
-			// Fix frames
-			if (newd[i].proc == jwin_frame_proc)
-			{
-				newd[i].x++;
-				newd[i].y++;
-				newd[i].w -= 4;
-				newd[i].h -= 4;
-			}
-
-			// Fix menus
-			if (newd[i].proc == jwin_menu_proc)
-			{
-				newd[i].y = newd[0].y + 23;
-				newd[i].h = 13;
-			}
-		}
-
-
-		for (int i = 1; newd[i].proc != NULL; i++)
-		{
-			if (newd[i].proc == jwin_slider_proc)
-				continue;
-
-			// Bigger font
-			bool bigfontproc = (newd[i].proc != jwin_initlist_proc && newd[i].proc != jwin_droplist_proc && newd[i].proc != jwin_abclist_proc && newd[i].proc != d_ilist_proc && newd[i].proc != d_wlist_proc && newd[i].proc != jwin_list_proc && newd[i].proc != d_dmaplist_proc
-				&& newd[i].proc != d_dropdmaplist_proc && newd[i].proc != d_xmaplist_proc && newd[i].proc != d_dropdmaptypelist_proc && newd[i].proc != d_warplist_proc && newd[i].proc != d_warplist_proc && newd[i].proc != d_wclist_proc && newd[i].proc != d_ndroplist_proc
-				&& newd[i].proc != d_idroplist_proc && newd[i].proc != d_nidroplist_proc && newd[i].proc != jwin_as_droplist_proc && newd[i].proc != d_ffcombolist_proc && newd[i].proc != d_enelist_proc && newd[i].proc != sstype_drop_proc && newd[i].proc != d_ctl_proc
-				&& newd[i].proc != jwin_fontdrop_proc && newd[i].proc != d_csl_proc && newd[i].proc != d_csl2_proc && newd[i].proc != d_stilelist_proc && newd[i].proc != d_comboalist_proc);
-
-			if (bigfontproc && !newd[i].dp2)
-			{
-				newd[i].dp2 = lfont_l;
-			}
-			else if (!bigfontproc)
-			{
-				((ListData *)newd[i].dp)->font = &lfont_l;
-			}
-
-			// Make checkboxes work
-			if (newd[i].proc == jwin_check_proc)
-				newd[i].proc = jwin_checkfont_proc;
-			else if (newd[i].proc == jwin_radio_proc)
-				newd[i].proc = jwin_radiofont_proc;
-		}
-	}
+void large_dialog(DIALOG *d, float RESIZE_AMT)
+{
+    if(d[0].d1 == 0)
+    {
+        d[0].d1 = 1;
+        int oldwidth = d[0].w;
+        int oldheight = d[0].h;
+        int oldx = d[0].x;
+        int oldy = d[0].y;
+        d[0].x -= int(float(d[0].w)/RESIZE_AMT);
+        d[0].y -= int(float(d[0].h)/RESIZE_AMT);
+        d[0].w = int(float(d[0].w)*RESIZE_AMT);
+        d[0].h = int(float(d[0].h)*RESIZE_AMT);
+        
+        for(int i=1; d[i].proc!=NULL; i++)
+        {
+            // Place elements horizontally
+            double xpc = ((double)(d[i].x - oldx) / (double)oldwidth);
+            d[i].x = int(d[0].x + (xpc*double(d[0].w)));
+            
+            // Horizontally resize elements
+            if((d[i].proc == d_maptile_proc && d[i].dp2!=(void*)1) || d[i].proc==d_intro_edit_proc || d[i].proc==d_title_edit_proc)
+            {
+                d[i].x += (int)(float(d[i].w)/4.f);
+            }
+            else if(d[i].proc == d_comboframe_proc)
+            {
+                d[i].w *= 2;
+                d[i].w -= 4;
+            }
+            else if(d[i].proc == d_wflag_proc || d[i].proc==d_bitmap_proc || d[i].proc == d_maptile_proc || d[i].proc==d_qtile_proc ||  d[i].proc==d_tileblock_proc)
+            {
+                d[i].w *= 2;
+            }
+            else if(d[i].proc == jwin_button_proc)
+                d[i].w = int(d[i].w*1.5);
+            else d[i].w = int(float(d[i].w)*RESIZE_AMT);
+            
+            // Place elements vertically
+            double ypc = ((double)(d[i].y - oldy) / (double)oldheight);
+            d[i].y = int(d[0].y + (ypc*double(d[0].h)));
+            
+            // Vertically resize elements
+            if((d[i].proc == d_maptile_proc && d[i].dp2!=(void*)1) || d[i].proc==d_intro_edit_proc || d[i].proc==d_title_edit_proc)
+            {
+            }
+            else if(d[i].proc == jwin_edit_proc || d[i].proc == jwin_check_proc || d[i].proc == jwin_checkfont_proc || d[i].proc == jwin_tflpcheck_proc || d[i].proc == jwin_lscheck_proc)
+            {
+                d[i].h = int((double)d[i].h*1.5);
+            }
+            else if(d[i].proc == jwin_droplist_proc || d[i].proc == d_ndroplist_proc || d[i].proc == d_idroplist_proc || d[i].proc == d_nidroplist_proc || d[i].proc == d_dropdmaplist_proc
+                    || d[i].proc == d_dropdmaptypelist_proc || d[i].proc == jwin_as_droplist_proc  || d[i].proc == d_ffcombolist_proc || d[i].proc == sstype_drop_proc || d[i].proc == d_ctl_proc
+                    || d[i].proc == jwin_fontdrop_proc || d[i].proc == d_csl_proc || d[i].proc == d_csl2_proc || d[i].proc == d_stilelist_proc || d[i].proc == d_comboalist_proc)
+            {
+                d[i].y += int((double)d[i].h*0.25);
+                d[i].h = int((double)d[i].h*1.25);
+            }
+            else if(d[i].proc == d_comboframe_proc)
+            {
+                d[i].h *= 2;
+                d[i].h -= 4;
+            }
+            else if(d[i].proc == d_wflag_proc || d[i].proc==d_bitmap_proc || d[i].proc == d_maptile_proc || d[i].proc==d_qtile_proc || d[i].proc==d_tileblock_proc)
+            {
+                d[i].h *= 2;
+            }
+            else if(d[i].proc == jwin_button_proc)
+                d[i].h = int(d[i].h*1.5);
+            else d[i].h = int(float(d[i].h)*RESIZE_AMT);
+            
+            // Fix frames
+            if(d[i].proc == jwin_frame_proc)
+            {
+                d[i].x++;
+                d[i].y++;
+                d[i].w-=4;
+                d[i].h-=4;
+            }
+            
+            // Fix menus
+            if(d[i].proc == jwin_menu_proc)
+            {
+                d[i].y=d[0].y+23;
+                d[i].h=13;
+            }
+        }
+    }
     
-    jwin_center_dialog(newd);
-	return newd;
+    for(int i=1; d[i].proc != NULL; i++)
+    {
+        if(d[i].proc==jwin_slider_proc)
+            continue;
+            
+        // Bigger font
+        bool bigfontproc = (d[i].proc != jwin_initlist_proc && d[i].proc != jwin_droplist_proc && d[i].proc != jwin_abclist_proc && d[i].proc != d_ilist_proc && d[i].proc != d_wlist_proc && d[i].proc != jwin_list_proc && d[i].proc != d_dmaplist_proc
+                            && d[i].proc != d_dropdmaplist_proc && d[i].proc != d_xmaplist_proc && d[i].proc != d_dropdmaptypelist_proc && d[i].proc != d_warplist_proc && d[i].proc != d_warplist_proc && d[i].proc != d_wclist_proc && d[i].proc != d_ndroplist_proc
+                            && d[i].proc != d_idroplist_proc && d[i].proc != d_nidroplist_proc && d[i].proc != jwin_as_droplist_proc && d[i].proc != d_ffcombolist_proc && d[i].proc != d_enelist_proc && d[i].proc != sstype_drop_proc && d[i].proc !=  d_ctl_proc
+                            && d[i].proc != jwin_fontdrop_proc && d[i].proc != d_csl_proc && d[i].proc != d_csl2_proc && d[i].proc != d_stilelist_proc && d[i].proc != d_comboalist_proc);
+                            
+        if(bigfontproc && !d[i].dp2)
+        {
+            //d[i].dp2 = (d[i].proc == jwin_edit_proc) ? sfont3 : lfont_l;
+            d[i].dp2 = lfont_l;
+        }
+        else if(!bigfontproc)
+        {
+//      ((ListData *)d[i].dp)->font = &sfont3;
+            ((ListData *) d[i].dp)->font = &lfont_l;
+        }
+        
+        // Make checkboxes work
+        if(d[i].proc == jwin_check_proc)
+            d[i].proc = jwin_checkfont_proc;
+        else if(d[i].proc == jwin_radio_proc)
+            d[i].proc = jwin_radiofont_proc;
+    }
+    
+    jwin_center_dialog(d);
 }
 
 /*****************************/
@@ -311,11 +279,6 @@ struct ItemNameInfo
     char *wpn9;
     char *wpn10;
     char *actionsnd;
-    char *weapduration;
-    char *weaprange;
-    char *usedefence;
-    char *useweapon;
-    char *weap_pattern[ITEM_MOVEMENT_PATTERNS];
 };
 
 
@@ -353,12 +316,12 @@ static ItemNameInfo inameinf[]=
     { itype_dinsfire, (char *)"Damage:", (char *)"Number of Flames:", (char *)"Circle Width:",                   NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"Don't Provide Light", (char *)"Falls in Sideview",       NULL,                              NULL, (char *)"Rocket Up Sprite:", (char *)"Rocket Down Sprite:", (char *)"R. Up Sparkle Sprite:", (char *)"R. Down Sparkle Sprite:", (char *)"Flame Sprite:",                   NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Ring Sound:"                      },
     { itype_hammer, (char *)"Damage:",                         NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                              NULL,                              NULL,                              NULL, (char *)"Hammer Sprite:", (char *)"Smack Sprite:",                   NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Pound Sound:"                     },
     { itype_lens,                        NULL, (char *)"Lens Width:",                       NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Activation Sound:"                },
-    { itype_hookshot, (char *)"Damage:", (char *)"Chain Length:", (char *)"Chain Links:", (char *)"Block Flags:", (char *)"Reflect Flags:",          NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"No Handle Damage",                 (char *)"Allow Diagonal",                              NULL,                              NULL,                              NULL, (char *)"Tip Sprite:", (char *)"Chain Sprite (H):", (char *)"Chain Sprite (V):", (char *)"Handle Sprite:",                  NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Firing Sound:"                    },
-    { itype_boots, (char *)"Damage Combo Level:",             NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              (char *)"Iron",                              NULL, (char *)"Not Solid Combos",                NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL                                       },
+    { itype_hookshot, (char *)"Damage:", (char *)"Chain Length:", (char *)"Chain Links:", (char *)"Block Flags:", (char *)"Reflect Flags:",          NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"No Handle Damage",                 NULL,                              NULL,                              NULL,                              NULL, (char *)"Tip Sprite:", (char *)"Chain Sprite (H):", (char *)"Chain Sprite (V):", (char *)"Handle Sprite:",                  NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Firing Sound:"                    },
+    { itype_boots, (char *)"Damage Combo Level:",             NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"Not Solid Combos",                NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL                                       },
     { itype_bracelet, (char *)"Push Combo Level:",               NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"Once Per Screen",                 NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL                                       },
     { itype_book, (char *)"Damage:",                         NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"Fire Magic",                      NULL,                              NULL,                              NULL,                              NULL, (char *)"Magic Sprite:", (char *)"Flame Sprite:",                   NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Firing Sound:"                    },
     { itype_ring, (char *)"Damage Divisor:", (char *)"Link Sprite Pal:",                  NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL                                       },
-    { itype_wand, (char *)"Damage:",                         (char *)"W. Type:",                                        (char *)"W. Speed:",                                      (char *)"W. Range:",                              NULL,                              (char *)"Move Effect:",                              (char *)"Mvt Arg1:",                              (char *)"Mvt Arg2:",                              (char *)"No. of Clones:",                              (char *)"Clone Pattern:",                              NULL, (char *)"Allow Magic w/o Book",            (char *)"Wand Moves",                              NULL, (char *)"Can Slash",               NULL, (char *)"Stab Sprite:", (char *)"Slash Sprite:", (char *)"Projectile Sprite:",      (char *)"Projectile Misc:",                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Firing Sound:"                    },
+    { itype_wand, (char *)"Damage:",                         NULL,                                        NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"Allow Magic w/o Book",            NULL,                              NULL, (char *)"Can Slash",               NULL, (char *)"Stab Sprite:", (char *)"Slash Sprite:", (char *)"Magic Sprite:",                   NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Firing Sound:"                    },
     { itype_bait,                        NULL, (char *)"Duration:",                         NULL,                                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                              NULL,                              NULL,                              NULL, (char *)"Bait Sprite:",            NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Baiting Sound:"                   },
     { itype_potion,                      NULL, (char *)"HP Regained:", (char *)"MP Regained:",                    NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"HP R. Is Percent", (char *)"MP R. Is Percent",        NULL,                              NULL,                              NULL,                              NULL,                              NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL                                       },
     { itype_whistle,                     NULL, (char *)"Whirlwind Direction:", (char *)"Warp Ring:",                      NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL,                              NULL, (char *)"One W.Wind Per Scr.",             NULL,                              NULL,                              NULL,                              NULL, (char *)"Whirlwind Sprite:",       NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL,                                      NULL, (char *)"Music Sound:"                     },
@@ -378,7 +341,6 @@ static std::map<int, ItemNameInfo *> *inamemap = NULL;
 std::map<int, ItemNameInfo *> *getItemNameMap()
 {
     if(inamemap == NULL)
-	    
     {
         inamemap = new std::map<int, ItemNameInfo *>();
         
@@ -402,7 +364,6 @@ static int itemdata_flags_list[] =
     6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, -1
 };
 
- 
 static int itemdata_gfx_list[] =
 {
     // dialog control number
@@ -427,21 +388,6 @@ static int itemdata_scriptargs_list[] =
     101, 102, 131, 132, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, -1
 };
 
-static int itemdata_weaponargs_list[] =
-{
-    // dialog control number
-    199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215,216,217,218,219,220, -1
-};
-
-/*
-static int itemdata_movementpattern_list[] =
-{
-    // dialog control number
-    101, 102, 131, 132, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, -1
-};
-*/
-
-
 static TABPANEL itemdata_tabs[] =
 {
     // (text)
@@ -450,199 +396,11 @@ static TABPANEL itemdata_tabs[] =
     { (char *)"Pickup",       0,             itemdata_pickup_list,        0, NULL },
     { (char *)"Action",       0,             itemdata_script_list,        0, NULL },
     { (char *)"Scripts",      0,             itemdata_scriptargs_list,    0, NULL },
-    { (char *)"Weapon",      0,             itemdata_weaponargs_list,    0, NULL },
     { NULL,                   0,             NULL,                        0, NULL }
 };
 
 static ListData item_class__list(item_class_list, &pfont);
 static ListData weapon_list(weaponlist, &pfont);
-
-
-static char itemdata_weaponlist_str_buf[14];
-
-const char *itemdata_weaponlist(int index, int *list_size)
-{
-    if(index >= 0)
-    {
-        bound(index,0,40);
-        
-        switch(index)
-        {
-
-	case 0: return "None";
-	case 1: return "Sword"; 
-        case 2: return "Sword Beam";
-        case 3: return "Boomerang";
-        case 4: return "Bomb Blast";
-        case 5: return "S.Bomb Blast";
-        case 6: return "Bomb";
-        case 7: return "Super Bomb";
-	case 8: return "Arrow";
-	case 9: return "Fire";
-	case 10: return "Whistle";
-	case 11: return "Bait";
-	case 12: return "Wand";
-	case 13: return "Magic";
-	case 14: return "Candle";
-	case 15: return "Wind";	
-	case 16: return "Ref. Magic";
-	case 17: return "Ref. Fireball";
-	case 18: return "Ref. Rock";
-	case 19: return "Hammer";
-	case 20: return "Hookshot";
-	case 21: return "Hookshot Handle";
-	case 22: return "Hookshot Chain";
-	case 23: return "Sparkle";
-	case 24: return "Fire Sparkle";
-	case 25: return "wSmack";
-	case 26: return "wPhantom";
-	case 27: return "Cane of Byrna";
-	case 28: return "Ref. Beam";
-	case 29: return "wStomp";
-	case 30: return "n/a"; //lwMAX 2.50
-	case 32: return "Script 2";
-	case 33: return "Script 3";
-	case 34: return "Script 4";
-	case 35: return "Script 5";
-	case 36: return "Script 6";
-	case 37: return "Script 7";
-	case 38: return "Script 8";
-	case 39: return "Script 9";
-	case 40: return "Script 10";
-	
-	//! planned additions. -Z
-	//case 41: return "Ice";
-	//case 42: return "Sonic"; //Digdogger split def. -Z
-	//case 43: return "Rock"; //thrown rock
-	//case 44: return "Pot"; //thrown pot
-	//case 45: return "Electricity";
-	//case 46: return "Z3 Sword";
-	//case 47: return "GB Sword";
-	//case 48: return "Spin Attack";
-	//case 49: return "Shield Bash";
-	//case 50: return "Shovel";
-
-	
-        default: return "None";
-          //  sprintf(counterlist_str_buf,"Script %d",index-7);
-          //  return counterlist_str_buf;
-        }
-    }
-    
-    *list_size = 41;
-    return NULL;
-}
-
-static ListData itemdata_weapon_list(itemdata_weaponlist, &pfont);
-
-static char itemdata_weapontypelist_str_buf[14];
-
-const char *itemdata_weapontypelist(int index, int *list_size)
-{
-    if(index >= 0)
-    {
-        bound(index,0,40);
-        
-        switch(index)
-        {
-	case 0: return "None";
-	case 1: return "Sword"; 
-        case 2: return "Sword Beam";
-        case 3: return "Boomerang";
-        case 4: return "Bomb Blast";
-        case 5: return "S.Bomb Blast";
-        case 6: return "Bomb";
-        case 7: return "Super Bomb";
-	case 8: return "Arrow";
-	case 9: return "Fire";
-	case 10: return "Whistle";
-	case 11: return "Bait";
-	case 12: return "Wand";
-	case 13: return "Magic";
-	case 14: return "Candle";
-	case 15: return "Wind";	
-	case 16: return "Ref. Magic";
-	case 17: return "Ref. Fireball";
-	case 18: return "Ref. Rock";
-	case 19: return "Hammer";
-	case 20: return "Hookshot";
-	case 21: return "Hookshot Handle";
-	case 22: return "Hookshot Chain";
-	case 23: return "Sparkle";
-	case 24: return "Fire Sparkle";
-	case 25: return "wSmack";
-	case 26: return "wPhantom";
-	case 27: return "Cane of Byrna";
-	case 28: return "Ref. Beam";
-	case 29: return "wStomp";
-	case 30: return "n/a"; //lwMAX 2.50
-	case 32: return "Script 2";
-	case 33: return "Script 3";
-	case 34: return "Script 4";
-	case 35: return "Script 5";
-	case 36: return "Script 6";
-	case 37: return "Script 7";
-	case 38: return "Script 8";
-	case 39: return "Script 9";
-	case 40: return "Script 10";
-	
-	//! planned additions. -Z
-	//case 41: return "Ice";
-	//case 42: return "Sonic"; //Digdogger split def. -Z
-	//case 43: return "Rock"; //thrown rock
-	//case 44: return "Pot"; //thrown pot
-	//case 45: return "Electricity";
-	//case 46: return "Z3 Sword";
-	//case 47: return "GB Sword";
-	//case 48: return "Spin Attack";
-	//case 49: return "Shield Bash";
-	//case 50: return "Shovel";
-
-	
-        default: return "None";
-          //  sprintf(counterlist_str_buf,"Script %d",index-7);
-          //  return counterlist_str_buf;
-        }
-    }
-    
-    *list_size = 41;
-    return NULL;
-}
-
-static ListData itemdata_weapon_type_list(itemdata_weapontypelist, &pfont);
-
-static char weapon_pattern_list_buf[10];
-
-const char *weapon_patternlist(int index, int *list_size)
-{
-    if(index >= 0)
-    {
-        bound(index,0,32);
-        
-        switch(index)
-        {
-        case 0: return "None";
-	case 1: return "Line";
-	case 2: return "Sine Wave";
-        case 3: return "Cosine";
-        case 4: return "Circular";
-	case 5: return "Arc";
-	case 6: return "Pattern A";
-	case 7: return "Pattern B";
-	case 8: return "Pattern C";
-	case 9: return "Pattern D";
-	case 10: return "Pattern E";
-	case 11: return "Pattern F";
-	default: return "None";
-	
-        }
-    }
-    
-    *list_size = 12;
-    return NULL;
-}
-
-static ListData weapon_pattern_llist(weapon_patternlist, &pfont);
 
 static char counterlist_str_buf[12];
 
@@ -690,93 +448,6 @@ const char *counterlist(int index, int *list_size)
 
 static ListData counter_list(counterlist, &pfont);
 
-//Moved defenselist up here so that it is also available to itemdata. -Z
-
-const char *defenselist(int index, int *list_size)
-{
-    if(index>=0)
-    {
-        bound(index,0,edLAST-1);
-        
-        switch(index)
-        {
-        default:
-            return "(None)";
-            
-        case edHALFDAMAGE:
-            return "1/2 Damage";
-            
-        case edQUARTDAMAGE:
-            return "1/4 Damage";
-	
-            
-        case edSTUNONLY:
-            return "Stun";
-            
-        case edSTUNORCHINK:
-            return "Stun Or Block";
-            
-        case edSTUNORIGNORE:
-            return "Stun Or Ignore";
-            
-        case edCHINKL1:
-            return "Block If < 1";
-            
-        case edCHINKL2:
-            return "Block If < 2";
-            
-        case edCHINKL4:
-            return "Block If < 4";
-            
-        case edCHINKL6:
-            return "Block If < 6";
-            
-        case edCHINKL8:
-            return "Block If < 8";
-	
-	
-            
-        case edCHINK:
-            return "Block";
-            
-        case edIGNOREL1:
-            return "Ignore If < 1";
-            
-        case edIGNORE:
-            return "Ignore";
-	
-	    
-	
-            
-        case ed1HKO:
-            return "One-Hit-Kill";
-	
-	case edCHINKL10: //If damage is less than 10
-		return "Block if Power < 10";
-	
-	case ed2x: //Double damage
-		return "Double Damage";
-	case ed3x: //Triple Damage
-		return "Triple Damage";
-	case ed4x: //4x damage
-		return "Quadruple Damage";
-	
-	case edHEAL: //recover the weapon damage in HP
-		return "Enemy Gains HP = Damage";
-	
-	case edTRIGGERSECRETS: //Triggers screen secrets. 
-		return "Trigger Screen Secrets";
-	
-	
-        }
-    }
-    
-    *list_size = edLAST;
-    return NULL;
-}
-
-static ListData defense_list(defenselist, &font);
-
 int jwin_nbutton_proc(int msg, DIALOG *d, int c)
 {
     //these are here to bypass compiler warnings about unused arguments
@@ -789,7 +460,7 @@ int jwin_nbutton_proc(int msg, DIALOG *d, int c)
     {
     case MSG_DRAW:
         tfont=font;
-        font=is_large()?lfont_l:nfont;
+        font=is_large?lfont_l:nfont;
         jwin_draw_text_button(screen, d->x, d->y, d->w, d->h, (char*)d->dp, d->flags, true);
         font=tfont;
         return D_O_K;
@@ -813,12 +484,6 @@ const char *itemscriptdroplist(int index, int *list_size)
 //droplist like the dialog proc, naming scheme for this stuff is awful...
 static ListData itemscript_list(itemscriptdroplist, &pfont);
 
-static DIALOG itemdata_special_dlg[] =
-{
-    { jwin_text_proc,           8,     48,     96,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon Type",                  NULL,   NULL                  },
-    { jwin_droplist_proc,     107,     44,     72,      16, jwin_pal[jcTEXTFG],  jwin_pal[jcTEXTBG],           0,       0,           1,    0, (void *) &weapon_list,						 NULL,   NULL 				   },
-};
-	
 
 static DIALOG itemdata_dlg[] =
 {
@@ -1013,27 +678,27 @@ static DIALOG itemdata_dlg[] =
     { jwin_check_proc,        161,     62,     60,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Uses Rupees Instead Of Magic",        NULL,   NULL                  },
     
     //139
-    { jwin_text_proc,           8,     74,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[0]:",                           NULL,   NULL                  },
+    { jwin_text_proc,           8,     74,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 1:",                           NULL,   NULL                  },
     { jwin_droplist_proc,       8,     83,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,           8,    100,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[1]:",                           NULL,   NULL                  },
+    { jwin_text_proc,           8,    100,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 2:",                           NULL,   NULL                  },
     { jwin_droplist_proc,       8,    109,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,           8,    126,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[2]:",                           NULL,   NULL                  },
+    { jwin_text_proc,           8,    126,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 3:",                           NULL,   NULL                  },
     { jwin_droplist_proc,       8,    135,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,           8,    152,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[3]:",                           NULL,   NULL                  },
+    { jwin_text_proc,           8,    152,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 4:",                           NULL,   NULL                  },
     { jwin_droplist_proc,       8,    161,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,           8,    178,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[4]:",                           NULL,   NULL                  },
+    { jwin_text_proc,           8,    178,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 5:",                           NULL,   NULL                  },
     { jwin_droplist_proc,       8,    187,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
     
     //149
-    { jwin_text_proc,         161,     74,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[5]:",                           NULL,   NULL                  },
+    { jwin_text_proc,         161,     74,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 6:",                           NULL,   NULL                  },
     { jwin_droplist_proc,     161,     83,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,         161,    100,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[6]:",                           NULL,   NULL                  },
+    { jwin_text_proc,         161,    100,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 7:",                           NULL,   NULL                  },
     { jwin_droplist_proc,     161,    109,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,         161,    126,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[7]:",                           NULL,   NULL                  },
+    { jwin_text_proc,         161,    126,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 8:",                           NULL,   NULL                  },
     { jwin_droplist_proc,     161,    135,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,         161,    152,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[8]:",                           NULL,   NULL                  },
+    { jwin_text_proc,         161,    152,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 9:",                           NULL,   NULL                  },
     { jwin_droplist_proc,     161,    161,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-    { jwin_text_proc,         161,    178,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Sprites[9]:",                          NULL,   NULL                  },
+    { jwin_text_proc,         161,    178,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon 10:",                          NULL,   NULL                  },
     { jwin_droplist_proc,     161,    187,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
     
     //159
@@ -1079,68 +744,17 @@ static DIALOG itemdata_dlg[] =
     { jwin_edit_proc,      34+10,  115+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
     { jwin_edit_proc,      34+10,  133+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
     { jwin_edit_proc,      34+10,  151+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    //195
+    
     { jwin_text_proc,       112+10,  29+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "A1:", NULL, NULL },
     { jwin_text_proc,       112+10,  47+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "A2:", NULL, NULL },
-    //197
+    //74
     { jwin_edit_proc,      140+10,  25+20,   32,    16,   vc(12),   vc(1),   0,       0,          2,             0,       NULL, NULL, NULL },
     { jwin_edit_proc,      140+10,  43+20,   32,    16,   vc(12),   vc(1),   0,       0,          2,             0,       NULL, NULL, NULL },
-    //199
-    { jwin_text_proc,           8,     50,     96,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon Type",                  NULL,   NULL                  },
-    { jwin_droplist_proc,     107,     48,     72,      16, jwin_pal[jcTEXTFG],  jwin_pal[jcTEXTBG],           0,       0,           1,    0, (void *) &itemdata_weapon_list,						 NULL,   NULL 				   },
-    //201
-    { jwin_text_proc,           8,     70,     96,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Default Defense",                  NULL,   NULL                  },
-    { jwin_droplist_proc,     107,     68,     72,      16, jwin_pal[jcTEXTFG],  jwin_pal[jcTEXTBG],           0,       0,           1,    0, (void *) &defense_list,						 NULL,   NULL 				   },
-    //203
-    { jwin_text_proc,           8,     90,     96,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Movement Pattern",                  NULL,   NULL                  },
-    { jwin_droplist_proc,     107,     88,     72,      16, jwin_pal[jcTEXTFG],  jwin_pal[jcTEXTBG],           0,       0,           1,    0, (void *) &weapon_pattern_llist,						 NULL,   NULL 				   },
-    //205
-    { jwin_text_proc,           8,     110,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Movement Arg 1:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         107,     108,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //207
-    { jwin_text_proc,           8,     130,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Movement Arg 2:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         107,     128,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //209
-    { jwin_text_proc,           8,     150,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon Range:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         107,     148,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //211
-    { jwin_text_proc,           8,     170,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Weapon Duration:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         107,     168,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //213
-     { jwin_text_proc,           177,     110,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Movement Arg 3:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         276,     108,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //215
-    { jwin_text_proc,           177,     130,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Movement Arg 4:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         276,     128,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //217
-    { jwin_text_proc,           177,     150,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Other 1:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         276,     148,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
-    //219
-    { jwin_text_proc,           177,     170,     35,      8,    vc(14),                 vc(1),                   0,       0,           0,    0, (void *) "Other 2:",                              NULL,   NULL                  },
-    { jwin_edit_proc,         276,     168,     28,     16,    vc(12),                 vc(1),                   0,       0,           3,    0,  NULL,                                           NULL,   NULL                  },
     
-    /*
-    { jwin_text_proc,       6+10,   29+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[0]:", NULL, NULL },
-    { jwin_text_proc,       6+10,   47+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[1]:", NULL, NULL },
-    { jwin_text_proc,       6+10,   65+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[2]:", NULL, NULL },
-    { jwin_text_proc,       6+10,   83+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[3]:", NULL, NULL },
-    { jwin_text_proc,       6+10,  101+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[4]:", NULL, NULL },
-    { jwin_text_proc,       6+10,  119+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[5]:", NULL, NULL },
-    { jwin_text_proc,       6+10,  137+20,   24,    36,   0,        0,       0,       0,          0,             0, (void *) "Misc[6]:", NULL, NULL },
-    { jwin_text_proc,       6+10,  155+20,   24,    12,   0,        0,       0,       0,          0,             0, (void *) "Misc[7]:", NULL, NULL },
-    { jwin_edit_proc,      34+10,   25+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,   43+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,   61+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,   79+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,   97+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,  115+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,  133+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    { jwin_edit_proc,      34+10,  151+20,   72,    16,   vc(12),   vc(1),   0,       0,          12,             0,       NULL, NULL, NULL },
-    */
     { NULL,                     0,      0,      0,      0,    0,                      0,                       0,       0,           0,    0,  NULL,                                           NULL,   NULL                  },
 };
 
-void setLabels(int iclass, DIALOG *d)
+void setLabels(int iclass)
 {
     std::map<int, ItemNameInfo *> *nmap = getItemNameMap();
     std::map<int, ItemNameInfo *>::iterator it = nmap->find(iclass);
@@ -1151,16 +765,16 @@ void setLabels(int iclass, DIALOG *d)
         
         
     if(inf == NULL)
-        d[12].dp = (void *)"Power:";
+        itemdata_dlg[12].dp = (void *)"Power:";
     else if(inf->power == NULL)
     {
-        d[12].dp = (void *)"<Unused>";
-        d[13].flags &= ~D_DISABLED;
+        itemdata_dlg[12].dp = (void *)"<Unused>";
+        itemdata_dlg[13].flags |= D_DISABLED;
     }
     else
     {
-        d[12].dp = inf->power;
-        d[13].flags &= ~D_DISABLED;
+        itemdata_dlg[12].dp = inf->power;
+        itemdata_dlg[13].flags &= ~D_DISABLED;
     }
     
     // Disable the Equipment item checkbox
@@ -1170,328 +784,296 @@ void setLabels(int iclass, DIALOG *d)
             iclass==itype_lkey || iclass==itype_misc ||
             iclass==itype_bowandarrow || iclass==itype_letterpotion)
     {
-        d[14].dp = (void *)"<Unused>";
-        d[14].flags &= ~D_DISABLED;
+        itemdata_dlg[14].dp = (void *)"<Unused>";
+        itemdata_dlg[14].flags |= D_DISABLED;
+        itemdata_dlg[14].flags &= ~D_SELECTED;
     }
     else
     {
-        d[14].dp = (void *)"Equipment Item";
-        d[14].flags &= ~D_DISABLED;
+        itemdata_dlg[14].dp = (void *)"Equipment Item";
+        itemdata_dlg[14].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->flag1 == NULL))
     {
-        d[15].dp = (void *)"Flags[0]";
-        d[15].flags &= ~D_DISABLED;
+        itemdata_dlg[15].dp = (void *)"<Unused>";
+        itemdata_dlg[15].flags |= D_DISABLED;
     }
     else
     {
-        d[15].dp = inf->flag1;
-        d[15].flags &= ~D_DISABLED;
+        itemdata_dlg[15].dp = inf->flag1;
+        itemdata_dlg[15].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->flag2 == NULL))
     {
-        d[16].dp = (void *)"Flags[1]";
-        d[16].flags &= ~D_DISABLED;
+        itemdata_dlg[16].dp = (void *)"<Unused>";
+        itemdata_dlg[16].flags |= D_DISABLED;
     }
     else
     {
-        d[16].dp = inf->flag2;
-        d[16].flags &= ~D_DISABLED;
+        itemdata_dlg[16].dp = inf->flag2;
+        itemdata_dlg[16].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->flag3 == NULL))
     {
-        d[17].dp = (void *)"Flags[2]";
-        d[17].flags &= ~D_DISABLED;
+        itemdata_dlg[17].dp = (void *)"<Unused>";
+        itemdata_dlg[17].flags |= D_DISABLED;
     }
     else
     {
-        d[17].dp = inf->flag3;
-        d[17].flags &= ~D_DISABLED;
+        itemdata_dlg[17].dp = inf->flag3;
+        itemdata_dlg[17].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->flag4 == NULL))
     {
-        d[18].dp = (void *)"Flags[3]";
-        d[18].flags &= ~D_DISABLED;
+        itemdata_dlg[18].dp = (void *)"<Unused>";
+        itemdata_dlg[18].flags |= D_DISABLED;
     }
     else
     {
-        d[18].dp = inf->flag4;
-        d[18].flags &= ~D_DISABLED;
+        itemdata_dlg[18].dp = inf->flag4;
+        itemdata_dlg[18].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->flag5 == NULL))
     {
-        d[19].dp = (void *)"Flags[4]";
-        d[19].flags &= ~D_DISABLED;
+        itemdata_dlg[19].dp = (void *)"<Unused>";
+        itemdata_dlg[19].flags |= D_DISABLED;
     }
     else
     {
-        d[19].dp = inf->flag5;
-        d[19].flags &= ~D_DISABLED;
+        itemdata_dlg[19].dp = inf->flag5;
+        itemdata_dlg[19].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc1 == NULL))
     {
-        d[20].dp = (void *)"Attributes[0]";
-        d[21].flags &= ~D_DISABLED;
+        itemdata_dlg[20].dp = (void *)"<Unused>";
+        itemdata_dlg[21].flags |= D_DISABLED;
     }
     else
     {
-        d[20].dp = inf->misc1;
-        d[21].flags &= ~D_DISABLED;
+        itemdata_dlg[20].dp = inf->misc1;
+        itemdata_dlg[21].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc2 == NULL))
     {
-        d[22].dp = (void *)"Attributes[1]";
-        d[23].flags &= ~D_DISABLED;
+        itemdata_dlg[22].dp = (void *)"<Unused>";
+        itemdata_dlg[23].flags |= D_DISABLED;
     }
     else
     {
-        d[22].dp = inf->misc2;
-        d[23].flags &= ~D_DISABLED;
+        itemdata_dlg[22].dp = inf->misc2;
+        itemdata_dlg[23].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc3 == NULL))
     {
-        d[24].dp = (void *)"Attributes[2]";
-        d[25].flags &= ~D_DISABLED;
+        itemdata_dlg[24].dp = (void *)"<Unused>";
+        itemdata_dlg[25].flags |= D_DISABLED;
     }
     else
     {
-        d[24].dp = inf->misc3;
-        d[25].flags &= ~D_DISABLED;
+        itemdata_dlg[24].dp = inf->misc3;
+        itemdata_dlg[25].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc4 == NULL))
     {
-        d[26].dp = (void *)"Attributes[3]";
-        d[27].flags &= ~D_DISABLED;
+        itemdata_dlg[26].dp = (void *)"<Unused>";
+        itemdata_dlg[27].flags |= D_DISABLED;
     }
     else
     {
-        d[26].dp = inf->misc4;
-        d[27].flags &= ~D_DISABLED;
+        itemdata_dlg[26].dp = inf->misc4;
+        itemdata_dlg[27].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc5 == NULL))
     {
-        d[28].dp = (void *)"Attributes[4]";
-        d[29].flags &= ~D_DISABLED;
+        itemdata_dlg[28].dp = (void *)"<Unused>";
+        itemdata_dlg[29].flags |= D_DISABLED;
     }
     else
     {
-        d[28].dp = inf->misc5;
-        d[29].flags &= ~D_DISABLED;
+        itemdata_dlg[28].dp = inf->misc5;
+        itemdata_dlg[29].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc6 == NULL))
     {
-        d[30].dp = (void *)"Attributes[5]";
-        d[31].flags &= ~D_DISABLED;
+        itemdata_dlg[30].dp = (void *)"<Unused>";
+        itemdata_dlg[31].flags |= D_DISABLED;
     }
     else
     {
-        d[30].dp = inf->misc6;
-        d[31].flags &= ~D_DISABLED;
+        itemdata_dlg[30].dp = inf->misc6;
+        itemdata_dlg[31].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc7 == NULL))
     {
-        d[32].dp = (void *)"Attributes[6]";
-        d[33].flags &= ~D_DISABLED;
+        itemdata_dlg[32].dp = (void *)"<Unused>";
+        itemdata_dlg[33].flags |= D_DISABLED;
     }
     else
     {
-        d[32].dp = inf->misc7;
-        d[33].flags &= ~D_DISABLED;
+        itemdata_dlg[32].dp = inf->misc7;
+        itemdata_dlg[33].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc8 == NULL))
     {
-        d[34].dp = (void *)"Attributes[7]";
-        d[35].flags &= ~D_DISABLED;
+        itemdata_dlg[34].dp = (void *)"<Unused>";
+        itemdata_dlg[35].flags |= D_DISABLED;
     }
     else
     {
-        d[34].dp = inf->misc8;
-        d[35].flags &= ~D_DISABLED;
+        itemdata_dlg[34].dp = inf->misc8;
+        itemdata_dlg[35].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc9 == NULL))
     {
-        d[36].dp = (void *)"Attributes[8]";
-        d[37].flags &= ~D_DISABLED;
+        itemdata_dlg[36].dp = (void *)"<Unused>";
+        itemdata_dlg[37].flags |= D_DISABLED;
     }
     else
     {
-        d[36].dp = inf->misc9;
-        d[37].flags &= ~D_DISABLED;
+        itemdata_dlg[36].dp = inf->misc9;
+        itemdata_dlg[37].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->misc10 == NULL))
     {
-        d[38].dp = (void *)"Attributes[9]";
-        d[39].flags &= ~D_DISABLED;
+        itemdata_dlg[38].dp = (void *)"<Unused>";
+        itemdata_dlg[39].flags |= D_DISABLED;
     }
     else
     {
-        d[38].dp = inf->misc10;
-        d[39].flags &= ~D_DISABLED;
+        itemdata_dlg[38].dp = inf->misc10;
+        itemdata_dlg[39].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->actionsnd == NULL))
-        d[135].dp = (void *)"UseSound";
+        itemdata_dlg[135].dp = (void *)"<Unused>";
     else
-        d[135].dp = inf->actionsnd;
+        itemdata_dlg[135].dp = inf->actionsnd;
         
     if((inf == NULL) || (inf->wpn1 == NULL))
     {
-        d[139].dp = (void *)"Sprites[0]";
-        d[140].flags &= ~D_DISABLED;
+        itemdata_dlg[139].dp = (void *)"<Unused>";
+        itemdata_dlg[140].flags |= D_DISABLED;
     }
     else
     {
-        d[139].dp = inf->wpn1;
-        d[140].flags &= ~D_DISABLED;
+        itemdata_dlg[139].dp = inf->wpn1;
+        itemdata_dlg[140].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn2 == NULL))
     {
-        d[141].dp = (void *)"Sprites[1]";
-        d[142].flags &= ~D_DISABLED;
+        itemdata_dlg[141].dp = (void *)"<Unused>";
+        itemdata_dlg[142].flags |= D_DISABLED;
     }
     else
     {
-        d[141].dp = inf->wpn2;
-        d[142].flags &= ~D_DISABLED;
+        itemdata_dlg[141].dp = inf->wpn2;
+        itemdata_dlg[142].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn3 == NULL))
     {
-        d[143].dp = (void *)"Sprites[2]";
-        d[144].flags &= ~D_DISABLED;
+        itemdata_dlg[143].dp = (void *)"<Unused>";
+        itemdata_dlg[144].flags |= D_DISABLED;
     }
     else
     {
-        d[143].dp = inf->wpn3;
-        d[144].flags &= ~D_DISABLED;
+        itemdata_dlg[143].dp = inf->wpn3;
+        itemdata_dlg[144].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn4 == NULL))
     {
-        d[145].dp = (void *)"Sprites[3]";
-        d[146].flags &= ~D_DISABLED;
+        itemdata_dlg[145].dp = (void *)"<Unused>";
+        itemdata_dlg[146].flags |= D_DISABLED;
     }
     else
     {
-        d[145].dp = inf->wpn4;
-        d[146].flags &= ~D_DISABLED;
+        itemdata_dlg[145].dp = inf->wpn4;
+        itemdata_dlg[146].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn5 == NULL))
     {
-        d[147].dp = (void *)"Sprites[4]";
-        d[148].flags &= ~D_DISABLED;
+        itemdata_dlg[147].dp = (void *)"<Unused>";
+        itemdata_dlg[148].flags |= D_DISABLED;
     }
     else
     {
-        d[147].dp = inf->wpn5;
-        d[148].flags &= ~D_DISABLED;
+        itemdata_dlg[147].dp = inf->wpn5;
+        itemdata_dlg[148].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn6 == NULL))
     {
-        d[149].dp = (void *)"Sprites[5]";
-        d[150].flags &= ~D_DISABLED;
+        itemdata_dlg[149].dp = (void *)"<Unused>";
+        itemdata_dlg[150].flags |= D_DISABLED;
     }
     else
     {
-        d[149].dp = inf->wpn6;
-        d[150].flags &= ~D_DISABLED;
+        itemdata_dlg[149].dp = inf->wpn6;
+        itemdata_dlg[150].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn7 == NULL))
     {
-        d[151].dp = (void *)"Sprites[6]";
-        d[152].flags &= ~D_DISABLED;
+        itemdata_dlg[151].dp = (void *)"<Unused>";
+        itemdata_dlg[152].flags |= D_DISABLED;
     }
     else
     {
-        d[151].dp = inf->wpn7;
-        d[152].flags &= ~D_DISABLED;
+        itemdata_dlg[151].dp = inf->wpn7;
+        itemdata_dlg[152].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn8 == NULL))
     {
-        d[153].dp = (void *)"Sprites[7]";
-        d[154].flags &= ~D_DISABLED;
+        itemdata_dlg[153].dp = (void *)"<Unused>";
+        itemdata_dlg[154].flags |= D_DISABLED;
     }
     else
     {
-        d[153].dp = inf->wpn8;
-        d[154].flags &= ~D_DISABLED;
+        itemdata_dlg[153].dp = inf->wpn8;
+        itemdata_dlg[154].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn9 == NULL))
     {
-        d[155].dp = (void *)"Sprites[8]";
-        d[156].flags &= ~D_DISABLED;
+        itemdata_dlg[155].dp = (void *)"<Unused>";
+        itemdata_dlg[156].flags |= D_DISABLED;
     }
     else
     {
-        d[155].dp = inf->wpn9;
-        d[156].flags &= ~D_DISABLED;
+        itemdata_dlg[155].dp = inf->wpn9;
+        itemdata_dlg[156].flags &= ~D_DISABLED;
     }
     
     if((inf == NULL) || (inf->wpn10 == NULL))
     {
-        d[157].dp = (void *)"Sprites[9]";
-        d[158].flags &= ~D_DISABLED;
+        itemdata_dlg[157].dp = (void *)"<Unused>";
+        itemdata_dlg[158].flags |= D_DISABLED;
     }
     else
     {
-        d[157].dp = inf->wpn10;
-        d[158].flags &= ~D_DISABLED;
+        itemdata_dlg[157].dp = inf->wpn10;
+        itemdata_dlg[158].flags &= ~D_DISABLED;
     }
-    /*
-    //!! New itemdata values. -Z
-    char wrange[8], wdur[8], wdef[8], wweap[8], wptrn[8], warg1[8], warg2[8];
-    sprintf(wrange,"%d",inf->weaprange);
-    sprintf(wdur,"%d",inf->weapduration);
-    sprintf(wdef,"%d",inf->usedefence);
-    sprintf(wweap,"%d",inf->useweapon);
-    sprintf(wptrn,"%d",inf->weap_pattern[0]);
-    sprintf(warg1,"%d",inf->weap_pattern[1]);
-    sprintf(warg2,"%d",inf->weap_pattern[2]);
-    
-    
-   //!  This is crashing ZQuest. Why? What is the proper way to populate these fields from the item buffer? -Z
-    itemdata_dlg[200].dp = wweap; //atoi(inf->useweapon);
-    itemdata_dlg[202].dp = wdef; //atoi(inf->usedefence);
-    itemdata_dlg[204].dp = wptrn; //atoi(inf->weap_pattern[0]);
-    itemdata_dlg[206].dp = warg1; //atoi(inf->weap_pattern[1]);
-    itemdata_dlg[208].dp = warg2; //atoi(inf->weap_pattern[2]);
-    itemdata_dlg[210].dp = wrange; // atoi(inf->weaprange);
-    itemdata_dlg[212].dp = wdur; //atoi(inf->weapduration);
-    */
-    
-    /* Also crashing...
-    itemdata_dlg[200].d1 = atoi(inf->useweapon);
-    itemdata_dlg[202].d1 = atoi(inf->usedefence);
-    itemdata_dlg[204].d1 = atoi(inf->weap_pattern[0]);
-    itemdata_dlg[206].d1 = atoi(inf->weap_pattern[1]);
-    itemdata_dlg[208].d1 = atoi(inf->weap_pattern[2]);
-    itemdata_dlg[210].d1 = atoi(inf->weaprange);
-    itemdata_dlg[212].d1 = atoi(inf->weapduration);
-    */
-}	
-
-
+}
 
 void itemdata_help(int id)
 {
@@ -1521,6 +1103,7 @@ void test_item(itemdata test, int x, int y)
     item temp((fix)0,(fix)0,(fix)0,0,0,0);
     temp.yofs = 0;
     go();
+    scare_mouse();
     itemdata_dlg[0].flags=0;
     jwin_win_proc(MSG_DRAW, itemdata_dlg, 0);
     itemdata_dlg[0].flags=D_EXIT;
@@ -1528,7 +1111,8 @@ void test_item(itemdata test, int x, int y)
     
     frame=0;
 //  jwin_draw_frame(screen,itemdata_dlg[0].x+(itemdata_dlg[0].w/2)-32,itemdata_dlg[0].y+(itemdata_dlg[0].h/2)-32, is_large?68:20,is_large?68:20,FR_DEEP);
-    jwin_draw_frame(screen, x, y, is_large()?68:20, is_large() ?68:20,FR_DEEP);
+    jwin_draw_frame(screen, x, y, is_large?68:20,is_large?68:20,FR_DEEP);
+    unscare_mouse();
     
     for(;;)
     {
@@ -1537,8 +1121,10 @@ void test_item(itemdata test, int x, int y)
         clear_bitmap(buf);
         temp.animate(0);
         temp.draw(buf);
+        custom_vsync();
+        scare_mouse();
         
-        if(is_large())
+        if(is_large)
         {
             stretch_blit(buf,buf2,0,0,16,16,0,0,64,64);
 //      blit(buf2,screen,0,0,64,64,itemdata_dlg[0].x+(itemdata_dlg[0].w/2)-30,itemdata_dlg[0].y+(itemdata_dlg[0].h/2)-30);
@@ -1549,8 +1135,7 @@ void test_item(itemdata test, int x, int y)
             blit(buf,screen,0,0,x+2,y+2,16,16);
         }
         
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
+        unscare_mouse();
         
         //if(zqwin_scale > 1)
         {
@@ -1567,16 +1152,14 @@ void test_item(itemdata test, int x, int y)
             break;
         }
         
-        if(Backend::mouse->anyButtonClicked())
+        if(gui_mouse_b())
             break;
     }
     
     comeback();
     
-    while(Backend::mouse->anyButtonClicked())
+    while(gui_mouse_b())
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
         /* do nothing */
     }
     
@@ -1593,7 +1176,6 @@ void edit_itemdata(int index)
     char snd[8], mgc[8], hrt[8], pow[8];
     char name[64], zname[64];
     char ms1[8], ms2[8], ms3[8], ms4[8], ms5[8], ms6[8], ms7[8], ms8[8], ms9[8], ms10[8];
-	char wrange[8], wdur[8], wdef[8], wweap[8], wptrn[8], warg1[8], warg2[8], warg3[8], warg4[8], warg5[8], warg6[8];
     char itemnumstr[75];
     char da[10][13];
     
@@ -1622,26 +1204,7 @@ void edit_itemdata(int index)
     sprintf(hrt,"%d",itemsbuf[index].pickup_hearts);
     sprintf(pow,"%d",itemsbuf[index].power);
     sprintf(asn,"%d",itemsbuf[index].usesound);
-    
-    //New itemdata vars
-    sprintf(wrange,"%d",itemsbuf[index].weaprange);
-    sprintf(wdur,"%d",itemsbuf[index].weapduration);
-    sprintf(wdef,"%d",itemsbuf[index].usedefence);
-    sprintf(wweap,"%d",itemsbuf[index].useweapon);
-    sprintf(wptrn,"%d",itemsbuf[index].weap_pattern[0]);
-    sprintf(warg1,"%d",itemsbuf[index].weap_pattern[1]);
-    sprintf(warg2,"%d",itemsbuf[index].weap_pattern[2]);
-    sprintf(warg3,"%d",itemsbuf[index].weap_pattern[3]);
-    sprintf(warg4,"%d",itemsbuf[index].weap_pattern[4]);
-    sprintf(warg5,"%d",itemsbuf[index].weap_pattern[5]);
-    sprintf(warg6,"%d",itemsbuf[index].weap_pattern[6]);
-  
-    
     sprintf(name,"%s",item_string[index]);
-    
-    
-    
-    
     
     for(int j=0; j<8; j++)
         sprintf(da[j],"%.4f",itemsbuf[index].initiald[j]/10000.0);
@@ -1659,7 +1222,7 @@ void edit_itemdata(int index)
     
     if(biw_cnt==-1)
     {
-        build_biw_list(); //built-in weapons
+        build_biw_list();
     }
     
     itemdata_dlg[7].dp = name;
@@ -1720,9 +1283,8 @@ void edit_itemdata(int index)
     for(int i=0; i<10; ++i)
     {
 //    itemdata_dlg[140+(i*2)].dp3 = is_large ? sfont3 : pfont;
-        itemdata_dlg[140+(i*2)].dp3 = is_large() ? lfont_l : pfont;
+        itemdata_dlg[140+(i*2)].dp3 = is_large ? lfont_l : pfont;
     }
-    
     
     for(int j=0; j<biw_cnt; j++)
     {
@@ -1778,67 +1340,33 @@ void edit_itemdata(int index)
     itemdata_dlg[102].d1 = pickupscript;
     itemdata_dlg[132].d1 = script;
     
-    //This is causing ZQuest to crash. Why? -Z
-    /*
-    //strings or ints here? -Z
-    itemdata_dlg[200].dp = wweap; //useweapon;
-    itemdata_dlg[202].dp = wdef; //usedefence;
-    itemdata_dlg[204].dp = wptrn; //weap_pattern[0];
-    itemdata_dlg[206].dp = warg1; //weap_pattern[1];
-    itemdata_dlg[208].dp = warg2; //weap_pattern[2];
-    itemdata_dlg[210].dp = wrange; //weaprange;
-    itemdata_dlg[212].dp = wdur; //weapduration;
-    
-    */
-    //the original fields were crashing because they entered a switch stmt with no case 0 or default. 
-    
-    //! These now store in the editor, but if you change the values, save the quest, and reload, 
-	//! ZQuest crashes on reading items (bad token)
-    
-    
-    //These cannot be .dp. That crashes ZQuest; but they are not being retained when changed. -Z
-     itemdata_dlg[200].d1 = itemsbuf[index].useweapon;
-    itemdata_dlg[202].d1 = itemsbuf[index].usedefence;
-    itemdata_dlg[204].d1 = itemsbuf[index].weap_pattern[0];
-    
-    //.dp is correcxt here, and these now work, and are retained. -Z
-    itemdata_dlg[206].dp = warg1; //itemsbuf[index].weap_pattern[1];
-    itemdata_dlg[208].dp = warg2; //itemsbuf[index].weap_pattern[2];
-    itemdata_dlg[210].dp = wrange; //itemsbuf[index].weaprange;
-    itemdata_dlg[212].dp = wdur; //itemsbuf[index].weapduration;
-    
-     itemdata_dlg[214].dp = warg3; //itemsbuf[index].weap_pattern[1];
-    itemdata_dlg[216].dp = warg4; //itemsbuf[index].weap_pattern[2];
-    itemdata_dlg[218].dp = warg5; //itemsbuf[index].weaprange;
-    itemdata_dlg[220].dp = warg6; //itemsbuf[index].weapduration;
-    
-    
     int ret;
     itemdata test;
     memset(&test, 0, sizeof(itemdata));
     test.playsound = 25;
     
-    setLabels(itemsbuf[index].family, itemdata_dlg);
+    setLabels(itemsbuf[index].family);
     FONT *tfont=font;
     font=pfont;
-
-	DIALOG *itemdata_cpy = resizeDialog(itemdata_dlg, 1.5);
-
-            
+    
+    if(is_large)
+        large_dialog(itemdata_dlg);
+        
     do
     {
-        ret = zc_popup_dialog(itemdata_cpy,3);
+        ret = zc_popup_dialog(itemdata_dlg,3);
+        
         test.misc  = 0;
         test.flags = 0;
         
         test.fam_type = vbound(atoi(cll), 1, 255);
-        test.count = itemdata_cpy[96].d1-1;
+        test.count = itemdata_dlg[96].d1-1;
         test.amount = atoi(amt)<0?-(vbound(atoi(amt), -0x3FFF, 0))|0x4000:vbound(atoi(amt), 0, 0x3FFF);
         test.setmax = atoi(max);
         test.max = atoi(fmx);
-        test.script = biitems[itemdata_cpy[132].d1].second + 1;
+        test.script = biitems[itemdata_dlg[132].d1].second + 1;
         test.playsound = vbound(atoi(snd), 0, 127);
-        test.collect_script = biitems[itemdata_cpy[102].d1].second + 1;
+        test.collect_script = biitems[itemdata_dlg[102].d1].second + 1;
         test.misc1  = atoi(ms1);
         test.misc2  = atoi(ms2);
         test.misc3  = atoi(ms3);
@@ -1854,74 +1382,53 @@ void edit_itemdata(int index)
         test.power = vbound(atoi(pow), 0, 255);
         test.usesound = vbound(atoi(asn), 0, 127);
         
-        test.family = vbound(biic[itemdata_cpy[9].d1].i, 0, 255);
-	
-	//New itemdata vars -Z
-	
-	//! These now store in the editor, but if you change the values, save the quest, and reload, 
-	//! ZQuest crashes on reading items (bad token)
-	test.usedefence =  itemdata_cpy[202].d1; //atoi(wdef);
-	test.weaprange = vbound(atoi(wrange),0,214747);
-	test.weapduration = vbound(atoi(wdur),0,214747);
-	test.useweapon = itemdata_cpy[200].d1;; //atoi(wweap);
-	test.weap_pattern[0] = itemdata_cpy[204].d1;; //atoi(wptrn);
-	test.weap_pattern[1] = vbound(atoi(warg1),-214747, 214747);
-	test.weap_pattern[2] =  vbound(atoi(warg2),-214747, 214747);
-	
-	test.weap_pattern[3] =  vbound(atoi(warg3),-214747, 214747);
-	test.weap_pattern[4] =  vbound(atoi(warg4),-214747, 214747);
-	test.weap_pattern[5] =  vbound(atoi(warg5),-214747, 214747);
-	test.weap_pattern[6] =  vbound(atoi(warg6),-214747, 214747);
+        test.family = vbound(biic[itemdata_dlg[9].d1].i, 0, 255);
         
-        if(itemdata_cpy[14].flags & D_SELECTED)
+        if(itemdata_dlg[14].flags & D_SELECTED)
             test.flags |= ITEM_GAMEDATA;
             
-        if(itemdata_cpy[15].flags & D_SELECTED)
+        if(itemdata_dlg[15].flags & D_SELECTED)
             test.flags |= ITEM_FLAG1;
             
-        if(itemdata_cpy[16].flags & D_SELECTED)
+        if(itemdata_dlg[16].flags & D_SELECTED)
             test.flags |= ITEM_FLAG2;
             
-        if(itemdata_cpy[17].flags & D_SELECTED)
+        if(itemdata_dlg[17].flags & D_SELECTED)
             test.flags |= ITEM_FLAG3;
             
-        if(itemdata_cpy[18].flags & D_SELECTED)
+        if(itemdata_dlg[18].flags & D_SELECTED)
             test.flags |= ITEM_FLAG4;
             
-        if(itemdata_cpy[19].flags & D_SELECTED)
+        if(itemdata_dlg[19].flags & D_SELECTED)
             test.flags |= ITEM_FLAG5;
             
-        test.tile  = itemdata_cpy[68].d1;
-        test.csets = itemdata_cpy[68].d2;
-	
-	//New itemdata -Z
-	
-	
+        test.tile  = itemdata_dlg[68].d1;
+        test.csets = itemdata_dlg[68].d2;
         
-        if(itemdata_cpy[69].flags & D_SELECTED)
+        if(itemdata_dlg[69].flags & D_SELECTED)
             test.misc |= 1;
             
-        if(itemdata_cpy[70].flags & D_SELECTED)
+        if(itemdata_dlg[70].flags & D_SELECTED)
             test.misc |= 2;
             
-        test.amount |= (itemdata_cpy[94].flags & D_SELECTED) ? 0x8000 : 0;
+        test.amount |= (itemdata_dlg[94].flags & D_SELECTED) ? 0x8000 : 0;
         
-        if(itemdata_cpy[107].flags & D_SELECTED)
+        if(itemdata_dlg[107].flags & D_SELECTED)
             test.flags |= ITEM_KEEPOLD;
             
-        if(itemdata_cpy[108].flags & D_SELECTED)
+        if(itemdata_dlg[108].flags & D_SELECTED)
             test.flags |= ITEM_GAINOLD;
             
-        if(itemdata_cpy[109].flags & D_SELECTED)
+        if(itemdata_dlg[109].flags & D_SELECTED)
             test.flags |= ITEM_EDIBLE;
             
-        if(itemdata_cpy[110].flags & D_SELECTED)
+        if(itemdata_dlg[110].flags & D_SELECTED)
             test.flags |= ITEM_COMBINE;
             
-        if(itemdata_cpy[137].flags & D_SELECTED)
+        if(itemdata_dlg[137].flags & D_SELECTED)
             test.flags |= ITEM_DOWNGRADE;
             
-        if(itemdata_cpy[138].flags & D_SELECTED)
+        if(itemdata_dlg[138].flags & D_SELECTED)
             test.flags |= ITEM_RUPEE_MAGIC;
             
         test.csets  |= (atoi(fcs)&15)<<4;
@@ -1929,16 +1436,16 @@ void edit_itemdata(int index)
         test.speed  = zc_min(atoi(spd),255);
         test.delay  = zc_min(atoi(dly),255);
         test.ltm    = zc_max(zc_min(atol(ltm),NEWMAXTILES-1),0-(NEWMAXTILES-1));
-        test.wpn   = biw[itemdata_cpy[140].d1].i;
-        test.wpn2  = biw[itemdata_cpy[142].d1].i;
-        test.wpn3  = biw[itemdata_cpy[144].d1].i;
-        test.wpn4  = biw[itemdata_cpy[146].d1].i;
-        test.wpn5  = biw[itemdata_cpy[148].d1].i;
-        test.wpn6  = biw[itemdata_cpy[150].d1].i;
-        test.wpn7  = biw[itemdata_cpy[152].d1].i;
-        test.wpn8  = biw[itemdata_cpy[154].d1].i;
-        test.wpn9  = biw[itemdata_cpy[156].d1].i;
-        test.wpn10 = biw[itemdata_cpy[158].d1].i;
+        test.wpn   = biw[itemdata_dlg[140].d1].i;
+        test.wpn2  = biw[itemdata_dlg[142].d1].i;
+        test.wpn3  = biw[itemdata_dlg[144].d1].i;
+        test.wpn4  = biw[itemdata_dlg[146].d1].i;
+        test.wpn5  = biw[itemdata_dlg[148].d1].i;
+        test.wpn6  = biw[itemdata_dlg[150].d1].i;
+        test.wpn7  = biw[itemdata_dlg[152].d1].i;
+        test.wpn8  = biw[itemdata_dlg[154].d1].i;
+        test.wpn9  = biw[itemdata_dlg[156].d1].i;
+        test.wpn10 = biw[itemdata_dlg[158].d1].i;
         
         for(int j=0; j<8; j++)
             test.initiald[j] = vbound(ffparse(da[j]),-327680000, 327680000);
@@ -1953,7 +1460,7 @@ void edit_itemdata(int index)
         
         if(ret==71)
         {
-            test_item(test, itemdata_cpy[0].x+ itemdata_cpy[0].w/2-(is_large()?34:10), itemdata_cpy[0].y+ itemdata_cpy[0].h/2-(is_large()?34:10));
+            test_item(test,itemdata_dlg[0].x+itemdata_dlg[0].w/2-(is_large?34:10),itemdata_dlg[0].y+itemdata_dlg[0].h/2-(is_large?34:10));
             sprintf(fcs,"%d",test.csets>>4);
             sprintf(frm,"%d",test.frames);
             sprintf(spd,"%d",test.speed);
@@ -2000,17 +1507,6 @@ void edit_itemdata(int index)
             sprintf(hrt,"%d",test.pickup_hearts);
             sprintf(pow,"%d",test.power);
             sprintf(asn,"%d",test.usesound);
-	    
-	    //New itemdata vars -Z
-	    
-	    sprintf(wrange,"%d",test.weaprange);
-	    sprintf(wdur,"%d",test.weapduration);
-	    sprintf(wdef,"%d",test.usedefence);
-	    sprintf(wweap,"%d",test.useweapon);
-	    sprintf(wptrn,"%d",test.weap_pattern[0]);
-	    sprintf(warg1,"%d",test.weap_pattern[1]);
-	    sprintf(warg2,"%d",test.weap_pattern[2]);
-	    
             sprintf(zname, "zz%03d", index);
             sprintf(name,"%s",index<iLast?old_item_string[index]:zname);
             
@@ -2021,8 +1517,8 @@ void edit_itemdata(int index)
             sprintf(da[9],"%d",test.initiala[1]/10000);
             sprintf(itemnumstr,"Item %d: %s", index, name);
             
-			itemdata_cpy[0].dp = itemnumstr;
-			itemdata_cpy[0].dp2 = lfont;
+            itemdata_dlg[0].dp = itemnumstr;
+            itemdata_dlg[0].dp2 = lfont;
             
             if(biic_cnt==-1)
             {
@@ -2034,126 +1530,110 @@ void edit_itemdata(int index)
                 build_biw_list();
             }
             
-			itemdata_cpy[7].dp = name;
+            itemdata_dlg[7].dp = name;
             
             for(int j=0; j<biic_cnt; j++)
             {
                 if(biic[j].i == test.family)
-					itemdata_cpy[9].d1 = j;
+                    itemdata_dlg[9].d1 = j;
             }
             
-			itemdata_cpy[11].dp = cll;
-			itemdata_cpy[13].dp = pow;
-			itemdata_cpy[14].flags = (itemsbuf[index].flags&ITEM_GAMEDATA) ? D_SELECTED : 0;
-			itemdata_cpy[15].flags = (itemsbuf[index].flags&ITEM_FLAG1) ? D_SELECTED : 0;
-			itemdata_cpy[16].flags = (itemsbuf[index].flags&ITEM_FLAG2) ? D_SELECTED : 0;
-			itemdata_cpy[17].flags = (itemsbuf[index].flags&ITEM_FLAG3) ? D_SELECTED : 0;
-			itemdata_cpy[18].flags = (itemsbuf[index].flags&ITEM_FLAG4) ? D_SELECTED : 0;
-			itemdata_cpy[19].flags = (itemsbuf[index].flags&ITEM_FLAG5) ? D_SELECTED : 0;
-			itemdata_cpy[21].dp = ms1;
-			itemdata_cpy[23].dp = ms2;
-			itemdata_cpy[25].dp = ms3;
-			itemdata_cpy[27].dp = ms4;
-			itemdata_cpy[29].dp = ms5;
-			itemdata_cpy[31].dp = ms6;
-			itemdata_cpy[33].dp = ms7;
-			itemdata_cpy[35].dp = ms8;
-			itemdata_cpy[37].dp = ms9;
-			itemdata_cpy[39].dp = ms10;
+            itemdata_dlg[11].dp = cll;
+            itemdata_dlg[13].dp = pow;
+            itemdata_dlg[14].flags = (itemsbuf[index].flags&ITEM_GAMEDATA) ? D_SELECTED : 0;
+            itemdata_dlg[15].flags = (itemsbuf[index].flags&ITEM_FLAG1) ? D_SELECTED : 0;
+            itemdata_dlg[16].flags = (itemsbuf[index].flags&ITEM_FLAG2) ? D_SELECTED : 0;
+            itemdata_dlg[17].flags = (itemsbuf[index].flags&ITEM_FLAG3) ? D_SELECTED : 0;
+            itemdata_dlg[18].flags = (itemsbuf[index].flags&ITEM_FLAG4) ? D_SELECTED : 0;
+            itemdata_dlg[19].flags = (itemsbuf[index].flags&ITEM_FLAG5) ? D_SELECTED : 0;
+            itemdata_dlg[21].dp = ms1;
+            itemdata_dlg[23].dp = ms2;
+            itemdata_dlg[25].dp = ms3;
+            itemdata_dlg[27].dp = ms4;
+            itemdata_dlg[29].dp = ms5;
+            itemdata_dlg[31].dp = ms6;
+            itemdata_dlg[33].dp = ms7;
+            itemdata_dlg[35].dp = ms8;
+            itemdata_dlg[37].dp = ms9;
+            itemdata_dlg[39].dp = ms10;
             
-			itemdata_cpy[58].dp = fcs;
-			itemdata_cpy[60].dp = frm;
-			itemdata_cpy[62].dp = spd;
-			itemdata_cpy[64].dp = dly;
-			itemdata_cpy[66].dp = ltm;
-			itemdata_cpy[68].d1 = test.tile;
-			itemdata_cpy[68].d2 = test.csets&15;
-			itemdata_cpy[69].flags = (test.misc&1) ? D_SELECTED : 0;
-			itemdata_cpy[70].flags = (test.misc&2) ? D_SELECTED : 0;
+            itemdata_dlg[58].dp = fcs;
+            itemdata_dlg[60].dp = frm;
+            itemdata_dlg[62].dp = spd;
+            itemdata_dlg[64].dp = dly;
+            itemdata_dlg[66].dp = ltm;
+            itemdata_dlg[68].d1 = test.tile;
+            itemdata_dlg[68].d2 = test.csets&15;
+            itemdata_dlg[69].flags = (test.misc&1) ? D_SELECTED : 0;
+            itemdata_dlg[70].flags = (test.misc&2) ? D_SELECTED : 0;
             
-			itemdata_cpy[93].dp = amt;
-			itemdata_cpy[94].flags = (test.amount & 0x8000)  ? D_SELECTED : 0;
-			itemdata_cpy[96].d1 = itemsbuf[index].count+1;
-			itemdata_cpy[98].dp = fmx;
-			itemdata_cpy[100].dp = max;
-			itemdata_cpy[102].d1 = pickupscript;
-			itemdata_cpy[104].dp = snd;
-			itemdata_cpy[106].dp = hrt;
+            itemdata_dlg[93].dp = amt;
+            itemdata_dlg[94].flags = (test.amount & 0x8000)  ? D_SELECTED : 0;
+            itemdata_dlg[96].d1 = itemsbuf[index].count+1;
+            itemdata_dlg[98].dp = fmx;
+            itemdata_dlg[100].dp = max;
+            itemdata_dlg[102].d1 = pickupscript;
+            itemdata_dlg[104].dp = snd;
+            itemdata_dlg[106].dp = hrt;
             
-			itemdata_cpy[107].flags = (test.flags&ITEM_KEEPOLD) ? D_SELECTED : 0;
-			itemdata_cpy[108].flags = (test.flags&ITEM_GAINOLD) ? D_SELECTED : 0;
-			itemdata_cpy[109].flags = (test.flags&ITEM_EDIBLE) ? D_SELECTED : 0;
-			itemdata_cpy[110].flags = (test.flags&ITEM_COMBINE) ? D_SELECTED : 0;
+            itemdata_dlg[107].flags = (test.flags&ITEM_KEEPOLD) ? D_SELECTED : 0;
+            itemdata_dlg[108].flags = (test.flags&ITEM_GAINOLD) ? D_SELECTED : 0;
+            itemdata_dlg[109].flags = (test.flags&ITEM_EDIBLE) ? D_SELECTED : 0;
+            itemdata_dlg[110].flags = (test.flags&ITEM_COMBINE) ? D_SELECTED : 0;
             
-			itemdata_cpy[132].d1 = script;
-			itemdata_cpy[134].dp = mgc;
-			itemdata_cpy[136].dp = asn;
-			itemdata_cpy[137].flags = (test.flags&ITEM_DOWNGRADE) ? D_SELECTED : 0;
-			itemdata_cpy[138].flags = (test.flags&ITEM_RUPEE_MAGIC) ? D_SELECTED : 0;
-			
-			//! These now store in the editor, but if you change the values, save the quest, and reload, 
-	//! ZQuest crashes on reading items (bad token)
-			//string or int here? -Z
-			itemdata_cpy[200].d1 = test.useweapon; //atoi(wweap);
-			    itemdata_cpy[202].d1 = test.usedefence; //atoi(wdef);
-			    itemdata_cpy[204].d1 = test.weap_pattern[0]; //atoi(wptrn);
-			    itemdata_cpy[206].dp = warg1; //test.weap_pattern[1]; //atoi(warg1);
-			    itemdata_cpy[208].dp = warg2; //test.weap_pattern[2]; //atoi(warg2);
-			    itemdata_cpy[210].dp = wrange; //test.weaprange; //atoi(wrange);
-			    itemdata_cpy[212].dp = wdur;// = test.weapduration; //atoi(wdur);
-			    itemdata_cpy[214].dp = warg3; //test.weap_pattern[1]; //atoi(warg1);
-			    itemdata_cpy[216].dp = warg4; //test.weap_pattern[2]; //atoi(warg2);
-			    itemdata_cpy[218].dp = warg5; //test.weaprange; //atoi(wrange);
-			    itemdata_cpy[220].dp = warg6;// = test.weapduration; //atoi(wdur);
+            itemdata_dlg[132].d1 = script;
+            itemdata_dlg[134].dp = mgc;
+            itemdata_dlg[136].dp = asn;
+            itemdata_dlg[137].flags = (test.flags&ITEM_DOWNGRADE) ? D_SELECTED : 0;
+            itemdata_dlg[138].flags = (test.flags&ITEM_RUPEE_MAGIC) ? D_SELECTED : 0;
             
             for(int j=0; j<biw_cnt; j++)
             {
                 if(biw[j].i == test.wpn)
-					itemdata_cpy[140].d1 = j;
+                    itemdata_dlg[140].d1 = j;
                     
                 if(biw[j].i == test.wpn2)
-					itemdata_cpy[142].d1 = j;
+                    itemdata_dlg[142].d1 = j;
                     
                 if(biw[j].i == test.wpn3)
-					itemdata_cpy[144].d1 = j;
+                    itemdata_dlg[144].d1 = j;
                     
                 if(biw[j].i == test.wpn4)
-					itemdata_cpy[146].d1 = j;
+                    itemdata_dlg[146].d1 = j;
                     
                 if(biw[j].i == test.wpn5)
-					itemdata_cpy[148].d1 = j;
+                    itemdata_dlg[148].d1 = j;
                     
                 if(biw[j].i == test.wpn6)
-					itemdata_cpy[150].d1 = j;
+                    itemdata_dlg[150].d1 = j;
                     
                 if(biw[j].i == test.wpn7)
-					itemdata_cpy[152].d1 = j;
+                    itemdata_dlg[152].d1 = j;
                     
                 if(biw[j].i == test.wpn8)
-					itemdata_cpy[154].d1 = j;
+                    itemdata_dlg[154].d1 = j;
                     
                 if(biw[j].i == test.wpn9)
-					itemdata_cpy[156].d1 = j;
+                    itemdata_dlg[156].d1 = j;
                     
                 if(biw[j].i == test.wpn10)
-					itemdata_cpy[158].d1 = j;
+                    itemdata_dlg[158].d1 = j;
             }
             
             for(int j=0; j<8; j++)
-				itemdata_cpy[187+j].dp = da[j];
+                itemdata_dlg[187+j].dp = da[j];
                 
-			itemdata_cpy[197].dp = da[8];
-			itemdata_cpy[198].dp = da[9];
+            itemdata_dlg[197].dp = da[8];
+            itemdata_dlg[198].dp = da[9];
             
-            setLabels(test.family, itemdata_cpy);
+            setLabels(test.family);
         }
         
         if(ret==9)
-            setLabels(test.family, itemdata_cpy);
+            setLabels(test.family);
     }
     while(ret==5 || ret==9 || ret==71 || ret==40);
     
-	delete[] itemdata_cpy;
     font=tfont;
     
     if(ret==3)
@@ -2280,26 +1760,29 @@ void edit_weapondata(int index)
     wpndata_dlg[16].dp = typ;
     sprintf(name,"%s",weapon_string[index]);
     wpndata_dlg[18].dp = name;
-
-	DIALOG *wpndata_cpy = resizeDialog(wpndata_dlg, 1.5);
+    
+    if(is_large)
+    {
+        large_dialog(wpndata_dlg);
+    }
     
     int ret;
     wpndata test;
     
     do
     {
-        ret = zc_popup_dialog(wpndata_cpy,3);
+        ret = zc_popup_dialog(wpndata_dlg,3);
         
-        test.tile  = wpndata_cpy[2].d1;
-        test.csets = wpndata_cpy[2].d2;
+        test.tile  = wpndata_dlg[2].d1;
+        test.csets = wpndata_dlg[2].d2;
         
         test.misc  = 0;
         
         for(int i=0; i<4; i++)
-            if(wpndata_cpy[i+5].flags & D_SELECTED)
+            if(wpndata_dlg[i+5].flags & D_SELECTED)
                 test.misc |= 1<<i;
                 
-        test.misc |= (wpndata_cpy[17].flags & D_SELECTED) ? WF_BEHIND : 0;
+        test.misc |= (wpndata_dlg[17].flags & D_SELECTED) ? WF_BEHIND : 0;
         
         test.csets  |= (atoi(fcs)&15)<<4;
         test.frames = atoi(frm);
@@ -2315,8 +1798,6 @@ void edit_weapondata(int index)
         wpnsbuf[index] = test;
         saved = false;
     }
-
-	delete[] wpndata_cpy;
 }
 
 int onCustomWpns()
@@ -2353,7 +1834,7 @@ static int enedata_data_list[] =
 
 static int enedata_data2_list[] =
 {
-    54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,179,180,181,182,183,184,187,188,189,190,235,236,-1
+    54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,179,180,181,182,183,184,187,188,189,190,-1
 };
 
 static int enedata_flags_list[] =
@@ -2381,27 +1862,15 @@ static int enedata_defense2_list[] =
     153,154,155,156,157,158,159,160,170,171,172,173,174,175,176,177,191,192,-1
 };
 
-static int enedata_defense3_list[] =
-{
-    193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,-1
-};
-
-static int enedata_spritesize_list[] =
-{
-    213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,237,238,239,240,241,242,243,244,245,246,-1
-};
-
 static TABPANEL enedata_tabs[] =
 {
     { (char *)"Data 1",       D_SELECTED,      enedata_data_list,     0, NULL },
     { (char *)"Data 2",       0,               enedata_data2_list,    0, NULL },
     { (char *)"Misc. Flags",	 0,               enedata_flags_list,    0, NULL },
 //{ (char *)"Flags 2",	    0,               enedata_flags2_list,   0, NULL },
-    { (char *)"Defs 1",	 0,               enedata_defense_list,   0, NULL },
-    { (char *)"Defs 2",	 0,               enedata_defense2_list,   0, NULL },
-    { (char *)"Defs 3",	 0,               enedata_defense3_list,   0, NULL },
+    { (char *)"Defenses 1",	 0,               enedata_defense_list,   0, NULL },
+    { (char *)"Defenses 2",	 0,               enedata_defense2_list,   0, NULL },
     { (char *)"Spawn Flags",	 0,               enedata_flags3_list,   0, NULL },
-    { (char *)"Size",	 0,               enedata_spritesize_list,   0, NULL },
     { NULL,                   0,               NULL,                  0, NULL }
 };
 
@@ -2527,6 +1996,65 @@ const char *eweaponlist(int index, int *list_size)
     return NULL;
 }
 
+const char *defenselist(int index, int *list_size)
+{
+    if(index>=0)
+    {
+        bound(index,0,edLAST-1);
+        
+        switch(index)
+        {
+        default:
+            return "(None)";
+            
+        case edHALFDAMAGE:
+            return "1/2 Damage";
+            
+        case edQUARTDAMAGE:
+            return "1/4 Damage";
+            
+        case edSTUNONLY:
+            return "Stun";
+            
+        case edSTUNORCHINK:
+            return "Stun Or Block";
+            
+        case edSTUNORIGNORE:
+            return "Stun Or Ignore";
+            
+        case edCHINKL1:
+            return "Block If < 1";
+            
+        case edCHINKL2:
+            return "Block If < 2";
+            
+        case edCHINKL4:
+            return "Block If < 4";
+            
+        case edCHINKL6:
+            return "Block If < 6";
+            
+        case edCHINKL8:
+            return "Block If < 8";
+            
+        case edCHINK:
+            return "Block";
+            
+        case edIGNOREL1:
+            return "Ignore If < 1";
+            
+        case edIGNORE:
+            return "Ignore";
+            
+        case ed1HKO:
+            return "One-Hit-Kill";
+        }
+    }
+    
+    *list_size = edLAST;
+    return NULL;
+}
+
 
 //
 // Enemy Misc. Attribute label swapping device
@@ -2534,7 +2062,7 @@ const char *eweaponlist(int index, int *list_size)
 struct EnemyNameInfo
 {
     int family;
-    char const* misc[10];
+    char *misc[10];
     void* list[10];
 };
 
@@ -2813,38 +2341,38 @@ const char *noyesmisclist(int index, int *list_size)
     return NULL;
 }
 
-static ListData walkmisc1_list(walkmisc1list, &font);
-static ListData walkmisc2_list(walkmisc2list, &font);
-static ListData walkmisc7_list(walkmisc7list, &font);
-static ListData walkmisc9_list(walkmisc9list, &font);
+static ListData walkmisc1_list(walkmisc1list, is_large? &lfont_l : &font);
+static ListData walkmisc2_list(walkmisc2list, is_large? &lfont_l : &font);
+static ListData walkmisc7_list(walkmisc7list, is_large? &lfont_l : &font);
+static ListData walkmisc9_list(walkmisc9list, is_large? &lfont_l : &font);
 
-static ListData gleeokmisc3_list(gleeokmisc3list, &font);
-static ListData gohmamisc1_list(gohmamisc1list, &font);
-static ListData manhandlamisc2_list(manhandlamisc2list, &font);
-static ListData aquamisc1_list(aquamisc1list, &font);
+static ListData gleeokmisc3_list(gleeokmisc3list, is_large? &lfont_l : &font);
+static ListData gohmamisc1_list(gohmamisc1list, is_large? &lfont_l : &font);
+static ListData manhandlamisc2_list(manhandlamisc2list, is_large? &lfont_l : &font);
+static ListData aquamisc1_list(aquamisc1list, is_large? &lfont_l : &font);
 
-static ListData patramisc4_list(patramisc4list, &font);
-static ListData patramisc5_list(patramisc5list, &font);
-static ListData patramisc10_list(patramisc10list, &font);
+static ListData patramisc4_list(patramisc4list, is_large? &lfont_l : &font);
+static ListData patramisc5_list(patramisc5list, is_large? &lfont_l : &font);
+static ListData patramisc10_list(patramisc10list, is_large? &lfont_l : &font);
 
-static ListData dodongomisc10_list(dodongomisc10list, &font);
+static ListData dodongomisc10_list(dodongomisc10list, is_large? &lfont_l : &font);
 
-static ListData keesemisc1_list(keesemisc1list, &font);
-static ListData keesemisc2_list(keesemisc2list, &font);
+static ListData keesemisc1_list(keesemisc1list, is_large? &lfont_l : &font);
+static ListData keesemisc2_list(keesemisc2list, is_large? &lfont_l : &font);
 
-static ListData digdoggermisc10_list(digdoggermisc10list, &font);
+static ListData digdoggermisc10_list(digdoggermisc10list, is_large? &lfont_l : &font);
 
-static ListData wizzrobemisc1_list(wizzrobemisc1list, &font);
-static ListData wizzrobemisc2_list(wizzrobemisc2list, &font);
+static ListData wizzrobemisc1_list(wizzrobemisc1list, is_large? &lfont_l : &font);
+static ListData wizzrobemisc2_list(wizzrobemisc2list, is_large? &lfont_l : &font);
 
-static ListData trapmisc1_list(trapmisc1list, &font);
-static ListData trapmisc2_list(trapmisc2list, &font);
+static ListData trapmisc1_list(trapmisc1list, is_large? &lfont_l : &font);
+static ListData trapmisc2_list(trapmisc2list, is_large? &lfont_l : &font);
 
-static ListData leevermisc1_list(leevermisc1list, &font);
-static ListData rockmisc1_list(rockmisc1list, &font);
+static ListData leevermisc1_list(leevermisc1list, is_large? &lfont_l : &font);
+static ListData rockmisc1_list(rockmisc1list, is_large? &lfont_l : &font);
 
-static ListData yesnomisc_list(yesnomisclist, &font);
-static ListData noyesmisc_list(noyesmisclist, &font);
+static ListData yesnomisc_list(yesnomisclist, is_large? &lfont_l : &font);
+static ListData noyesmisc_list(noyesmisclist, is_large? &lfont_l : &font);
 
 static EnemyNameInfo enameinf[]=
 {
@@ -2952,39 +2480,6 @@ std::map<int, EnemyNameInfo *> *getEnemyNameMap()
             (*enamemap)[inf->family] = inf;
         }
     }
-
-	walkmisc1_list.font = is_large() ? &lfont_l : &font;
-	walkmisc2_list.font = is_large() ? &lfont_l : &font;
-	walkmisc7_list.font = is_large() ? &lfont_l : &font;
-	walkmisc9_list.font = is_large() ? &lfont_l : &font;
-
-	gleeokmisc3_list.font = is_large() ? &lfont_l : &font;
-	gohmamisc1_list.font = is_large() ? &lfont_l : &font;
-	manhandlamisc2_list.font = is_large() ? &lfont_l : &font;
-	aquamisc1_list.font = is_large() ? &lfont_l : &font;
-	
-	patramisc4_list.font = is_large() ? &lfont_l : &font;
-	patramisc5_list.font = is_large() ? &lfont_l : &font;
-	patramisc10_list.font = is_large() ? &lfont_l : &font;
-	
-	dodongomisc10_list.font = is_large() ? &lfont_l : &font;
-
-	keesemisc1_list.font = is_large() ? &lfont_l : &font;
-	keesemisc2_list.font = is_large() ? &lfont_l : &font;
-
-	digdoggermisc10_list.font = is_large() ? &lfont_l : &font;
-
-	wizzrobemisc1_list.font = is_large() ? &lfont_l : &font;
-	wizzrobemisc2_list.font = is_large() ? &lfont_l : &font;
-
-	trapmisc1_list.font = is_large() ? &lfont_l : &font;
-	trapmisc2_list.font = is_large() ? &lfont_l : &font;
-	
-	leevermisc1_list.font = is_large() ? &lfont_l : &font;
-	rockmisc1_list.font = is_large() ? &lfont_l : &font;
-
-	yesnomisc_list.font = is_large() ? &lfont_l : &font;
-	noyesmisc_list.font = is_large() ? &lfont_l : &font;
     
     return enamemap;
 }
@@ -2994,20 +2489,19 @@ static ListData eneanim_list(eneanimlist, &font);
 static ListData enetype_list(enetypelist, &font);
 static ListData eweapon_list(eweaponlist, &font);
 
-
+static ListData defense_list(defenselist, &font);
 static ListData walkerspawn_list(walkerspawnlist, &font);
 
 static ListData sfx__list(sfxlist, &font);
-
 
 static DIALOG enedata_dlg[] =
 {
     {  jwin_win_proc,            0,      0,    320,    240,    vc(14),                 vc(1),                   0,    D_EXIT,      0,    0,  NULL,                                                           NULL,   NULL                 },
     {  jwin_tab_proc,            4,     24,    312,    192,    0,                      0,                       0,    0,           0,    0, (void *) enedata_tabs,                                          NULL, (void *)enedata_dlg  },
     //2
-    {  d_ecstile_proc,          16,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   (void *)enedata_dlg },
-    {  d_ecstile_proc,          52,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   (void *)enedata_dlg },
-    {  d_ecstile_proc,          88,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   (void *)enedata_dlg },
+    {  d_ecstile_proc,          16,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   NULL                 },
+    {  d_ecstile_proc,          52,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   NULL                 },
+    {  d_ecstile_proc,          88,     62,     20,     20,    vc(11),                 vc(1),                   0,    0,           0,    6,  NULL,                                                           NULL,   NULL                 },
     //5
     {  jwin_button_proc,        50,    220,     61,     16,    vc(14),                 vc(1),                  13,    D_EXIT,      0,    0, (void *) "OK",                                                  NULL,   NULL                 },
     {  jwin_button_proc,       130,    220,     61,     16,    vc(14),                 vc(1),                  27,    D_EXIT,      0,    0, (void *) "Cancel",                                              NULL,   NULL                 },
@@ -3069,27 +2563,27 @@ static DIALOG enedata_dlg[] =
     {  d_dummy_proc,           280,    140,     30,     16,    vc(12),                 vc(1),                   0,    0,           3,    0,  NULL,                                                           NULL,   NULL                 },
     {  jwin_edit_proc,         280,    140,     30,     16,    vc(12),                 vc(1),                   0,    0,           2,    0,  NULL,                                                           NULL,   NULL                 },
     //54
-    {  jwin_text_proc,           6,     54-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 1:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,           6,     72-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 2:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,           6,     90-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 3:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,           6,    108-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 4:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,           6,    126-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 5:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,           6,    144-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 6:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,         160,     54-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 7:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,         120+40,     72-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 8:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,         120+40,     90-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 9:",                                   NULL,   NULL                 },
-    {  jwin_text_proc,         120+40,    108-4,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 10:",                                  NULL,   NULL                 },
-    //64 : Misc Attribute boxes. 
-    {  jwin_edit_proc,          86,     50-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,          86,     68-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,          86,     86-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,          86,    104-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,          86,    122-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,          86,    140-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,         242,     50-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,         242,     68-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,         242,     86-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,         242,    104-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_text_proc,           6,     54,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 1:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,           6,     72,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 2:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,           6,     90,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 3:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,           6,    108,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 4:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,           6,    126,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 5:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,           6,    144,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 6:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,         160,     54,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 7:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,         160,     72,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 8:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,         160,     90,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 9:",                                   NULL,   NULL                 },
+    {  jwin_text_proc,         160,    108,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 10:",                                  NULL,   NULL                 },
+    //64
+    {  jwin_edit_proc,          86,     50,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,          86,     68,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,          86,     86,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,          86,    104,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,          86,    122,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,          86,    140,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,         242,     50,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,         242,     68,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,         242,     86,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,         242,    104,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
     //74
     {  jwin_check_proc,          6,     50,    280,      9,    vc(14),                 vc(1),                   0,    0,           1,    0, (void *) "Damaged By Power 0 Weapons",                          NULL,   NULL                 },
     {  jwin_check_proc,          6,     60,    280,      9,    vc(14),                 vc(1),                   0,    0,           1,    0, (void *) "Is Invisible",                                        NULL,   NULL                 },
@@ -3169,7 +2663,7 @@ static DIALOG enedata_dlg[] =
     {  jwin_edit_proc,         280,    176,     30,     16,    vc(12),                 vc(1),                   0,    0,           3,    0,  NULL,                                                           NULL,   NULL                 },
     {  d_timer_proc,             0,      0,      0,      0,    0,                      0,                       0,    0,           0,    0,  NULL,                                                           NULL,   NULL                 },
     {  jwin_check_proc,        165,    144,     40,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Use Pal CSet",                                        NULL,   NULL                 },
-    //144 - note: these are defenses 0-16, 17 is at 191
+    //143 - note: these are defenses 0-16, 17 is at 191
     {  jwin_text_proc,           6,     54,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Boomerang Defense:",                                  NULL,   NULL                 },
     {  jwin_text_proc,           6,     72,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Bomb Defense:",                                       NULL,   NULL                 },
     {  jwin_text_proc,           6,     90,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Super Bomb Defense:",                                 NULL,   NULL                 },
@@ -3207,103 +2701,25 @@ static DIALOG enedata_dlg[] =
     {  jwin_droplist_proc,         126,  180-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
     {  jwin_button_proc,           255,    54-4,     48,     16,    vc(14),                 vc(1),                  13,    D_EXIT,      0,    0, (void *) "Set All",                                            NULL,   NULL                 },
     //179
-    {  jwin_text_proc,           8,    161-4,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "BG Sound:",                                            NULL,   NULL                 },
-    {  jwin_text_proc,           8,    176-4,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Hit Sound:",                                           NULL,   NULL                 },
-    {  jwin_text_proc,           8,    191-4,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Death Sound:",                                         NULL,   NULL                 },
+    {  jwin_text_proc,           8,    162,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "BG Sound:",                                            NULL,   NULL                 },
+    {  jwin_text_proc,           8,    180,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Hit Sound:",                                           NULL,   NULL                 },
+    {  jwin_text_proc,           8,    198,     45,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Death Sound:",                                         NULL,   NULL                 },
     //182
-    {  jwin_droplist_proc,      86,    157-4,     100,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
-    {  jwin_droplist_proc,      86,    172-4,     100,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
-    {  jwin_droplist_proc,      86,    187-4,     100,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
+    {  jwin_droplist_proc,      86,    158,     140,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
+    {  jwin_droplist_proc,      86,    176,     140,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
+    {  jwin_droplist_proc,      86,    194,     140,     16,   jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &sfx__list,                                           NULL,   NULL                 },
     {  jwin_text_proc,          6,     184,     95,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Spawn Animation:",                               NULL,   NULL                 },
     {  jwin_droplist_proc,      86,    180,     85,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &walkerspawn_list,                                     NULL,   NULL                 },
-    {  jwin_text_proc,         160,    126-4,     50+30,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 11:",                                  NULL,   NULL                 },
-    {  jwin_text_proc,         160,    144-4,     50+30,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 12:",                                  NULL,   NULL                 },
-    {  jwin_edit_proc,         242,    122-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-    {  jwin_edit_proc,         242,    140-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_text_proc,         160,    126,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 11:",                                  NULL,   NULL                 },
+    {  jwin_text_proc,         160,    144,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Misc Attr. 12:",                                  NULL,   NULL                 },
+    {  jwin_edit_proc,         242,    122,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
+    {  jwin_edit_proc,         242,    140,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
     
     // 191
     {  jwin_text_proc,           6,    198,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script Weapon Defense:",                              NULL,   NULL                 },
     {  jwin_droplist_proc,      126, 198-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
- //193 - sccript 1
-     	{  jwin_text_proc,           6,    51,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 1 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    67,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 2 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    83,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 3 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    99,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 4 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    115,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 5 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    131,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 6 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    147,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 7 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    163,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 8 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    179,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 9 Weapon Defense:",                              NULL,   NULL                 },
-	{  jwin_text_proc,           6,    196,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Script 10 Weapon Defense:",                              NULL,   NULL                 },
-	//203 script 1 pulldown
-	{  jwin_droplist_proc,      126, 51-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 67-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 83-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 99-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 115-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 131-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 147-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 163-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 179-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	{  jwin_droplist_proc,      126, 196-4,    115,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,    0,           0,    0, (void *) &defense_list,                                         NULL,   NULL                 },
-	//213 HitWidth and Height
-	{  jwin_text_proc,         12,      51,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "TileWidth:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    51-4,     30,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-        {  jwin_text_proc,         12,      67,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "TileHeight:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    67-4,     30,     16,    vc(12),                 vc(1),                   0,    0,           6,    0, NULL,                                                           NULL,   NULL                 },
-        {  jwin_text_proc,         12,      83,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "HitWidth:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    83-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0, NULL,                                                           NULL,   NULL                 },
-        {  jwin_text_proc,         12,      99,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "HitHeight:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    99-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//221 HitZHeight
-	{  jwin_text_proc,         12,      115,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "HitZHeight:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    115-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//223 HitXOffset
-	{  jwin_text_proc,         12,      131,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "HitXOffset:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    131-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//225 HitYOffset
-	{  jwin_text_proc,         12,      147,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "HitYOffset:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    147-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//227 HitZOffset
-	{  jwin_text_proc,         12,      163,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "DrawZOffset:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    163-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//229 DrawXOffset
-	{  jwin_text_proc,         12,      179,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "DrawXOffset:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    179-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//231 DrawYOffset
-	{  jwin_text_proc,         12,      195,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "DrawYOffset:",                                  NULL,   NULL                 },
-	{  jwin_edit_proc,         60,    195-4,     65,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//233 'Tiles' annotation. 
-	{ jwin_text_proc,         96,      51,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "(Tiles)",                                  NULL,   NULL                 },
-	{ jwin_text_proc,         96,      67,       80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "(Tiles)",                                  NULL,   NULL                 },
-	//235 : Weapon Sprite Pulldown
-	{  jwin_text_proc,          8,    193-4+12,     80,      8,    vc(14),                 vc(1),                   0,    0,           0,    0, (void *) "Weapon Sprite:",                              NULL,   NULL                 },
-	//{  jwin_droplist_proc,      86, 189-4+12,    151,     16,    jwin_pal[jcTEXTFG],     jwin_pal[jcTEXTBG],      0,       0,           0,    0, (void *) &weapon_list,                            NULL,   NULL                  },
-	{  jwin_edit_proc,         86, 189-4+12,    151,     16,    vc(12),                 vc(1),                   0,    0,           6,    0,  NULL,                                                           NULL,   NULL                 },
-	//237 HitWidth Override
-	 { jwin_check_proc,        94+50,     83,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//238 HitHeight override
-	 { jwin_check_proc,        94+50,    99,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//239 HitZHeight Override
-	 { jwin_check_proc,        94+50,     115,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//240 HitXOffset override
-	 { jwin_check_proc,        94+50,     131,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//241 HitYOffset Override
-	 { jwin_check_proc,        94+50,    147,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//242 DrawZOffset Override
-	 { jwin_check_proc,        94+50,     163,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//243 DrawXOffset Override
-	 { jwin_check_proc,        94+50,    179,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//244 DrawYOffset Overrife
-	 { jwin_check_proc,        94+50,     195,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//245 TileWidth Overrife
-	 { jwin_check_proc,        94+50,     51,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	//246 TileHeight Overrife
-	 { jwin_check_proc,        94+50,     67,     95,      9,    vc(14),                 vc(1),                   0,       0,           1,    0, (void *) "Override",                        NULL,   NULL                  },
-	
     {  NULL,                     0,      0,      0,      0,    0,                      0,                       0,    0,           0,    0,  NULL,                                                           NULL,   NULL                 }
 };
-
 
 
 void setEnemyLabels(int family)
@@ -3339,7 +2755,7 @@ void setEnemyLabels(int family)
         {
             if(inf->misc[i]!=NULL)
             {
-                enedata_dlg[54+i].dp = (char*)inf->misc[i];
+                enedata_dlg[54+i].dp = inf->misc[i];
                 //enedata_dlg[54+i].flags = enedata_dlg[64+i].flags = 0;
             }
             else
@@ -3353,10 +2769,10 @@ void setEnemyLabels(int family)
             enedata_dlg[64+i].proc = jwin_droplist_proc;
             enedata_dlg[64+i].fg = jwin_pal[jcTEXTFG];
             enedata_dlg[64+i].bg = jwin_pal[jcTEXTBG];
-            ((ListData*)inf->list[i])->font = (is_large() ? &lfont_l : &font);
+            ((ListData*)inf->list[i])->font = (is_large ? &lfont_l : &font);
             enedata_dlg[64+i].dp = inf->list[i];
             enedata_dlg[64+i].dp2 = NULL;
-            enedata_dlg[64+i].h = (is_large() ? 22 : 16);
+            enedata_dlg[64+i].h = (is_large ? 22 : 16);
         }
         else
         {
@@ -3365,8 +2781,8 @@ void setEnemyLabels(int family)
             enedata_dlg[64+i].bg = vc(1);
             enedata_dlg[64+i].dp = NULL;
             enedata_dlg[64+i].d1 = 6;
-            enedata_dlg[64+i].h = int(16 * (is_large() ? 1.5 : 1));
-            enedata_dlg[64+i].dp2 = (is_large() ? lfont_l : font);
+            enedata_dlg[64+i].h = int(16 * (is_large ? 1.5 : 1));
+            enedata_dlg[64+i].dp2 = (is_large ? lfont_l : font);
         }
     }
     
@@ -3381,34 +2797,12 @@ void setEnemyLabels(int family)
         for(int j=0; j <= edefBYRNA+1 /* + the Set All button*/; j++) enedata_dlg[j+161].flags |= D_DISABLED;
         
         enedata_dlg[192].flags |= D_DISABLED;
-	    
-	    enedata_dlg[203].d1 |= D_DISABLED;
-     enedata_dlg[204].d1 |= D_DISABLED;
-     enedata_dlg[205].d1 |= D_DISABLED;
-     enedata_dlg[206].d1 |= D_DISABLED;
-     enedata_dlg[207].d1 |= D_DISABLED;
-     enedata_dlg[208].d1 |= D_DISABLED;
-     enedata_dlg[209].d1 |= D_DISABLED;
-     enedata_dlg[210].d1 |= D_DISABLED;
-     enedata_dlg[211].d1 |= D_DISABLED;
-     enedata_dlg[212].d1 |= D_DISABLED;
     }
     else
     {
         for(int j=0; j <= edefBYRNA+1 /* + the Set All button*/; j++) enedata_dlg[j+161].flags &= ~D_DISABLED;
         
         enedata_dlg[192].flags &= ~D_DISABLED;
-	    
-	    enedata_dlg[203].d1 &= ~D_DISABLED;
-     enedata_dlg[204].d1 &= ~D_DISABLED;
-     enedata_dlg[205].d1 &= ~D_DISABLED;
-     enedata_dlg[206].d1 &= ~D_DISABLED;
-     enedata_dlg[207].d1 &= ~D_DISABLED;
-     enedata_dlg[208].d1 &= ~D_DISABLED;
-     enedata_dlg[209].d1 &= ~D_DISABLED;
-     enedata_dlg[210].d1 &= ~D_DISABLED;
-     enedata_dlg[211].d1 &= ~D_DISABLED;
-     enedata_dlg[212].d1 &= ~D_DISABLED;
     }
     
     if(!(family==eeWALK || family==eeFIRE || family==eeOTHER))
@@ -3449,17 +2843,16 @@ int d_ecstile_proc(int msg,DIALOG *d,int c)
         if(select_tile(t,f,1,cs,true))
         {
             d->d1 = t;
-			DIALOG *parent = (DIALOG *)d->dp3;
-            parent[2].d2 = cs;
-			parent[3].d2 = cs;
-			parent[4].d2 = cs;
+            enedata_dlg[2].d2 = cs;
+            enedata_dlg[3].d2 = cs;
+            enedata_dlg[4].d2 = cs;
             return D_REDRAW;
         }
     }
     break;
     
     case MSG_DRAW:
-        if(is_large())
+        if(is_large)
         {
             d->w = 36;
             d->h = 36;
@@ -3497,10 +2890,7 @@ void edit_enemydata(int index)
     char name[64];
     char ms[12][8];
     char enemynumstr[75];
-	char hitx[8], hity[8], hitz[8], tiley[8], tilex[8], hitofsx[8], hitofsy[8], hitofsz[8], drawofsx[8], drawofsy[8];
-	char weapsprite[8];
-    build_biw_list();
-	
+    
     //disable the missing dialog items!
     //else they will lurk in the background
     //stealing mouse focus -DD
@@ -3578,8 +2968,6 @@ void edit_enemydata(int index)
     sprintf(sh,"%d",guysbuf[index].s_height);
     sprintf(ew,"%d",guysbuf[index].e_width);
     sprintf(eh,"%d",guysbuf[index].e_height);
-    
-    
     enedata_dlg[30].dp = w;
     enedata_dlg[31].dp = h;
     enedata_dlg[32].dp = sw;
@@ -3621,64 +3009,12 @@ void edit_enemydata(int index)
     sprintf(ms[10],"%ld",guysbuf[index].misc11);
     sprintf(ms[11],"%ld",guysbuf[index].misc12);
     
-    
-    
     for(int j=0; j <= edefBYRNA; j++)
     {
         enedata_dlg[j+161].d1 = guysbuf[index].defense[j];
     }
     
     enedata_dlg[192].d1 = guysbuf[index].defense[edefSCRIPT];
-    
-    //Script Defences
-    enedata_dlg[203].d1 = guysbuf[index].defense[edefSCRIPT01];
-     enedata_dlg[204].d1 = guysbuf[index].defense[edefSCRIPT02];
-     enedata_dlg[205].d1 = guysbuf[index].defense[edefSCRIPT03];
-     enedata_dlg[206].d1 = guysbuf[index].defense[edefSCRIPT04];
-     enedata_dlg[207].d1 = guysbuf[index].defense[edefSCRIPT05];
-     enedata_dlg[208].d1 = guysbuf[index].defense[edefSCRIPT06];
-     enedata_dlg[209].d1 = guysbuf[index].defense[edefSCRIPT07];
-     enedata_dlg[210].d1 = guysbuf[index].defense[edefSCRIPT08];
-     enedata_dlg[211].d1 = guysbuf[index].defense[edefSCRIPT09];
-     enedata_dlg[212].d1 = guysbuf[index].defense[edefSCRIPT10];
-    
-    //tilewidth, tileheight, hitwidth, hitheight, hitzheight, hitxofs, hityofs, hitzofs
-    sprintf(tilex,"%ld",guysbuf[index].txsz);
-    sprintf(tiley,"%ld",guysbuf[index].tysz);
-    sprintf(hitx,"%ld",guysbuf[index].hxsz);
-    sprintf(hity,"%ld",guysbuf[index].hysz);
-    sprintf(hitz,"%ld",guysbuf[index].hzsz);
-  
-    enedata_dlg[214].dp = tilex;
-    enedata_dlg[216].dp = tiley;
-    enedata_dlg[218].dp = hitx;
-    enedata_dlg[220].dp = hity;
-    enedata_dlg[222].dp = hitz;
-    
-    //HitXOffset, HitYOFfset, hitZOffset, DrawXOffsrt, DrawYOffset
-    sprintf(hitofsx,"%ld",guysbuf[index].hxofs);
-    sprintf(hitofsy,"%ld",guysbuf[index].hyofs);
-    sprintf(hitofsz,"%ld",guysbuf[index].zofs);
-    sprintf(drawofsx,"%ld",guysbuf[index].xofs);
-    sprintf(drawofsy,"%ld",guysbuf[index].yofs); //This seems to be setting to +48 or something with any value set?! -Z
-    
-    enedata_dlg[224].dp = hitofsx;
-    enedata_dlg[226].dp = hitofsy;
-    enedata_dlg[228].dp = hitofsz;
-    enedata_dlg[230].dp = drawofsx;
-    enedata_dlg[232].dp = drawofsy; //This seems to be setting to +48 or something with any value set?! -Z
-    
-    //Override flags
-    enedata_dlg[237].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_HIT_WIDTH) ? D_SELECTED : 0;
-    enedata_dlg[238].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_HIT_HEIGHT) ? D_SELECTED : 0;
-    enedata_dlg[239].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_HIT_Z_HEIGHT) ? D_SELECTED : 0;
-    enedata_dlg[240].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_HIT_X_OFFSET) ? D_SELECTED : 0;
-    enedata_dlg[241].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_HIT_Y_OFFSET) ? D_SELECTED : 0;
-    enedata_dlg[242].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_DRAW_Z_OFFSET) ? D_SELECTED : 0;
-    enedata_dlg[243].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_DRAW_X_OFFSET) ? D_SELECTED : 0;
-    enedata_dlg[244].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_DRAW_Y_OFFSET) ? D_SELECTED : 0;
-    enedata_dlg[245].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_TILE_WIDTH) ? D_SELECTED : 0;
-    enedata_dlg[246].flags = (guysbuf[index].SIZEflags&guyflagOVERRIDE_TILE_HEIGHT) ? D_SELECTED : 0;
     
     sprintf(frt,"%d",guysbuf[index].frate);
     sprintf(efr,"%d",guysbuf[index].e_frate);
@@ -3689,170 +3025,6 @@ void edit_enemydata(int index)
     enedata_dlg[182].d1= (int)guysbuf[index].bgsfx;
     enedata_dlg[183].d1= (int)guysbuf[index].hitsfx;
     enedata_dlg[184].d1= (int)guysbuf[index].deadsfx;
-    
-   
-    
-    //2.6 Enemy Weapon Sprite -Z
-    
-    //Find the default sprite. THe values are offset, somehow. Perhaps a switch statement would be better. 
-    
-    /*
-    byte default_weapon_sprites[]={
-	    0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //15
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,255, //31 script weapons start here
-	    255,255,255,255,255,255,255,255, 255,0,0,0,0,0,0,0, //47 last script weapon: 40
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //63
-	    
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //79
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //95
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //111
-	    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, //127
-	    17, //fireball 128
-	    //spritelist goes here
-	    19,	//enemy arrow 130
-	    0,
-	    4, //enemy brfang 131
-	    20, //enemy swordbeam 132
-	    0,0,
-	    18, //rock 133
-	    21, //magic	 134
-	    78, //enemy bomb explosion 135
-	    79, //enemy Sbomb explosion 136
-	    76, //enemy bomb projectile 137
-	    77, //enemy Sbomb projectile 138
-	   
-	    80, //firetrail 139
-	    35, //fire flame 140
-	    36, //wind magic 141
-	    81, //fire2 (fire gleeok flame) 142
-	    82, //143 (fire trail 2?
-	    83, //144 (ice?)
-	    
-	    0
-    };
-    
-    */
-    
-    //If the weapon sprite is 0, assign it here. 
-    if ( guysbuf[index].wpnsprite <= 0 ) {
-	    int wspr = -1;
-	    switch(guysbuf[index].weapon)
-	    {
-		case 31:
-		case 32:
-		case 33:
-		case 34:
-		case 35:
-		case 36:
-		case 37:
-		case 38:
-		case 39:
-		case 40:
-			wspr = -1;
-			break;
-		
-		case 128: wspr = 17; break;
-		case 129: wspr = 0; break;
-		case 130: wspr = 19; break;
-		case 131: wspr = 4; break;
-		case 132: wspr = 20; break;
-		case 133: wspr = 18; break;
-		case 134: wspr = 21; break;
-		case 135: wspr = 78; break;
-		case 136: wspr = 79; break;
-		case 137: wspr = 76; break;
-		case 138: wspr = 77; break;
-		case 139: wspr = 80; break;
-		case 140: wspr = 35; break;
-		case 141: wspr = 36; break;
-		case 142: wspr = 81; break;
-		case 143: wspr = 82; break;
-		case 144: wspr = 83; break;
-		case 145: wspr = 0; //fireball (rising)
-		
-		default: break; //No assign.
-		    
-		    
-	    }
-	    if ( wspr > -1 ) guysbuf[index].wpnsprite = wspr;
-	  /*  
-        for ( int q = FIRST_EWEAPON_ID; q < wMAX; q++ ) //read the weapon type of the npc and find its sprite
-        {
-	    if ( guysbuf[index].weapon == q ) { guysbuf[index].wpnsprite = default_weapon_sprites[q]; break; }
-        }
-	    */
-    }
-    
-    //Set the dialogue. 
-    sprintf(weapsprite,"%d",guysbuf[index].wpnsprite);
-    enedata_dlg[236].dp = weapsprite;
-    
-    /* Sprite list pulldown. 
-    enedata_dlg[236].dp3 = is_large() ? lfont_l : pfont;
-    sprintf(efr,"%d",guysbuf[index].wpnsprite);
-    */
-    //enedata_dlg[236].dp = wpnsp;
-    
-    //make the sprites list. 
-    /*
-    bool foundwpnsprite; //char wpnsp_def[10];
-    //build_biw_list(); //built in weapons
-    if(biw_cnt==-1)
-    {
-        build_biw_list(); //built-in weapons
-    }
-    
-    */
-    
-    
-    /*
-    if ( guysbuf[index].wpnsprite <= 0 ) {
-        for ( int q = FIRST_EWEAPON_ID; q < wMAX; q++ ) //read the weapon type of the npc and find its sprite
-        {
-	    if ( guysbuf[index].weapon == q ) { guysbuf[index].wpnsprite = default_weapon_sprites[q]; itemdata_dlg[236].d1 = default_weapon_sprites[q]; break; }
-        }
-    }
-    else {
-    */
-    
-    /*
-        for(int j=0; j<biw_cnt; j++)
-        {
-	    if(biw[j].i == guysbuf[index].wpnsprite){
-	        itemdata_dlg[236].d1 = j;
-	        foundwpnsprite = true;
-		    al_trace("Found weapon sprite: \n", j);
-		    break;
-	    }
-        }
-    //}
-    
-    */
-    
-    //We could always make it a text entry box if all else fails. 
-    
-    
-    
-    
-    //Do enemies use sprite 0 for their weapons? if not then we can override. Hell, we can just read
-    //their weapon, and if it is set to sprite 0 and not an arrow, and the quest header is not 2.54+, 
-    //we change it to the appropriate sprite HERE. -Z
-    
-    //Otherwise, add an exception that if the sprite is 0, it is treated as NULL?
-    
-    //Arrow (Enemy) will always be the first on the list, so we absolutely /must/ prime the enemy weapon sprite somewhere. -Z
-    /*
-    if ( !foundwpnsprite ) {
-	    //set a string "Default" for -1
-    }
-    */
-    
-    //We need to set the initial default sprites for all weapons. 
-    /* This requires that the default value of guydata.wpnsprite is -1, because sprite 0 is a legal sprite. 
-    
-    */
-    
-    //enedata_dlg[236].d1= (int)guysbuf[index].wpnsprite;
     
     sprintf(bsp,"%d",guysbuf[index].bosspal);
     
@@ -3875,25 +3047,15 @@ void edit_enemydata(int index)
                            
     for(int i=0; i<16; i++)
         enedata_dlg[106+i].flags = (guysbuf[index].flags2 & (1<<i)) ? D_SELECTED : 0;
-
-    /*
-    enedata_dlg[203].d1 = guysbuf[index].defense[edefSCRIPT01];
-     enedata_dlg[204].d1 = guysbuf[index].defense[edefSCRIPT02];
-     enedata_dlg[205].d1 = guysbuf[index].defense[edefSCRIPT03];
-     enedata_dlg[206].d1 = guysbuf[index].defense[edefSCRIPT04];
-     enedata_dlg[207].d1 = guysbuf[index].defense[edefSCRIPT05];
-     enedata_dlg[208].d1 = guysbuf[index].defense[edefSCRIPT06];
-     enedata_dlg[209].d1 = guysbuf[index].defense[edefSCRIPT07];
-     enedata_dlg[210].d1 = guysbuf[index].defense[edefSCRIPT08];
-     enedata_dlg[211].d1 = guysbuf[index].defense[edefSCRIPT09];
-     enedata_dlg[212].d1 = guysbuf[index].defense[edefSCRIPT10];
-    */
-
+        
     int ret;
     guydata test;
     memset(&test, 0, sizeof(guydata));
-
-	DIALOG *enedata_cpy = resizeDialog(enedata_dlg, 1.5);
+    
+    if(is_large)
+    {
+        large_dialog(enedata_dlg);
+    }
     
     setEnemyLabels(guysbuf[index].family);
     
@@ -3901,27 +3063,27 @@ void edit_enemydata(int index)
     {
         for(int i=0; i<10; i++)
         {
-            if(enedata_cpy[64+i].proc==jwin_droplist_proc)
+            if(enedata_dlg[64+i].proc==jwin_droplist_proc)
             {
                 int size = 0;
-                ((ListData*)enedata_cpy[64+i].dp)->listFunc(-1,&size);
+                ((ListData*)enedata_dlg[64+i].dp)->listFunc(-1,&size);
                 // Bound ms[i] as well as enedata_dlg[64+i].d1
                 sprintf(ms[i],"%d",vbound(atoi(ms[i]), 0, size));
-				enedata_cpy[64+i].d1 = atoi(ms[i]);
+                enedata_dlg[64+i].d1 = atoi(ms[i]);
             }
             else
-				enedata_cpy[64+i].dp = ms[i];
+                enedata_dlg[64+i].dp = ms[i];
         }
         
-		enedata_cpy[189].dp = ms[10];
-		enedata_cpy[190].dp = ms[11]; //!
+        enedata_dlg[189].dp = ms[10];
+        enedata_dlg[190].dp = ms[11];
         
-        ret = zc_popup_dialog(enedata_cpy,3);
+        ret = zc_popup_dialog(enedata_dlg,3);
         
-        test.tile  = enedata_cpy[2].d1;
-        test.cset = enedata_cpy[2].d2;
-        test.s_tile  = enedata_cpy[3].d1;
-        test.e_tile  = enedata_cpy[4].d1;
+        test.tile  = enedata_dlg[2].d1;
+        test.cset = enedata_dlg[2].d2;
+        test.s_tile  = enedata_dlg[3].d1;
+        test.e_tile  = enedata_dlg[4].d1;
         
         test.width = vbound(atoi(w),0,20);
         test.height = vbound(atoi(h),0,20);
@@ -3930,11 +3092,11 @@ void edit_enemydata(int index)
         test.e_width = vbound(atoi(ew),0,20);
         test.e_height = vbound(atoi(eh),0,20);
         
-        test.weapon = enedata_cpy[45].d1 != 0 ? biew[enedata_cpy[45].d1].i + wEnemyWeapons : wNone;
-        test.family = bief[enedata_cpy[46].d1].i;
-        test.anim = biea[enedata_cpy[47].d1].i;
-        test.e_anim = biea[enedata_cpy[48].d1].i;
-        test.item_set = enedata_cpy[49].d1;
+        test.weapon = enedata_dlg[45].d1 != 0 ? biew[enedata_dlg[45].d1].i + wEnemyWeapons : wNone;
+        test.family = bief[enedata_dlg[46].d1].i;
+        test.anim = biea[enedata_dlg[47].d1].i;
+        test.e_anim = biea[enedata_dlg[48].d1].i;
+        test.item_set = enedata_dlg[49].d1;
         
         test.hp = vbound(atoi(hp), 0, 32767); //0x7FFF, not 0xFFFF?
         test.dp = vbound(atoi(dp), 0, 32767);
@@ -3949,106 +3111,43 @@ void edit_enemydata(int index)
         test.frate = vbound(atoi(frt),0,256);
         test.e_frate = vbound(atoi(efr),0,256);
         test.bosspal = vbound(atoi(bsp),-1,29);
-        test.bgsfx = enedata_cpy[182].d1;
-        test.hitsfx = enedata_cpy[183].d1;
-        test.deadsfx = enedata_cpy[184].d1;
-	
-	//2.6 Enemy Weapon Sprite
-	//test.wpnsprite = biw[enedata_cpy[236].d1].i;
-	test.wpnsprite = atoi(weapsprite);
-	
-   
+        test.bgsfx = enedata_dlg[182].d1;
+        test.hitsfx = enedata_dlg[183].d1;
+        test.deadsfx = enedata_dlg[184].d1;
         
-        test.misc1 = (enedata_cpy[64].proc==jwin_droplist_proc) ? enedata_cpy[64].d1 : atol(ms[0]);
-        test.misc2 = (enedata_cpy[65].proc==jwin_droplist_proc) ? enedata_cpy[65].d1 : atol(ms[1]);
-        test.misc3 = (enedata_cpy[66].proc==jwin_droplist_proc) ? enedata_cpy[66].d1 : atol(ms[2]);
-        test.misc4 = (enedata_cpy[67].proc==jwin_droplist_proc) ? enedata_cpy[67].d1 : atol(ms[3]);
-        test.misc5 = (enedata_cpy[68].proc==jwin_droplist_proc) ? enedata_cpy[68].d1 : atol(ms[4]);
-        test.misc6 = (enedata_cpy[69].proc==jwin_droplist_proc) ? enedata_cpy[69].d1 : atol(ms[5]);
-        test.misc7 = (enedata_cpy[70].proc==jwin_droplist_proc) ? enedata_cpy[70].d1 : atol(ms[6]);
-        test.misc8 = (enedata_cpy[71].proc==jwin_droplist_proc) ? enedata_cpy[71].d1 : atol(ms[7]);
-        test.misc9 = (enedata_cpy[72].proc==jwin_droplist_proc) ? enedata_cpy[72].d1 : atol(ms[8]);
-        test.misc10 = (enedata_cpy[73].proc==jwin_droplist_proc) ? enedata_cpy[73].d1 : atol(ms[9]);
+        test.misc1 = (enedata_dlg[64].proc==jwin_droplist_proc) ? enedata_dlg[64].d1 : atol(ms[0]);
+        test.misc2 = (enedata_dlg[65].proc==jwin_droplist_proc) ? enedata_dlg[65].d1 : atol(ms[1]);
+        test.misc3 = (enedata_dlg[66].proc==jwin_droplist_proc) ? enedata_dlg[66].d1 : atol(ms[2]);
+        test.misc4 = (enedata_dlg[67].proc==jwin_droplist_proc) ? enedata_dlg[67].d1 : atol(ms[3]);
+        test.misc5 = (enedata_dlg[68].proc==jwin_droplist_proc) ? enedata_dlg[68].d1 : atol(ms[4]);
+        test.misc6 = (enedata_dlg[69].proc==jwin_droplist_proc) ? enedata_dlg[69].d1 : atol(ms[5]);
+        test.misc7 = (enedata_dlg[70].proc==jwin_droplist_proc) ? enedata_dlg[70].d1 : atol(ms[6]);
+        test.misc8 = (enedata_dlg[71].proc==jwin_droplist_proc) ? enedata_dlg[71].d1 : atol(ms[7]);
+        test.misc9 = (enedata_dlg[72].proc==jwin_droplist_proc) ? enedata_dlg[72].d1 : atol(ms[8]);
+        test.misc10 = (enedata_dlg[73].proc==jwin_droplist_proc) ? enedata_dlg[73].d1 : atol(ms[9]);
         test.misc11 = atol(ms[10]);
         test.misc12 = atol(ms[11]);
-	
-	
-	
         
         for(int j=0; j <= edefBYRNA; j++)
         {
-            test.defense[j] = enedata_cpy[j+161].d1;
+            test.defense[j] = enedata_dlg[j+161].d1;
         }
         
-        test.defense[edefSCRIPT] = enedata_cpy[192].d1;
+        test.defense[edefSCRIPT] = enedata_dlg[192].d1;
         
         
         for(int i=0; i<32; i++)
-            test.flags |= (enedata_cpy[74+i].flags & D_SELECTED) ? (1<<i) : 0;
+            test.flags |= (enedata_dlg[74+i].flags & D_SELECTED) ? (1<<i) : 0;
             
         test.flags &= ~(guy_fadeinstant|guy_fadeflicker);
-        test.flags |= (enedata_cpy[186].d1==2 ? guy_fadeinstant : enedata_cpy[186].d1==1 ? guy_fadeflicker : 0);
+        test.flags |= (enedata_dlg[186].d1==2 ? guy_fadeinstant : enedata_dlg[186].d1==1 ? guy_fadeflicker : 0);
         
         for(int i=0; i<16; i++)
-            test.flags2 |= (enedata_cpy[106+i].flags & D_SELECTED) ? (1<<i) : 0;
+            test.flags2 |= (enedata_dlg[106+i].flags & D_SELECTED) ? (1<<i) : 0;
             
-        if(enedata_cpy[143].flags & D_SELECTED)
+        if(enedata_dlg[143].flags & D_SELECTED)
             test.cset = 14;
-	
-	
-	test.defense[edefSCRIPT01] = enedata_cpy[203].d1;
-	test.defense[edefSCRIPT02] = enedata_cpy[204].d1;
-	test.defense[edefSCRIPT03] = enedata_cpy[205].d1;
-	test.defense[edefSCRIPT04] = enedata_cpy[206].d1;
-	test.defense[edefSCRIPT05] = enedata_cpy[207].d1;
-	test.defense[edefSCRIPT06] = enedata_cpy[208].d1;
-	test.defense[edefSCRIPT07] = enedata_cpy[209].d1;
-	test.defense[edefSCRIPT08] = enedata_cpy[210].d1;
-	test.defense[edefSCRIPT09] = enedata_cpy[211].d1;
-	test.defense[edefSCRIPT10] = enedata_cpy[212].d1;
-	
-	//tilewidth, tileheight, hitwidth, hitheight, 
-	test.txsz = atoi(tilex);
-	test.tysz = atoi(tiley);
-	test.hxsz = atoi(hitx);
-	test.hysz = atoi(hity);
-	test.hzsz = atoi(hitz);
-	test.hxofs = atoi(hitofsx);
-	test.hyofs = atoi(hitofsy);
-	test.zofs = atoi(hitofsz);
-	test.xofs = atoi(drawofsx);
-	test.yofs = atoi(drawofsy); //This seems to be setting to +48 or something with any value set?! -Z
-	
-	//override flags
-	if(enedata_cpy[237].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_HIT_WIDTH;
             
-        if(enedata_cpy[238].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_HIT_HEIGHT;
-            
-        if(enedata_cpy[239].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_HIT_Z_HEIGHT;
-            
-        if(enedata_cpy[240].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_HIT_X_OFFSET;
-            
-        if(enedata_cpy[241].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_HIT_Y_OFFSET;
-            
-        if(enedata_cpy[242].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_DRAW_Z_OFFSET;
-	if(enedata_cpy[243].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_DRAW_X_OFFSET;
-            
-        if(enedata_cpy[244].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_DRAW_Y_OFFSET;
-	if(enedata_cpy[245].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_TILE_WIDTH;
-	if(enedata_cpy[246].flags & D_SELECTED)
-            test.SIZEflags |= guyflagOVERRIDE_TILE_HEIGHT;
-
-	    
-	    
         if(ret==5)
         {
             strcpy(guy_string[index],name);
@@ -4057,32 +3156,20 @@ void edit_enemydata(int index)
         }
         else if(ret==46)
         {
-            setEnemyLabels(bief[enedata_cpy[46].d1].i);
+            setEnemyLabels(bief[enedata_dlg[46].d1].i);
         }
         else if(ret==178)
         {
             for(int j=1; j <= edefBYRNA; j++)
             {
-				enedata_cpy[j+161].d1 = enedata_cpy[161].d1;
+                enedata_dlg[j+161].d1 = enedata_dlg[161].d1;
             }
             
-			enedata_cpy[192].d1 = enedata_cpy[161].d1;
-	     //Clear to 0
-	    enedata_cpy[203].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[204].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[205].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[206].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[207].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[208].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[209].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[210].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[211].d1 = enedata_cpy[161].d1;
-	    enedata_cpy[212].d1 = enedata_cpy[161].d1;
+            enedata_dlg[192].d1 = enedata_dlg[161].d1;
         }
     }
     while(ret != 5 && ret != 6 && ret != 0);
     
-	delete[] enedata_cpy;
 }
 
 extern DIALOG elist_dlg[];
@@ -4203,7 +3290,7 @@ int d_ltile_proc(int msg,DIALOG *d,int c)
         switch(extend)
         {
         case 0:
-            if(!isinRect(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY(),d->x+2+8, d->y+2+4, d->x+(16*(is_large() ? 2 : 1))+8+2, d->y+(16+16*(is_large() ? 2 : 1))+2))
+            if(!isinRect(gui_mouse_x(),gui_mouse_y(),d->x+2+8, d->y+2+4, d->x+(16*(is_large+1))+8+2, d->y+(16+16*(is_large+1))+2))
             {
                 return D_O_K;
             }
@@ -4211,7 +3298,7 @@ int d_ltile_proc(int msg,DIALOG *d,int c)
             break;
             
         case 1:
-            if(!isinRect(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY(),d->x+2+8, d->y+2+4, d->x+(16*(is_large() ? 2 : 1))+8+2, d->y+(4+32*(is_large() ? 2 : 1))+2))
+            if(!isinRect(gui_mouse_x(),gui_mouse_y(),d->x+2+8, d->y+2+4, d->x+(16*(is_large+1))+8+2, d->y+(4+32*(is_large+1))+2))
             {
                 return D_O_K;
             }
@@ -4219,7 +3306,7 @@ int d_ltile_proc(int msg,DIALOG *d,int c)
             break;
             
         case 2:
-            if(!isinRect(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY(),d->x+2+8, d->y+4, d->x+(32*(is_large() ? 2 : 1))+8+2, d->y+(4+32*(is_large() ? 2 : 1))+2))
+            if(!isinRect(gui_mouse_x(),gui_mouse_y(),d->x+2+8, d->y+4, d->x+(32*(is_large+1))+8+2, d->y+(4+32*(is_large+1))+2))
             {
                 return D_O_K;
             }
@@ -4836,7 +3923,7 @@ int d_ltile_proc(int msg,DIALOG *d,int c)
         
         buf = create_bitmap_ex(8,w,h);
         
-        if(is_large())
+        if(is_large)
         {
             w *= 2;
             h *= 2;
@@ -5215,7 +4302,8 @@ int onCustomLink()
     linktile_dlg[95].d1=(zinit.link_swim_speed<60)?0:1;
     linktile_dlg[7].d1=zinit.linkanimationstyle;
     
-	DIALOG *linktile_cpy = resizeDialog(linktile_dlg, 2.0);
+    if(is_large)
+        large_dialog(linktile_dlg, 2.0);
         
     int oldWalkSpr[4][3];
     int oldStabSpr[4][3];
@@ -5241,14 +4329,14 @@ int onCustomLink()
     memcpy(oldHoldSpr, holdspr, 2*2*3*sizeof(int));
     
     
-    int ret = popup_dialog_through_bitmap(screen2, linktile_cpy,3);
+    int ret = popup_dialog_through_bitmap(screen2,linktile_dlg,3);
     
     if(ret==3)
     {
         saved=false;
-        set_bit(quest_rules, qr_LTTPCOLLISION, (linktile_cpy[5].flags&D_SELECTED)?1:0);
-        set_bit(quest_rules, qr_LTTPWALK, (linktile_cpy[76].flags&D_SELECTED)?1:0);
-        zinit.link_swim_speed=(linktile_cpy[95].d1==0)?50:67;
+        set_bit(quest_rules, qr_LTTPCOLLISION, (linktile_dlg[5].flags&D_SELECTED)?1:0);
+        set_bit(quest_rules, qr_LTTPWALK, (linktile_dlg[76].flags&D_SELECTED)?1:0);
+        zinit.link_swim_speed=(linktile_dlg[95].d1==0)?50:67;
     }
     else
     {
@@ -5264,8 +4352,6 @@ int onCustomLink()
         memcpy(castingspr, oldCastSpr, 3*sizeof(int));
         memcpy(holdspr, oldHoldSpr, 2*2*3*sizeof(int));
     }
-
-	delete[] linktile_cpy;
     
     ret=ret;
     return D_O_K;

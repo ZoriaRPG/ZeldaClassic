@@ -29,9 +29,9 @@
 //#include "jwin.h"
 #include "jwinfsel.h"
 #include "title.h"
+#include "gamedata.h"
 #include "link.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 #ifdef _MSC_VER
 #define strupr _strupr
@@ -42,9 +42,6 @@
 extern int loadlast;
 extern int skipcont;
 extern int skipicon;
-
-int miniscreenX(); 
-int miniscreenY(); 
 
 bool load_custom_game(int file);
 
@@ -98,15 +95,7 @@ static byte itemspal[24] =
 
 static void loadtitlepal(int clear,byte *dataofs,int shift)
 {
-    for(int i=0; i<4; i++) 
-    {
-        RAMpal[CSET(i)+shift] = NESpal(clear);
-        
-        for(int c=1; c<4; c++)
-            RAMpal[CSET(i)+c+shift] = NESpal(*dataofs++);
-    }
-
-    for(int i=6; i<10; i++)
+    for(int i=0; i<4; i++)
     {
         RAMpal[CSET(i)+shift] = NESpal(clear);
         
@@ -114,6 +103,13 @@ static void loadtitlepal(int clear,byte *dataofs,int shift)
             RAMpal[CSET(i)+c+shift] = NESpal(*dataofs++);
     }
     
+    for(int i=6; i<10; i++)
+    {
+        RAMpal[CSET(i)+shift] = NESpal(clear);
+        
+        for(int c=1; c<4; c++)
+            RAMpal[CSET(i)+c+shift] = NESpal(*dataofs++);
+    }
     
     refreshpal=true;
 }
@@ -169,7 +165,7 @@ static void mainscreen(int f)
         char tbuf[80];
         sprintf(tbuf, "%c1986 NINTENDO", 0xBB);
         textout_ex(framebuf,zfont,tbuf,104,128,13,-1);
-        sprintf(tbuf, "%c" COPYRIGHT_YEAR " AG", 0xBC);
+        sprintf(tbuf, "%c2014 AG", 0xBC);
         //tbuf[0]=(char)0xBC;
         textout_ex(framebuf,zfont,tbuf,104,136,13,-1);
     }
@@ -519,7 +515,7 @@ static void NES_titlescreen()
     tri=0;
     fcnt=0;
     trstr=0;
-    Backend::palette->setPalette(black_palette);
+    set_palette(black_palette);
     try_zcmusic((char*)"zelda.nsf",0, ZC_MIDI_TITLE);
     clear_bitmap(screen);
     clear_bitmap(framebuf);
@@ -604,7 +600,7 @@ static void DX_mainscreen(int f)
         sprintf(tbuf, "%c1986 Nintendo",0xBB);
         //tbuf[0]=0xBB;
         textout_ex(framebuf,font,tbuf,46,138,255,-1);
-        sprintf(tbuf, "%c" COPYRIGHT_YEAR " Armageddon Games",0xBC);
+        sprintf(tbuf, "%c2014 Armageddon Games",0xBC);
         //tbuf[0]=0xBC;
         textout_ex(framebuf,font,tbuf,46,146,255,-1);
         //    text_mode(0);
@@ -612,8 +608,8 @@ static void DX_mainscreen(int f)
     
     if(f>=680 && f<680+256 && (f%3)==0)
     {
-        Backend::palette->interpolatePalettes((RGB*)dat[TITLE_DX_PAL_1].dat,black_palette,
-                         (f-680)>>2,0,255, RAMpal);
+        fade_interpolate((RGB*)dat[TITLE_DX_PAL_1].dat,black_palette,RAMpal,
+                         (f-680)>>2,0,255);
         refreshpal=true;
     }
     
@@ -633,7 +629,7 @@ static void DX_titlescreen()
     int f=0;
     bool done=false;
     trstr=0;
-    Backend::palette->setPalette(black_palette);
+    set_palette(black_palette);
     
     try_zcmusic((char*)"zelda.nsf",0, ZC_MIDI_TITLE);
     clear_to_color(screen,BLACK);
@@ -715,7 +711,7 @@ static void v25_mainscreen(int f)
         sprintf(tbuf, "%c1986 Nintendo",0xBB);
         //tbuf[0]=0xBB;
         textout_ex(framebuf,font,tbuf,80,134,255,-1);
-        sprintf(tbuf, "%c" COPYRIGHT_YEAR " Armageddon Games",0xBC);
+        sprintf(tbuf, "%c2014 Armageddon Games",0xBC);
         //tbuf[0]=0xBC;
         textout_ex(framebuf,font,tbuf,80,142,255,-1);
         //    text_mode(0);
@@ -723,8 +719,8 @@ static void v25_mainscreen(int f)
     
     if(f>=680 && f<680+256 && (f%3)==0)
     {
-        Backend::palette->interpolatePalettes((RGB*)dat[TITLE_25_PAL_1].dat,black_palette,
-                         (f-680)>>2,0,255, RAMpal);
+        fade_interpolate((RGB*)dat[TITLE_25_PAL_1].dat,black_palette,RAMpal,
+                         (f-680)>>2,0,255);
         refreshpal=true;
     }
     
@@ -744,7 +740,7 @@ static void v25_titlescreen()
     int f=0;
     bool done=false;
     trstr=0;
-    Backend::palette->setPalette(black_palette);
+    set_palette(black_palette);
     
     try_zcmusic((char*)"zelda.nsf",0, ZC_MIDI_TITLE);
     clear_to_color(screen,BLACK);
@@ -857,7 +853,6 @@ int readsaves(gamedata *savedata, PACKFILE *f)
     if(standalone_mode && save_count>1)
     {
         system_pal();
-		Backend::mouse->setCursorVisibility(true);
         jwin_alert("Invalid save file",
                    "This save file cannot be",
                    "used in standalone mode.",
@@ -868,7 +863,7 @@ int readsaves(gamedata *savedata, PACKFILE *f)
     else if(!standalone_mode && save_count==1)
     {
         system_pal();
-		Backend::mouse->setCursorVisibility(true);
+        
         if(jwin_alert3("Standalone save file",
                        "This save file was created in standalone mode.",
                        "If you continue, you will no longer be able",
@@ -1181,7 +1176,6 @@ int readsaves(gamedata *savedata, PACKFILE *f)
         if(standalone_mode && strcmp(savedata[i].qstpath, standalone_quest)!=0)
         {
             system_pal();
-			Backend::mouse->setCursorVisibility(true);
             jwin_alert("Invalid save file",
                        "This save file is for",
                        "a different quest.",
@@ -1531,11 +1525,11 @@ int load_savedgames()
     
 newdata:
     system_pal();
-	Backend::mouse->setCursorVisibility(true);
+    
     if(standalone_mode)
         goto init;
-	
-	if(jwin_alert("Can't Find Saved Game File",
+        
+    if(jwin_alert("Can't Find Saved Game File",
                   "The save file could not be found.",
                   "Create a new file from scratch?",
                   "Warning: Doing so will erase any previous saved games!",
@@ -1545,14 +1539,12 @@ newdata:
     }
     
     game_pal();
-	Backend::mouse->setCursorVisibility(false);
     Z_message("Save file not found.  Creating new save file.");
     goto init;
     
 cantopen:
     {
         system_pal();
-		Backend::mouse->setCursorVisibility(true);
         char buf[256];
         snprintf(buf, 256, "still can't be opened, you'll need to delete %s.", SAVE_FILE);
         jwin_alert("Can't Open Saved Game File",
@@ -1565,7 +1557,7 @@ cantopen:
     
 reset:
     system_pal();
-	Backend::mouse->setCursorVisibility(true);
+    
     if(jwin_alert3("Can't Open Saved Game File",
                    "Unable to read the save file.",
                    "Create a new file from scratch?",
@@ -1576,7 +1568,7 @@ reset:
     }
     
     game_pal();
-	Backend::mouse->setCursorVisibility(false);
+    
     if(f)
         pack_fclose(f);
         
@@ -1584,7 +1576,7 @@ reset:
     Z_message("Format error.  Resetting game data... ");
     
 init:
-	Backend::mouse->setCursorVisibility(false);
+
     for(int i=0; i<MAXSAVES; i++)
         saves[i].Clear();
         
@@ -1836,16 +1828,7 @@ int save_savedgames()
 {
     if(saves==NULL)
         return 1;
-    
-    // Not sure why this happens, but apparently it does...
-    for(int i=0; i<MAXSAVES; i++)
-    {
-        for(int j=0; j<48; j++)
-        {
-            saves[i].pal[j]&=63;
-        }
-    }
-    
+        
     char tmpfilename[32];
     temp_name(tmpfilename);
     
@@ -1896,8 +1879,7 @@ int save_savedgames()
 
 void load_game_icon(gamedata *g, bool, int index)
 {
-	//We need an override that fixes the palette here to prevent monochrome overwriting it. -Z
-    int i=iconbuffer[index].ring; //
+    int i=iconbuffer[index].ring;
     
     byte *si = iconbuffer[index].icon[i];
     
@@ -1967,7 +1949,7 @@ void load_game_icon_to_buffer(bool forceDefault, int index)
         
         if(t)
         {
-            si = colordata + CSET(pSprite(i+spICON1))*3; //THis is probably the culprit for greyscale. -Z
+            si = colordata + CSET(pSprite(i+spICON1))*3;
         }
         else
         {
@@ -1985,8 +1967,7 @@ void load_game_icon_to_buffer(bool forceDefault, int index)
         {
             for(int j=0; j<48; j++)
             {
-                iconbuffer[index].pal[i][j] = 0; //maybe use RAMpal? -Z
-		    //You know, this is possibly caused by Link.cpp calling ringcolor() before the palette is updated?
+                iconbuffer[index].pal[i][j] = 0;
             }
         }
         else
@@ -2278,7 +2259,7 @@ static bool register_name()
                     }
                 }
                 
-                Backend::sfx->play(WAV_CHIME,128);
+                sfx(WAV_CHIME);
             }
             else if(rRight())
             {
@@ -2295,7 +2276,7 @@ static bool register_name()
                     }
                 }
                 
-                Backend::sfx->play(WAV_CHIME,128);
+                sfx(WAV_CHIME);
             }
             else if(rUp())
             {
@@ -2306,7 +2287,7 @@ static bool register_name()
                     grid_y=letter_grid_height-1;
                 }
                 
-                Backend::sfx->play(WAV_CHIME,128);
+                sfx(WAV_CHIME);
             }
             else if(rDown())
             {
@@ -2317,7 +2298,7 @@ static bool register_name()
                     grid_y=0;
                 }
                 
-                Backend::sfx->play(WAV_CHIME,128);
+                sfx(WAV_CHIME);
             }
             else if(rBbtn())
             {
@@ -2338,7 +2319,7 @@ static bool register_name()
                     x=0;
                 }
                 
-                Backend::sfx->play(WAV_PLACE,128);
+                sfx(WAV_PLACE);
             }
             else if(rSbtn())
             {
@@ -2375,7 +2356,7 @@ static bool register_name()
                         ++x;
                     }
                     
-                    Backend::sfx->play(WAV_PLACE,128);
+                    sfx(WAV_PLACE);
                 }
                 else
                 {
@@ -2393,7 +2374,7 @@ static bool register_name()
                                 --x;
                             }
                             
-                            Backend::sfx->play(WAV_CHIME,128);
+                            sfx(WAV_CHIME);
                         }
                         
                         break;
@@ -2402,7 +2383,7 @@ static bool register_name()
                         if(x<8 && name[zc_min(x,7)])
                         {
                             ++x;
-                            Backend::sfx->play(WAV_CHIME,128);
+                            sfx(WAV_CHIME);
                         }
                         
                         break;
@@ -2438,7 +2419,7 @@ static bool register_name()
                                 name[i]=name[i+1];
                             }
                             
-                            Backend::sfx->play(WAV_OUCH,128);
+                            sfx(WAV_OUCH);
                         }
                         
                         break;
@@ -2449,7 +2430,7 @@ static bool register_name()
                             name[i]=name[i+1];
                         }
                         
-                        Backend::sfx->play(WAV_OUCH,128);
+                        sfx(WAV_OUCH);
                         break;
                         
                     case KEY_ESC:
@@ -2599,7 +2580,7 @@ static bool copy_file(int file)
         iconbuffer[savecnt]=iconbuffer[file];
         ++savecnt;
         listpos=((savecnt-1)/3)*3;
-        Backend::sfx->play(WAV_SCALE,128);
+        sfx(WAV_SCALE);
         select_mode();
         return true;
     }
@@ -2623,7 +2604,7 @@ static bool delete_save(int file)
         if(listpos>savecnt-1)
             listpos=zc_max(listpos-3,0);
             
-        Backend::sfx->play(WAV_OUCH,128);
+        sfx(WAV_OUCH);
         select_mode();
         return true;
     }
@@ -2838,8 +2819,6 @@ int custom_game(int file)
     char infostr[200];
     char path[2048];
     int ret=0;
-	//The focus object for the button.
-	int focus_obj = 1;
     
     if(is_relative_filename(saves[file].qstpath))
     {
@@ -2867,16 +2846,18 @@ int custom_game(int file)
     gamemode_dlg[2].d1 = gamemode_dlg[4].d1 = 0;
     gamemode_dlg[2].d2 = gamemode_dlg[4].d2 = 0;
     system_pal();
-	Backend::mouse->setCursorVisibility(true);
+    show_mouse(screen);
     
     clear_keybuf();
     
-	DIALOG *gamemode_cpy = resizeDialog(gamemode_dlg, 1.5);        
+    if(is_large)
+        large_dialog(gamemode_dlg);
         
-    //focus_object sets which button is used if the user presses enter/return.
-    while((ret=zc_popup_dialog(gamemode_cpy,focus_obj))==1)
+    while((ret=zc_popup_dialog(gamemode_dlg,1))==1)
     {
-        blit(screen,tmp_scr,miniscreenX(), miniscreenY(),0,0,320,240);
+        scare_mouse();
+        blit(screen,tmp_scr,scrx,scry,0,0,320,240);
+        unscare_mouse();
         
         int  sel=0;
         static EXT_LIST list[] =
@@ -2891,36 +2872,30 @@ int custom_game(int file)
         {
             //      strcpy(qstpath, path);
             replace_extension(qstpath,path,"qst",2047);
-			gamemode_cpy[2].dp = get_filename(qstpath);
+            gamemode_dlg[2].dp = get_filename(qstpath);
             
             if(get_quest_info(&h,infostr)==0)
             {
-				gamemode_cpy[4].dp = infostr;
-				gamemode_cpy[5].flags = D_DISABLED;
-				//If we have not loaded a quest, focus on the browse button. -Z
-				focus_obj = 1;
+                gamemode_dlg[4].dp = infostr;
+                gamemode_dlg[5].flags = D_DISABLED;
             }
             else
             {
-				gamemode_cpy[4].dp = infostr;
-				gamemode_cpy[5].flags = D_EXIT;
-				//If we have selected a quest, focus on the 'OK' button. -Z
-				focus_obj = 5;
+                gamemode_dlg[4].dp = infostr;
+                gamemode_dlg[5].flags = D_EXIT;
             }
             
-			gamemode_cpy[2].d1 = gamemode_cpy[4].d1 = 0;
-			gamemode_cpy[2].d2 = gamemode_cpy[4].d2 = 0;
+            gamemode_dlg[2].d1 = gamemode_dlg[4].d1 = 0;
+            gamemode_dlg[2].d2 = gamemode_dlg[4].d2 = 0;
         }
         
-        blit(tmp_scr,screen,0,0, miniscreenX(), miniscreenY(),320,240);
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
+        scare_mouse();
+        blit(tmp_scr,screen,0,0,scrx,scry,320,240);
+        unscare_mouse();
     }
-
-	delete[] gamemode_cpy;
     
-	Backend::mouse->setCursorVisibility(false);
-    game_pal();	
+    show_mouse(NULL);
+    game_pal();
     key[KEY_ESC]=0;
     chosecustomquest = (ret==5);
     return (int)chosecustomquest;
@@ -3056,11 +3031,10 @@ static void select_game()
     bool done=false;
     refreshpal=true;
     
-    Backend::sfx->loadDefaultSamples(Z35, sfxdata, old_sfx_string);
-
     do
     {
         load_control_state();
+        sfxdat=1;
         blit(scrollbuf,framebuf,0,0,0,0,256,224);
         list_saves();
         draw_cursor(pos,mode);
@@ -3142,7 +3116,7 @@ static void select_game()
             if(pos<0)
                 pos=(mode)?2:5;
                 
-            Backend::sfx->play(WAV_CHIME,128);
+            sfx(WAV_CHIME);
         }
         
         if(rDown())
@@ -3152,20 +3126,20 @@ static void select_game()
             if(pos>((mode)?2:5))
                 pos=0;
                 
-            Backend::sfx->play(WAV_CHIME,128);
+            sfx(WAV_CHIME);
         }
         
         if(rLeft() && listpos>2)
         {
             listpos-=3;
-            Backend::sfx->play(WAV_CHIME,128);
+            sfx(WAV_CHIME);
             refreshpal=true;
         }
         
         if(rRight() && listpos+3<savecnt)
         {
             listpos+=3;
-            Backend::sfx->play(WAV_CHIME,128);
+            sfx(WAV_CHIME);
             refreshpal=true;
         }
         
@@ -3290,11 +3264,9 @@ void titlescreen(int lsave)
 
 void game_over(int type)
 {
-	
-    Backend::sfx->stopAll();
+    kill_sfx();
     music_stop();
     clear_to_color(screen,BLACK);
-	setMonochrome(false); //Clear monochrome before drawing the file select. 
     loadfullpal();
     
     if(Quit==qGAMEOVER)
@@ -3332,7 +3304,7 @@ void game_over(int type)
         {
             if(rUp())
             {
-                Backend::sfx->play(WAV_CHINK,128);
+                sfx(WAV_CHINK);
                 pos=(pos==0)?2:pos-1;
                 
                 if(type)
@@ -3343,7 +3315,7 @@ void game_over(int type)
             
             if(rDown())
             {
-                Backend::sfx->play(WAV_CHINK,128);
+                sfx(WAV_CHINK);
                 pos=(pos+1)%3;
                 
                 if(type)
@@ -3416,7 +3388,6 @@ void game_over(int type)
         //Quit = pos ? ((standalone_mode && skip_title) ? qRESET : qQUIT) : qCONT;
         if(pos==1&&(!type))
         {
-		setMonochrome(false); //Clear monochrome before drawing the file select. 
             game->set_cheat(game->get_cheat() | cheat);
             
             saves[currgame]=*game;
@@ -3472,7 +3443,7 @@ void save_game(bool savepoint)
 
 bool save_game(bool savepoint, int type)
 {
-    Backend::sfx->stopAll();
+    kill_sfx();
     //music_stop();
     clear_to_color(screen,BLACK);
     loadfullpal();
@@ -3510,13 +3481,13 @@ bool save_game(bool savepoint, int type)
             {
                 if(rUp())
                 {
-                    Backend::sfx->play(WAV_CHINK,128);
+                    sfx(WAV_CHINK);
                     pos=(pos==0)?2:pos-1;
                 }
                 
                 if(rDown())
                 {
-                    Backend::sfx->play(WAV_CHINK,128);
+                    sfx(WAV_CHINK);
                     pos=(pos+1)%3;
                 }
                 
@@ -3624,13 +3595,13 @@ bool save_game(bool savepoint, int type)
                     {
                         if(rUp())
                         {
-                            Backend::sfx->play(WAV_CHINK,128);
+                            sfx(WAV_CHINK);
                             pos2=(pos2==0)?1:pos2-1;
                         }
                         
                         if(rDown())
                         {
-                            Backend::sfx->play(WAV_CHINK,128);
+                            sfx(WAV_CHINK);
                             pos2=(pos2+1)%2;
                         }
                         

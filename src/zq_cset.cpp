@@ -29,7 +29,6 @@
 #include "zq_tiles.h"
 #include "zq_misc.h"
 #include "zq_cset.h"
-#include "backend/AllBackends.h"
 
 extern int d_dummy_proc(int msg,DIALOG *d,int c);
 extern int d_dropdmaplist_proc(int msg,DIALOG *d,int c);
@@ -43,6 +42,7 @@ extern bool dmap_list_zero;
 extern zinitdata zinit;
 extern int startdmapxy[6];
 extern PALETTE RAMpal;
+
 
 #include "gfxpal.h"
 
@@ -69,54 +69,54 @@ void draw_edit_dataset_specs(int index,int copy)
     int window_xofs=0;
     int window_yofs=0;
     
-    if(is_large())
+    if(is_large)
     {
-        window_xofs=(Backend::graphics->virtualScreenW()-480)>>1;
-        window_yofs=(Backend::graphics->virtualScreenH()-360)>>1;
+        window_xofs=(zq_screen_w-480)>>1;
+        window_yofs=(zq_screen_h-360)>>1;
     }
     
-    jwin_draw_frame(screen, cset_x-2, cset_y+cset_h+cset_spacing-2, int(128*(is_large()?1.5:1)+4), cset_h+4, FR_DEEP);
+    jwin_draw_frame(screen, cset_x-2, cset_y+cset_h+cset_spacing-2, int(128*(is_large?1.5:1)+4), cset_h+4, FR_DEEP);
     
     for(int i=0; i<16; i++)
     {
-        rectfill(screen,int((i<<3)*(is_large()?1.5:1))+cset_x,cset_y+cset_h+cset_spacing,int((i<<3)*(is_large()?1.5:1)+cset_x+cset_h-1),cset_y+cset_h+cset_spacing+cset_h-1,14*16+i);
+        rectfill(screen,int((i<<3)*(is_large?1.5:1))+cset_x,cset_y+cset_h+cset_spacing,int((i<<3)*(is_large?1.5:1)+cset_x+cset_h-1),cset_y+cset_h+cset_spacing+cset_h-1,14*16+i);
     }
     
     //  text_mode(ed1);
-    rectfill(screen,int(96*(is_large()?1.5:1)+window_xofs),int(193*(is_large()?1.5:1)+window_yofs),int(223*(is_large()?1.5:1)+window_xofs),int(220*(is_large()?1.5:1)+window_yofs),jwin_pal[jcBOX]);
-    textout_ex(screen,(is_large()?lfont_l:font),"\x88",int((index<<3)*(is_large()?1.5:1)+cset_x),int(193*(is_large()?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX]);
+    rectfill(screen,int(96*(is_large?1.5:1)+window_xofs),int(193*(is_large?1.5:1)+window_yofs),int(223*(is_large?1.5:1)+window_xofs),int(220*(is_large?1.5:1)+window_yofs),jwin_pal[jcBOX]);
+    textout_ex(screen,(is_large?lfont_l:font),"\x88",int((index<<3)*(is_large?1.5:1)+cset_x),int(193*(is_large?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX]);
     
     if(copy>=0)
     {
-        textout_ex(screen,(is_large()?lfont_l:font),"\x81",int((copy<<3)*(is_large()?1.5:1)+cset_x),int(193*(is_large()?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX]);
+        textout_ex(screen,(is_large?lfont_l:font),"\x81",int((copy<<3)*(is_large?1.5:1)+cset_x),int(193*(is_large?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX]);
     }
     
-    textprintf_ex(screen,(is_large()?lfont_l:font),88*(is_large()?2:1)+window_xofs,int(204*(is_large()?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"Old: %2d - %2d %2d %2d",index, RAMpal[12*16+index].r,RAMpal[12*16+index].g,RAMpal[12*16+index].b);
-    textprintf_ex(screen,(is_large()?lfont_l:font),88*(is_large()?2:1)+window_xofs,int(214*(is_large()?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"New: %2d - %2d %2d %2d",index, RAMpal[14*16+index].r,RAMpal[14*16+index].g,RAMpal[14*16+index].b);
+    textprintf_ex(screen,(is_large?lfont_l:font),88*(is_large?2:1)+window_xofs,int(204*(is_large?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"Old: %2d - %2d %2d %2d",index, RAMpal[12*16+index].r,RAMpal[12*16+index].g,RAMpal[12*16+index].b);
+    textprintf_ex(screen,(is_large?lfont_l:font),88*(is_large?2:1)+window_xofs,int(214*(is_large?1.5:1)+window_yofs),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"New: %2d - %2d %2d %2d",index, RAMpal[14*16+index].r,RAMpal[14*16+index].g,RAMpal[14*16+index].b);
 }
 
 void init_colormixer()
 {
-    jwin_draw_frame(screen, hue_x-2, hue_y-2, int(128*(is_large()?1.5:1)+4), hue_h+4, FR_DEEP);
+    jwin_draw_frame(screen, hue_x-2, hue_y-2, int(128*(is_large?1.5:1)+4), hue_h+4, FR_DEEP);
     
     for(int i=0; i<128; i++)
     {
         RAMpal[i] = _RGB(gfx_pal+i*3); //hue
-        rectfill(screen,int(floor(i*(is_large()?1.5:1))+hue_x),hue_y,int(ceil(i*(is_large()?1.5:1))+hue_x),hue_y+hue_h-1,i);
+        rectfill(screen,int(floor(i*(is_large?1.5:1))+hue_x),hue_y,int(ceil(i*(is_large?1.5:1))+hue_x),hue_y+hue_h-1,i);
     }
     
-    jwin_draw_frame(screen, light_x-2, light_y-2, light_w+4, int(64*(is_large()?1.5:1)+4), FR_DEEP);
+    jwin_draw_frame(screen, light_x-2, light_y-2, light_w+4, int(64*(is_large?1.5:1)+4), FR_DEEP);
     
     for(int i=0; i<32; i++)
     {
         RAMpal[i+128] = _RGB(i<<1,i<<1,i<<1); //lightness
-        rectfill(screen,light_x,((int)floor(i*(is_large()?1.5:1))<<1)+light_y,
-                 light_x+light_w-1,((int)ceil(i*(is_large()?1.5:1))<<1)+light_y+1,i+128);
+        rectfill(screen,light_x,((int)floor(i*(is_large?1.5:1))<<1)+light_y,
+                 light_x+light_w-1,((int)ceil(i*(is_large?1.5:1))<<1)+light_y+1,i+128);
     }
     
     //  rect(screen,95,31,224,96,ed15);
     //  rect(screen,224,31,240,96,ed15);
-    Backend::palette->setPalette(RAMpal);
+    set_palette_range(RAMpal,0,255,false);
 }
 
 void colormixer(int color,int gray,int ratio)
@@ -124,33 +124,36 @@ void colormixer(int color,int gray,int ratio)
     int window_xofs=0;
     int window_yofs=0;
     
-    if(is_large())
+    if(is_large)
     {
-        window_xofs=int(Backend::graphics->virtualScreenW()-320*(is_large()?1.5:1))>>1;
-        window_yofs=int(Backend::graphics->virtualScreenH()-240*(is_large()?1.5:1))>>1;
+        window_xofs=int(zq_screen_w-320*(is_large?1.5:1))>>1;
+        window_yofs=int(zq_screen_h-240*(is_large?1.5:1))>>1;
         color /= 1.5;
         ratio /= 1.5;
         gray /= 1.5;
     }
     
-    jwin_draw_frame(screen, sat_x-2, sat_y-2, sat_w+4, int(64*(is_large()?1.5:1)+4), FR_DEEP);
+    custom_vsync();
+    scare_mouse();
+    
+    jwin_draw_frame(screen, sat_x-2, sat_y-2, sat_w+4, int(64*(is_large?1.5:1)+4), FR_DEEP);
     
     for(int i=0; i<32; i++)
     {
         RAMpal[i+160] = mixRGB(gfx_pal[color*3],gfx_pal[color*3+1],
                                gfx_pal[color*3+2],gray,gray,gray,i<<1); //saturation
-        rectfill(screen,sat_x,((int)floor(i*(is_large()?1.5:1))<<1)+sat_y,
-                 sat_x+sat_w-1,((int)ceil(i*(is_large()?1.5:1))<<1)+sat_y+1,i+160);
+        rectfill(screen,sat_x,((int)floor(i*(is_large?1.5:1))<<1)+sat_y,
+                 sat_x+sat_w-1,((int)ceil(i*(is_large?1.5:1))<<1)+sat_y+1,i+160);
     }
     
     RAMpal[edc] = mixRGB(gfx_pal[color*3],gfx_pal[color*3+1],gfx_pal[color*3+2],gray,gray,gray,ratio);
     RAMpal[edi] = invRGB(RAMpal[edc]);
-    Backend::palette->setPaletteRange(RAMpal,160,255);
+    set_palette_range(RAMpal,160,255,false);
     
     jwin_draw_frame(screen, color_x-2, color_y-2, color_w+4, color_h+4, FR_DEEP);
     rectfill(screen,color_x,color_y,color_x+color_w-1,color_y+color_h-1,edc);
     
-    if(is_large())
+    if(is_large)
     {
         color *=1.5;
         ratio *=1.5;
@@ -161,10 +164,9 @@ void colormixer(int color,int gray,int ratio)
     _allegro_vline(screen,color+color_x,color_y,color_y+color_h-1,edi);
     _allegro_hline(screen,sat_x,ratio+sat_y,sat_x+sat_w-1,edi);
     //  text_mode(ed1);
-    textprintf_centre_ex(screen,font,Backend::graphics->virtualScreenW()/2,int(color_y+color_h+10*(is_large()?1.5:1)),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"  RGB - %2d %2d %2d  ",RAMpal[edc].r,RAMpal[edc].g,RAMpal[edc].b);
+    textprintf_centre_ex(screen,font,zq_screen_w/2,int(color_y+color_h+10*(is_large?1.5:1)),jwin_pal[jcBOXFG],jwin_pal[jcBOX],"  RGB - %2d %2d %2d  ",RAMpal[edc].r,RAMpal[edc].g,RAMpal[edc].b);
+    unscare_mouse();
     SCRFIX();
-	Backend::graphics->waitTick();
-	Backend::graphics->showBackBuffer();
 }
 
 int color = 0;
@@ -203,10 +205,10 @@ void edit_dataset(int dataset)
     int window_yofs=0;
     bool just_clicked=false;
     
-    if(is_large())
+    if(is_large)
     {
-        window_xofs=(Backend::graphics->virtualScreenW()-480)>>1;
-        window_yofs=(Backend::graphics->virtualScreenH()-360)>>1;
+        window_xofs=(zq_screen_w-480)>>1;
+        window_yofs=(zq_screen_h-360)>>1;
         hue_x = int(hue_x*1.5);
         hue_y = int(hue_y*1.5);
         hue_h = int(hue_h*1.5);
@@ -254,27 +256,30 @@ void edit_dataset(int dataset)
         insert_button_h = int(insert_button_h*1.5);
     }
     
-    if(is_large())
+    custom_vsync();
+    scare_mouse();
+    
+    if(is_large)
         rectfill(screen, 0, 0, screen->w, screen->h, 128);
         
-    jwin_draw_win(screen, window_xofs, window_yofs, int(320*(is_large()?1.5:1)), int(240*(is_large()?1.5:1)), FR_WIN);
-    FONT *oldfont=is_large()?lfont_l:nfont;
+    jwin_draw_win(screen, window_xofs, window_yofs, int(320*(is_large?1.5:1)), int(240*(is_large?1.5:1)), FR_WIN);
+    FONT *oldfont=is_large?lfont_l:nfont;
     font=lfont;
-    jwin_draw_titlebar(screen, 3+window_xofs, 3+window_yofs, int((320*(is_large()?1.5:1))-6), 18, "Edit CSet", true);
+    jwin_draw_titlebar(screen, 3+window_xofs, 3+window_yofs, int((320*(is_large?1.5:1))-6), 18, "Edit CSet", true);
     font = oldfont;
     //draw_x_button(screen, 320 - 21, 5, 0);
     load_cset(RAMpal,12,dataset);
     load_cset(RAMpal,14,dataset);
-    Backend::palette->setPalette(RAMpal);
+    set_palette_range(RAMpal,0,255,false);
     
     init_colormixer();
     colormixer(color,gray,ratio);
     
-    jwin_draw_frame(screen, cset_x-2, cset_y-2, int(128*(is_large()?1.5:1)+4), cset_h+4, FR_DEEP);
+    jwin_draw_frame(screen, cset_x-2, cset_y-2, int(128*(is_large?1.5:1)+4), cset_h+4, FR_DEEP);
     
     for(int i=0; i<16; i++)
     {
-        rectfill(screen,int((i<<3)*(is_large()?1.5:1)+cset_x),cset_y,int((i<<3)*(is_large()?1.5:1)+cset_x+cset_h-1),cset_y+cset_h-1,12*16+i);
+        rectfill(screen,int((i<<3)*(is_large?1.5:1)+cset_x),cset_y,int((i<<3)*(is_large?1.5:1)+cset_x+cset_h-1),cset_y+cset_h-1,12*16+i);
     }
     
     draw_edit_dataset_specs(index,-1);
@@ -283,13 +288,19 @@ void edit_dataset(int dataset)
     draw_text_button(screen,cancel_button_x,cancel_button_y,cancel_button_w,cancel_button_h,"Cancel",jwin_pal[jcBOXFG],jwin_pal[jcBOX],0,true);
     draw_text_button(screen,insert_button_x,insert_button_y,insert_button_w,insert_button_h,"Insert",jwin_pal[jcBOXFG],jwin_pal[jcBOX],0,true);
     
-	Backend::graphics->waitTick();
-	Backend::graphics->showBackBuffer();
-    
-    while(Backend::mouse->anyButtonClicked())
+    unscare_mouse();
+    //if(zqwin_scale > 1)
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
+        //stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+    }
+    //else
+    {
+        //blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+    }
+    
+    while(gui_mouse_b())
+    {
+        /* do nothing */
     }
     
     bool bdown=false;
@@ -307,10 +318,10 @@ void edit_dataset(int dataset)
     {
         rest(4);
         bool setpal=false;
-        int x= Backend::mouse->getVirtualScreenX();
-        int y= Backend::mouse->getVirtualScreenY();
+        int x=gui_mouse_x();
+        int y=gui_mouse_y();
         
-        if(Backend::mouse->leftButtonClicked() && !bdown)
+        if(gui_mouse_b()==1 && !bdown)
         {
             just_clicked=true;
             
@@ -319,12 +330,12 @@ void edit_dataset(int dataset)
                 doing=1; //hue/lightness (color)
             }
             
-            if(isinRect(x,y,sat_x,sat_y,sat_x+sat_w-1,sat_y+(is_large()?96:64)-1))
+            if(isinRect(x,y,sat_x,sat_y,sat_x+sat_w-1,sat_y+(is_large?96:64)-1))
             {
                 doing=3; //saturation
             }
             
-            if(isinRect(x,y,cset_x,cset_y,cset_x+(is_large()?192:128)-1,cset_y+(cset_h*2)+cset_spacing+10))
+            if(isinRect(x,y,cset_x,cset_y,cset_x+(is_large?192:128)-1,cset_y+(cset_h*2)+cset_spacing+10))
             {
                 doing=2; //color index
             }
@@ -345,9 +356,9 @@ void edit_dataset(int dataset)
                 }
             }
             
-            if(isinRect(x,y,int(320*(is_large()?1.5:1) - 21+window_xofs), 5+window_yofs, int(320*(is_large()?1.5:1) - 21 + 15+window_xofs), 5 + 13+window_yofs))
+            if(isinRect(x,y,int(320*(is_large?1.5:1) - 21+window_xofs), 5+window_yofs, int(320*(is_large?1.5:1) - 21 + 15+window_xofs), 5 + 13+window_yofs))
             {
-                if(do_x_button(screen, int(320*(is_large()?1.5:1) - 21+window_xofs), 5+window_yofs))
+                if(do_x_button(screen, int(320*(is_large?1.5:1) - 21+window_xofs), 5+window_yofs))
                 {
                     done=1;
                 }
@@ -365,18 +376,18 @@ void edit_dataset(int dataset)
             bdown=true;
         }
         
-        if(Backend::mouse->leftButtonClicked())
+        if(gui_mouse_b()==1)
         {
             switch(doing)
             {
             case 1: // hue/lightness
-                color = vbound(x-color_x,0,is_large()?191:127);
-                gray = vbound(y-light_y,0,is_large()?95:63);
+                color = vbound(x-color_x,0,is_large?191:127);
+                gray = vbound(y-light_y,0,is_large?95:63);
                 break;
                 
             case 2: // color index
             {
-                int new_index=vbound((int)((x-cset_x)/(is_large()?1.5:1))>>3,0,15);
+                int new_index=vbound((int)((x-cset_x)/(is_large?1.5:1))>>3,0,15);
                 
                 if(index!=new_index && !just_clicked)
                 {
@@ -399,14 +410,14 @@ void edit_dataset(int dataset)
             }
             
             case 3: // saturation
-                ratio = vbound(y-sat_y,0,is_large()?95:63);
+                ratio = vbound(y-sat_y,0,is_large?95:63);
                 break;
             }
         }
         
         just_clicked=false;
         
-        if(!Backend::mouse->anyButtonClicked())
+        if(gui_mouse_b()==0)
         {
             bdown=false;
             doing=0;
@@ -592,19 +603,21 @@ void edit_dataset(int dataset)
             }
         }
         
-        if(Backend::mouse->anyButtonClicked() && (doing==1 || doing==3))
+        if(gui_mouse_b() && (doing==1 || doing==3))
         {
             colormixer(color,gray,ratio);
         }
         else
         {
+            custom_vsync();
+            scare_mouse();
+            
             if(setpal)
-                Backend::palette->setPaletteRange(RAMpal,14*16,15*16);
+                set_palette_range(RAMpal,14*16,15*16,false);
                 
             draw_edit_dataset_specs(index,copy);
+            unscare_mouse();
             SCRFIX();
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
         }
         
         //if(zqwin_scale > 1)
@@ -631,12 +644,10 @@ void edit_dataset(int dataset)
     
     memcpy(RAMpal, holdpal, sizeof(holdpal));
     
-    Backend::palette->setPalette(RAMpal);
+    set_palette(RAMpal);
     
-    while(Backend::mouse->anyButtonClicked())
+    while(gui_mouse_b())
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
         /* do nothing */
     }
 }
@@ -662,7 +673,7 @@ void grab_dataset(int dataset)
     int filenamex=0;
     int filenamey=232;
     
-    if(is_large())
+    if(is_large)
     {
         palx=665;
         paly=354;
@@ -679,7 +690,7 @@ void grab_dataset(int dataset)
     if(!pic && load_the_pic(&pic,picpal))
         return;
         
-    Backend::palette->getPalette(imagepal);
+    get_palette(imagepal);
     
     create_rgb_table(&rgb_table, imagepal, NULL);
     rgb_map = &rgb_table;
@@ -716,9 +727,11 @@ void grab_dataset(int dataset)
     extract_name(imagepath,fname,FILENAME8_3);
     
     draw_bw_mouse(pwhite, MOUSE_BMP_NORMAL, MOUSE_BMP_BLANK);
+    scare_mouse();
     clear_bitmap(screen2);
-	Backend::mouse->setCursorSprite(mouse_bmp[MOUSE_BMP_BLANK][0]);
-    Backend::palette->setPalette(picpal);
+    set_mouse_sprite(mouse_bmp[MOUSE_BMP_BLANK][0]);
+    unscare_mouse();
+    set_palette(picpal);
     
     bool redraw=true;
     bool reload=false;
@@ -726,13 +739,16 @@ void grab_dataset(int dataset)
     int f=0;
     FONT *fnt = font;
     
-    if(is_large())
+    if(is_large)
         font = lfont_l;
         
     do
     {
-        int x= Backend::mouse->getVirtualScreenX();
-        int y= Backend::mouse->getVirtualScreenY();
+        rest(1);
+        int x=gui_mouse_x();
+        int y=gui_mouse_y();
+        
+        custom_vsync();
         
         if(reload)
         {
@@ -743,7 +759,7 @@ void grab_dataset(int dataset)
             else
             {
                 clear_bitmap(screen2);
-                Backend::palette->setPalette(picpal);
+                set_palette(picpal);
                 redraw=true;
             }
         }
@@ -751,9 +767,10 @@ void grab_dataset(int dataset)
         if(redraw)
         {
             redraw=false;
-            clear_to_color(screen2,is_large()?jwin_pal[jcBOX]:pblack);
+            scare_mouse();
+            clear_to_color(screen2,is_large?jwin_pal[jcBOX]:pblack);
             
-            if(is_large())
+            if(is_large)
             {
                 jwin_draw_frame(screen2,imagex-2,imagey-2,658,551,FR_DEEP);
                 rectfill(screen2, imagex, imagey, imagex+654-1, imagey+547-1, jwin_pal[jcBOXFG]);
@@ -761,38 +778,39 @@ void grab_dataset(int dataset)
             }
             
             blit(pic,screen2,0,0,imagex,imagey,pic->w,pic->h);
-            textout_ex(screen2,is_large()?lfont_l:font,fname,filenamex,filenamey,is_large()?jwin_pal[jcBOXFG]:pwhite,is_large()?jwin_pal[jcBOX]:pblack);
-            draw_text_button(screen2,buttonx,buttony+(is_large()?36:24),(is_large()?90:60),(is_large()?31:21),"File",pblack,pwhite,0,true);
-            draw_text_button(screen2,buttonx+(is_large()?114:76),buttony,
-                             (is_large()?90:60),(is_large()?31:21),"OK",pblack,pwhite,0,true);
-            draw_text_button(screen2,buttonx+(is_large()?114:76),buttony+(is_large()?36:24),
-                             (is_large()?90:60),(is_large()?31:21),"Cancel",pblack,pwhite,0,true);
+            textout_ex(screen2,is_large?lfont_l:font,fname,filenamex,filenamey,is_large?jwin_pal[jcBOXFG]:pwhite,is_large?jwin_pal[jcBOX]:pblack);
+            draw_text_button(screen2,buttonx,buttony+(is_large?36:24),(is_large?90:60),(is_large?31:21),"File",pblack,pwhite,0,true);
+            draw_text_button(screen2,buttonx+(is_large?114:76),buttony,
+                             (is_large?90:60),(is_large?31:21),"OK",pblack,pwhite,0,true);
+            draw_text_button(screen2,buttonx+(is_large?114:76),buttony+(is_large?36:24),
+                             (is_large?90:60),(is_large?31:21),"Cancel",pblack,pwhite,0,true);
+            unscare_mouse();
         }
         
-        if(Backend::mouse->leftButtonClicked() && isinRect(x,y,palx,paly,palx+127,paly+127))
+        if((gui_mouse_b()&1) && isinRect(x,y,palx,paly,palx+127,paly+127))
         {
             row=((y-paly)>>3);
         }
         
-        if(Backend::mouse->leftButtonClicked() && isinRect(x,y,buttonx,buttony+(is_large()?36:24),buttonx+(is_large()?90:60),buttony+(is_large()?36+31:24+21)))
+        if((gui_mouse_b()&1) && isinRect(x,y,buttonx,buttony+(is_large?36:24),buttonx+(is_large?90:60),buttony+(is_large?36+31:24+21)))
         {
-            if(do_text_button(buttonx,buttony+(is_large()?36:24),(is_large()?90:60),(is_large()?31:21),"File",pblack,pwhite,true))
+            if(do_text_button(buttonx,buttony+(is_large?36:24),(is_large?90:60),(is_large?31:21),"File",pblack,pwhite,true))
             {
                 reload=true;
             }
         }
         
-        if(Backend::mouse->leftButtonClicked() && isinRect(x,y,buttonx+(is_large()?114:76),buttony,buttonx+(is_large()?114+90:76+60),buttony+(is_large()?31:21)))
+        if((gui_mouse_b()&1) && isinRect(x,y,buttonx+(is_large?114:76),buttony,buttonx+(is_large?114+90:76+60),buttony+(is_large?31:21)))
         {
-            if(do_text_button(buttonx+(is_large()?114:76),buttony,(is_large()?90:60),(is_large()?31:21),"OK",pblack,pwhite,true))
+            if(do_text_button(buttonx+(is_large?114:76),buttony,(is_large?90:60),(is_large?31:21),"OK",pblack,pwhite,true))
             {
                 done=2;
             }
         }
         
-        if(Backend::mouse->leftButtonClicked() && isinRect(x,y,buttonx+(is_large()?114:76),buttony+(is_large()?36:24),buttonx+(is_large()?114+90:76+60),buttony+(is_large()?36+31:24+21)))
+        if((gui_mouse_b()&1) && isinRect(x,y,buttonx+(is_large?114:76),buttony+(is_large?36:24),buttonx+(is_large?114+90:76+60),buttony+(is_large?36+31:24+21)))
         {
-            if(do_text_button(buttonx+(is_large()?114:76),buttony+(is_large()?36:24),(is_large()?90:60),(is_large()?31:21),"Cancel",pblack,pwhite,true))
+            if(do_text_button(buttonx+(is_large?114:76),buttony+(is_large?36:24),(is_large?90:60),(is_large?31:21),"Cancel",pblack,pwhite,true))
             {
                 done=1;
             }
@@ -824,7 +842,7 @@ void grab_dataset(int dataset)
                 
             case KEY_LEFT:
             case KEY_RIGHT:
-                if(!is_large())
+                if(!is_large)
                 {
                     palx = 192-palx;
                     redraw=true;
@@ -841,18 +859,28 @@ void grab_dataset(int dataset)
                     
                 for(int i=0; i<12; i++)
                 {
-					Backend::graphics->waitTick();
-					if(i&2)
-                        Backend::palette->setPalette(picpal);
+                    custom_vsync();
+                    
+                    if(i&2)
+                        set_palette(picpal);
                     else
-                        Backend::palette->setPalette(tmp);
-					Backend::graphics->showBackBuffer();
+                        set_palette(tmp);
+                        
+                    //if(zqwin_scale > 1)
+                    {
+                        //stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+                    }
+                    //else
+                    {
+                        //blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+                    }
                 }
                 
                 break;
             }
         }
         
+        scare_mouse();
         
         for(int i=0; i<256; i++)
         {
@@ -862,12 +890,11 @@ void grab_dataset(int dataset)
         }
         
         ++f;
-        rect(screen2,palx-1,paly-1,palx+128,paly+128,is_large()?pblack:pwhite);
+        rect(screen2,palx-1,paly-1,palx+128,paly+128,is_large?pblack:pwhite);
         rect(screen2,palx-1,(row<<3)+paly-1,palx+128,(row<<3)+paly+8,(f&2)?pwhite:pblack);
         blit(screen2, screen, 0, 0, 0, 0, screen->w, screen->h);
+        unscare_mouse();
         SCRFIX();
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
         
         //if(zqwin_scale > 1)
         {
@@ -888,14 +915,14 @@ void grab_dataset(int dataset)
     gui_bg_color = bg;
     gui_fg_color = fg;
     
-	while (Backend::mouse->anyButtonClicked())
+    while(gui_mouse_b())
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
         /* do nothing */
     }
     
-	Backend::mouse->setCursorSprite(mouse_bmp[MOUSE_BMP_NORMAL][0]);
+    scare_mouse();
+    
+    set_mouse_sprite(mouse_bmp[MOUSE_BMP_NORMAL][0]);
     clear_to_color(mouse_bmp[MOUSE_BMP_BLANK][0],0);
     memcpy(jwin_pal, jwin_pal2, sizeof(int)*jcMAX);
     
@@ -905,6 +932,7 @@ void grab_dataset(int dataset)
     jwin_set_colors(jwin_pal);
     
     rgb_map = &zq_rgb_table;
+    unscare_mouse();
 }
 
 byte cset_hold[15][16*3];
@@ -934,12 +962,12 @@ void calc_dark(int first)
     //  tmp = black_palette;
     memcpy(tmp,black_palette,sizeof(black_palette));
     
-    Backend::palette->interpolatePalettes(pal,black_palette,16,0,47, tmp);
+    fade_interpolate(pal,black_palette,tmp,16,0,47);
     
     for(int i=0; i<48; i++)
         tmp[i+64] = tmp[i];
         
-    Backend::palette->interpolatePalettes(pal,black_palette,32,0,47, tmp);
+    fade_interpolate(pal,black_palette,tmp,32,0,47);
     
     for(int i=0; i<48; i++)
         tmp[i+112] = tmp[i];
@@ -1002,9 +1030,10 @@ void edit_cycles(int level)
     for(int i=0; i<15; i++)
         cycle_dlg[i+10].dp = buf[i];
         
-	DIALOG *cycle_cpy = resizeDialog(cycle_dlg, 1.5);
+    if(is_large)
+        large_dialog(cycle_dlg);
         
-    if(zc_popup_dialog(cycle_cpy,3)==2)
+    if(zc_popup_dialog(cycle_dlg,3)==2)
     {
         saved=false;
         reset_pal_cycling();
@@ -1020,8 +1049,6 @@ void edit_cycles(int level)
             misc.cycles[level][i] = c;
         }
     }
-
-	delete[] cycle_cpy;
 }
 
 void draw_cset_proc(DIALOG *d)
@@ -1034,7 +1061,7 @@ void draw_cset_proc(DIALOG *d)
     //  text_mode(d->bg);
     
     //  rect(screen,d->x,(d1<<3)+d->y,d->x+d->w-1,(d2<<3)+d->y+7,FLASH);
-    rect(screen,d->x,int((d1<<3)*(is_large()?1.5:1)+d->y),d->x+d->w-1,int((d2<<3)*(is_large()?1.5:1)+d->y+(is_large()?11:7)),dvc(0)); //highlights currently selected cset
+    rect(screen,d->x,int((d1<<3)*(is_large?1.5:1)+d->y),d->x+d->w-1,int((d2<<3)*(is_large?1.5:1)+d->y+(is_large?11:7)),dvc(0)); //highlights currently selected cset
     int drc;
     
     if((d->flags & D_GOTFOCUS))
@@ -1070,42 +1097,54 @@ int d_cset_proc(int msg,DIALOG *d,int c)
         // Start dragging?
         if(key[KEY_ZC_LCONTROL] || key[KEY_ZC_RCONTROL])
         {
-            x= Backend::mouse->getVirtualScreenX();
-            y= Backend::mouse->getVirtualScreenY();
+            x=gui_mouse_x();
+            y=gui_mouse_y();
             
             if(isinRect(x,y,d->x,d->y,d->x+d->w-1,d->y+d->h-1))
             {
                 dragging=true;
-                src=vbound((int)((y-d->y) / (is_large()?1.5:1))>>3,0,15) * 16 +
-                    vbound((int)((x-d->x) / (is_large()?1.5:1))>>3,0,15);
+                src=vbound((int)((y-d->y) / (is_large?1.5:1))>>3,0,15) * 16 +
+                    vbound((int)((x-d->x) / (is_large?1.5:1))>>3,0,15);
             }
         }
         
         do
         {
-            x= Backend::mouse->getVirtualScreenX();
-            y= Backend::mouse->getVirtualScreenY();
+            x=gui_mouse_x();
+            y=gui_mouse_y();
             
             if(!dragging && isinRect(x,y,d->x,d->y,d->x+d->w-1,d->y+d->h-1))
             {
-                d->d2 = vbound((int)((y-d->y)/(is_large()?1.5:1))>>3,0,15);
+                d->d2 = vbound((int)((y-d->y)/(is_large?1.5:1))>>3,0,15);
                 
                 if(!(key_shifts&KB_SHIFT_FLAG))
                     d->d1 = d->d2;
             }
             
+            custom_vsync();
+            scare_mouse();
             draw_cset_proc(d);
+            unscare_mouse();
+            //sniggles
+            //        ((RGB*)d->dp3)[243]=((RGB*)d->dp3)[rc[(fc++)&15]];
+            //        set_palette_range(((RGB*)d->dp3),FLASH,FLASH,false);
             ((RGB*)d->dp3)[dvc(0)]=((RGB*)d->dp3)[rand()%14+dvc(1)];
-            Backend::palette->setPaletteRange(((RGB*)d->dp3),dvc(0),dvc(0));
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
+            set_palette_range(((RGB*)d->dp3),dvc(0),dvc(0),false);
+            //if(zqwin_scale > 1)
+            {
+                //stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+            }
+            //else
+            {
+                //blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+            }
         }
-        while(Backend::mouse->anyButtonClicked());
+        while(gui_mouse_b());
         
         if(dragging && isinRect(x,y,d->x,d->y,d->x+d->w-1,d->y+d->h-1))
         {
-            int dest=vbound((int)((y-d->y) / (is_large()?1.5:1))>>3,0,15) * 16 +
-                     vbound((int)((x-d->x) / (is_large()?1.5:1))>>3,0,15);
+            int dest=vbound((int)((y-d->y) / (is_large?1.5:1))>>3,0,15) * 16 +
+                     vbound((int)((x-d->x) / (is_large?1.5:1))>>3,0,15);
                      
             if(src!=dest)
             {
@@ -1125,7 +1164,7 @@ int d_cset_proc(int msg,DIALOG *d,int c)
                 for(int i=0; i<cset_count; i++)
                     load_cset(pal,i,cset_first+i);
                     
-                Backend::palette->setPalette(pal);
+                set_palette(pal);
                 saved=false;
             }
         }
@@ -1147,7 +1186,7 @@ int d_cset_proc(int msg,DIALOG *d,int c)
             break;
             
         case KEY_DOWN:
-            if(d->d2<((int)ceil((d->h)/(is_large()?1.5:1))>>3)-1)
+            if(d->d2<((int)ceil((d->h)/(is_large?1.5:1))>>3)-1)
                 ++d->d2;
                 
             if(!shift) d->d1 = d->d2;
@@ -1162,7 +1201,7 @@ int d_cset_proc(int msg,DIALOG *d,int c)
             break;
             
         case KEY_PGDN:
-            d->d2=((int)ceil((d->h)/(is_large()?1.5:1))>>3)-1;
+            d->d2=((int)ceil((d->h)/(is_large?1.5:1))>>3)-1;
             
             if(!shift) d->d1 = d->d2;
             
@@ -1200,7 +1239,7 @@ int d_cset_proc(int msg,DIALOG *d,int c)
                 for(int i=0; i<cset_count; i++)
                     load_cset(pal,i,cset_first+i);
                     
-                Backend::palette->setPalette(pal);
+                set_palette(pal);
                 saved=false;
             }
             
@@ -1212,18 +1251,25 @@ int d_cset_proc(int msg,DIALOG *d,int c)
             for(int i=0; i<cset_count; i++)
                 load_cset(pal,i,cset_first+i);
                 
-            Backend::palette->setPalette(pal);
+            set_palette(pal);
             break;
             
         default:
             return D_O_K;
         }
         
-        
+        custom_vsync();
+        scare_mouse();
         draw_cset_proc(d);
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
-
+        unscare_mouse();
+        //if(zqwin_scale > 1)
+        {
+            //stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+        }
+        //else
+        {
+            //blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+        }
         return D_USED_CHAR;
     }
     }
@@ -1315,20 +1361,20 @@ int EditColors(const char *caption,int first,int count,byte *label)
     
     if(colors_dlg[0].d1)
     {
-        bw = (is_large()?192:128);
-        bh = count*(is_large()?12:8);
+        bw = (is_large?192:128);
+        bh = count*(is_large?12:8);
     }
     
-    BITMAP *bmp = create_bitmap_ex(8,(is_large()?192:128),count*(is_large()?12:8));
+    BITMAP *bmp = create_bitmap_ex(8,(is_large?192:128),count*(is_large?12:8));
     
     if(!bmp)
         return 0;
         
     for(int i=0; i<16*count; i++)
     {
-        int x=int(((i&15)<<3)*(is_large()?1.5:1));
-        int y=int(((i>>4)<<3)*(is_large()?1.5:1));
-        rectfill(bmp,x,y,x+(is_large() ? 15:7),y+(is_large() ? 15:7),i);
+        int x=int(((i&15)<<3)*(is_large?1.5:1));
+        int y=int(((i>>4)<<3)*(is_large?1.5:1));
+        rectfill(bmp,x,y,x+(is_large ? 15:7),y+(is_large ? 15:7),i);
     }
     
     colors_dlg[2].dp = bmp;
@@ -1366,7 +1412,7 @@ int EditColors(const char *caption,int first,int count,byte *label)
         }
         
         colors_dlg[3+i].dp=buf[i];
-        colors_dlg[3+i].y=int(((i<<3)*((is_large() && colors_dlg[0].d1)?1.5:1))+colors_dlg[0].y+36*((is_large() && colors_dlg[0].d1)?1.5:1));
+        colors_dlg[3+i].y=int(((i<<3)*((is_large && colors_dlg[0].d1)?1.5:1))+colors_dlg[0].y+36*((is_large && colors_dlg[0].d1)?1.5:1));
         //sniggles
         //    colors_dlg[3+i].fg=rc[label[i+count]];
     }
@@ -1381,17 +1427,6 @@ int EditColors(const char *caption,int first,int count,byte *label)
     
     memcpy(undopal,pal,sizeof(pal));
     int ret=0;
-
-	DIALOG *colors_cpy = resizeDialog(colors_dlg, 1.5);
-
-	if (is_large())
-	{
-		if (!colors_cpy[0].d1)
-		{
-			colors_cpy[2].x += 0;
-			colors_cpy[2].y -= 1;
-		}
-	}
     
     do
     {
@@ -1402,37 +1437,55 @@ int EditColors(const char *caption,int first,int count,byte *label)
             load_cset(pal,i,i+first);
         }
         
+        scare_mouse();
         clear_to_color(screen,0);
-        Backend::palette->setPalette(pal);
-		colors_cpy[19].flags =
-			colors_cpy[20].flags =
-			colors_cpy[23].flags = D_EXIT;
-
-		
+        set_palette(pal);
+        unscare_mouse();
+        colors_dlg[19].flags =
+            colors_dlg[20].flags =
+                colors_dlg[23].flags = D_EXIT;
+                
+        if(is_large)
+        {
+            if(!colors_dlg[0].d1)
+            {
+                colors_dlg[2].x  += 0;
+                colors_dlg[2].y  -= 1;
+            }
+            
+            large_dialog(colors_dlg);
+        }
         
-        DIALOG_PLAYER *p = init_dialog(colors_cpy,2);
+        DIALOG_PLAYER *p = init_dialog(colors_dlg,2);
         bool enable = true;
         
         while(update_dialog(p))
         {
+            custom_vsync();
             //sniggles
             //      pal[FLASH]=pal[rc[(fc++)&15]];
             pal[dvc(0)]=pal[rand()%14+dvc(1)];
-            Backend::palette->setPaletteRange(pal,dvc(0),dvc(0));
+            set_palette_range(pal,dvc(0),dvc(0),false);
             
-            bool en = (colors_cpy[2].d1 == colors_cpy[2].d2);
+            bool en = (colors_dlg[2].d1 == colors_dlg[2].d2);
             
             if(en!=enable)
             {
-				colors_cpy[19].flags =
-					colors_cpy[20].flags =
-					colors_cpy[23].flags = en  ? D_EXIT : D_DISABLED;
+                colors_dlg[19].flags =
+                    colors_dlg[20].flags =
+                        colors_dlg[23].flags = en  ? D_EXIT : D_DISABLED;
                 broadcast_dialog_message(MSG_DRAW,0);
                 enable = en;
             }
             
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
+            //if(zqwin_scale > 1)
+            {
+                //stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+            }
+            //else
+            {
+                //blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+            }
         }
         
         ret = shutdown_dialog(p);
@@ -1440,13 +1493,13 @@ int EditColors(const char *caption,int first,int count,byte *label)
         if(ret==19)
         {
             memcpy(undopal,pal,sizeof(pal));
-            edit_dataset(first+ colors_cpy[2].d2);
+            edit_dataset(first+colors_dlg[2].d2);
         }
         
         if(ret==20)
         {
             memcpy(undopal,pal,sizeof(pal));
-            grab_dataset(first+ colors_cpy[2].d2);
+            grab_dataset(first+colors_dlg[2].d2);
         }
         
         if(ret==21)
@@ -1468,25 +1521,21 @@ int EditColors(const char *caption,int first,int count,byte *label)
     }
     while(ret<23&&ret!=0);
     
-    while(Backend::mouse->anyButtonClicked())
+    while(gui_mouse_b())
     {
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
         /* do nothing */
     }
     
     clear_to_color(screen,vc(0));
-    Backend::palette->setPalette(RAMpal);
+    set_palette(RAMpal);
     
     loadlvlpal(Color);
     
     if(ret==23)
     {
-        load_cset(RAMpal,9,first+ colors_cpy[2].d2);
+        load_cset(RAMpal,9,first+colors_dlg[2].d2);
         set_pal();
     }
-
-	delete[] colors_cpy;
     
     saved=false; //It's just easier this way :)
     //  gui_fg_color = vc(14);

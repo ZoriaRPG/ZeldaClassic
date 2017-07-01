@@ -28,26 +28,20 @@ extern bool show_sprites;
 extern bool show_hitboxes;
 extern bool is_zquest();
 extern void debugging_box(int x1, int y1, int x2, int y2);
-extern ObjectPool *pool;
 
 /**********************************/
 /******* Sprite Base Class ********/
 /**********************************/
 
-sprite::sprite(ObjectPool &pool) : GameObject(pool)
+sprite::sprite()
 {
+    uid = getNextUID();
     x=y=z=tile=shadowtile=cs=flip=c_clk=clk=xofs=yofs=zofs=hxofs=hyofs=fall=0;
     txsz=1;
     tysz=1;
     id=-1;
     hxsz=hysz=16;
     hzsz=1;
-	
-	//Enemy and Weapon Editor Hit Sizing
-	//if ( txsz == 0 ) txsz = 1; 
-	//if ( tysz == 0 ) tysz = 1;
-	//if ( hxsz == 0 ) hxsz = 16; 
-	//if ( hysz == 0 ) hysz = 16;
     yofs=playing_field_offset;
     dir=down;
     angular=canfreeze=false;
@@ -91,7 +85,7 @@ sprite::sprite(ObjectPool &pool) : GameObject(pool)
     scriptcoldet = 1;
 }
 
-sprite::sprite(sprite const & other) : GameObject(other),
+sprite::sprite(sprite const & other):
     x(other.x),
     y(other.y),
     z(other.z),
@@ -122,7 +116,22 @@ sprite::sprite(sprite const & other) : GameObject(other),
     lasthitclk(other.lasthitclk),
     drawstyle(other.drawstyle),
     extend(other.extend)
-{    
+    //scriptData(other.scriptData),
+/*ffcref(other.ffcref),
+itemref(other.itemref),
+guyref(other.guyref),
+lwpnref(other.lwpnref),
+ewpnref(other.ewpnref),
+sp(other.sp),
+pc(other.pc),
+scriptflag(other.scriptflag),
+doscript(other.doscript),
+itemclass(other.itemclass)
+guyclass(other.guyclass),
+lwpnclass(other.lwpnclass),
+ewpnclass(other.ewpnclass)*/
+{
+    uid = getNextUID();
     
     for(int i=0; i<10; ++i)
     {
@@ -145,17 +154,12 @@ sprite::sprite(sprite const & other) : GameObject(other),
     scriptcoldet = other.scriptcoldet;
 }
 
-sprite::sprite(ObjectPool &pool, fix X,fix Y,int T,int CS,int F,int Clk,int Yofs) :
-	GameObject(pool),
+sprite::sprite(fix X,fix Y,int T,int CS,int F,int Clk,int Yofs):
     x(X),y(Y),tile(T),cs(CS),flip(F),clk(Clk),yofs(Yofs)
-{    	
+{
+    uid = getNextUID();
     hxsz=hysz=16;
     hxofs=hyofs=xofs=0;
-	//Enemy and Weapon Editor Hit Sizing
-	//if ( txsz == 0 ) txsz = 1; 
-	//if ( tysz == 0 ) tysz = 1;
-	//if ( hxsz == 0 ) hxsz = 16; 
-	//if ( hysz == 0 ) hysz = 16;
     txsz=1;
     tysz=1;
     id=-1;
@@ -198,6 +202,12 @@ sprite::sprite(ObjectPool &pool, fix X,fix Y,int T,int CS,int F,int Clk,int Yofs
 
 sprite::~sprite()
 {
+}
+
+long sprite::getNextUID()
+{
+    static long nextid = 0;
+    return nextid++;
 }
 
 void sprite::draw2(BITMAP *)                            // top layer for special needs
@@ -551,7 +561,7 @@ void sprite::draw(BITMAP* dest)
         }
         else
         {
-            sprite w(*pool, (fix)sx,(fix)sy,wpnsbuf[extend].tile,wpnsbuf[extend].csets&15,0,0,0);
+            sprite w((fix)sx,(fix)sy,wpnsbuf[extend].tile,wpnsbuf[extend].csets&15,0,0,0);
             w.xofs = xofs;
             w.yofs = yofs;
             w.zofs = zofs;
@@ -704,6 +714,8 @@ sprite_list::sprite_list() : count(0) {}
 void sprite_list::clear()
 {
     while(count>0) del(0);
+    lastUIDRequested=0;
+    lastSpriteRequested=0;
 }
 
 sprite *sprite_list::spr(int index)
@@ -721,7 +733,9 @@ bool sprite_list::swap(int a,int b)
         
     sprite *c = sprites[a];
     sprites[a] = sprites[b];
-    sprites[b] = c;    
+    sprites[b] = c;
+    containedUIDs[sprites[a]->getUID()] = a;
+    containedUIDs[sprites[b]->getUID()] = b;
 // checkConsistency();
     return true;
 }
@@ -734,6 +748,7 @@ bool sprite_list::add(sprite *s)
         return false;
     }
     
+    containedUIDs[s->getUID()] = count;
     sprites[count++]=s;
     //checkConsistency();
     return true;
@@ -742,6 +757,17 @@ bool sprite_list::add(sprite *s)
 bool sprite_list::remove(sprite *s)
 // removes pointer from list but doesn't delete it
 {
+    if(s==lastSpriteRequested)
+    {
+        lastUIDRequested=0;
+        lastSpriteRequested=0;
+    }
+    
+    map<long, int>::iterator it = containedUIDs.find(s->getUID());
+    
+    if(it != containedUIDs.end())
+        containedUIDs.erase(it);
+        
     int j=0;
     
     for(; j<count; j++)
@@ -755,6 +781,7 @@ gotit:
     for(int i=j; i<count-1; i++)
     {
         sprites[i]=sprites[i+1];
+        containedUIDs[sprites[i]->getUID()] = i;
     }
     
     --count;
@@ -807,11 +834,23 @@ bool sprite_list::del(int j)
     if(j<0||j>=count)
         return false;
         
+    map<long, int>::iterator it = containedUIDs.find(sprites[j]->getUID());
+    
+    if(it != containedUIDs.end())
+        containedUIDs.erase(it);
+    
+    if(sprites[j]==lastSpriteRequested)
+    {
+        lastUIDRequested=0;
+        lastSpriteRequested=0;
+    }
+    
     delete sprites[j];
     
     for(int i=j; i<count-1; i++)
     {
         sprites[i]=sprites[i+1];
+        containedUIDs[sprites[i]->getUID()] = i;
     }
     
     --count;
@@ -1011,11 +1050,38 @@ int sprite_list::idLast(int id)
     return idLast(id,0xFFFF);
 }
 
+sprite * sprite_list::getByUID(long uid)
+{
+    if(uid==lastUIDRequested)
+        return lastSpriteRequested;
+    
+    map<long, int>::iterator it = containedUIDs.find(uid);
+    
+    if(it != containedUIDs.end())
+    {
+        // Only update cache if requested sprite was found
+        lastUIDRequested=uid;
+        lastSpriteRequested=spr(it->second);
+        return lastSpriteRequested;
+    }
+        
+    return NULL;
+}
+
+void sprite_list::checkConsistency()
+{
+    assert((int)containedUIDs.size() == count);
+    assert(lastUIDRequested==0 || containedUIDs.find(lastUIDRequested)!=containedUIDs.end());
+    
+    for(int i=0; i<count; i++)
+        assert(sprites[i] == getByUID(sprites[i]->getUID()));
+}
+
 /**********************************/
 /********** Moving Block **********/
 /**********************************/
 
-movingblock::movingblock() : sprite(*pool)
+movingblock::movingblock() : sprite()
 {
     id=1;
 }

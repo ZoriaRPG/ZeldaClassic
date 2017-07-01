@@ -22,7 +22,6 @@
 #include "zq_class.h"
 #include <string.h>
 #include <stdio.h>
-#include "backend/AllBackends.h"
 
 #ifdef _MSC_VER
 #define strupr _strupr
@@ -249,7 +248,7 @@ void load_cset(RGB *pal,int cset_index,int dataset)
 
 void set_pal()
 {
-    Backend::palette->setPaletteRange(RAMpal,0,192);
+    set_palette_range(RAMpal,0,192,true);
 }
 
 void loadlvlpal(int level)
@@ -300,7 +299,7 @@ void setup_lcolors()
         RAMpal[lc2(i)] = _RGB(colordata+(CSET(i*pdLEVEL+poLEVEL)+16+1)*3);
     }
     
-    Backend::palette->setPalette(RAMpal);
+    set_palette(RAMpal);
 }
 
 void refresh_pal()
@@ -444,75 +443,7 @@ const char *flag_string[MAXFLAGS] =
     "100 General Purpose 3 (Scripts)",
     "101 General Purpose 4 (Scripts)",
     "102 General Purpose 5 (Scripts)",
-    "103 Raft Bounce",
-    "104 Pushed",
-    "105 General Purpose 6 (Scripts)",
-    "107 General Purpose 7 (Scripts)",
-    "108 General Purpose 8 (Scripts)",
-    "109 General Purpose 9 (Scripts)",
-    "110 General Purpose 10 (Scripts)",
-    "111 General Purpose 11 (Scripts)",
-    "112 General Purpose 12 (Scripts)",
-    "113 General Purpose 13 (Scripts)",
-    "114 General Purpose 14 (Scripts)",
-    "115 General Purpose 15 (Scripts)",
-    "116 General Purpose 16 (Scripts)",
-    "117 General Purpose 17 (Scripts)",
-    "118 General Purpose 18 (Scripts)",
-    "119 General Purpose 19 (Scripts)",
-    "120 General Purpose 20 (Scripts)",
-    "121 Pit or Hole (Scripted)",
-    "122 Pit or Hole, Fall Down Floor (Scripted)",
-    "123 Fire or Lava (Scripted)",
-    "124 Ice (Scripted)",
-    "125 Ice, Damaging (Scripted)",
-    "126 Damage-1 (Scripted)",
-    "127 Damage-2 (Scripted)",
-    "128 Damage-4 (Scripted)",
-    "129 Damage-8 (Scripted)",
-    "130 Damage-16 (Scripted)",
-    "131 Damage-32 (Scripted)",
-    "132 Freeze Screen (Unimplemented)",
-    "133 Freeze Screen, Except FFCs (Unimplemented)",
-    "134 Freeze FFCs Only (Unimplemented)",
-    "135 Trigger LW_SCRIPT1 (Unimplemented)",
-    "136 Trigger LW_SCRIPT2 (Unimplemented)",
-    "137 Trigger LW_SCRIPT3 (Unimplemented)",
-    "138 Trigger LW_SCRIPT4 (Unimplemented)",
-    "139 Trigger LW_SCRIPT5 (Unimplemented)",
-    "140 Trigger LW_SCRIPT6 (Unimplemented)",
-    "141 Trigger LW_SCRIPT7 (Unimplemented)",
-    "142 Trigger LW_SCRIPT8 (Unimplemented)",
-    "143 Trigger LW_SCRIPT9 (Unimplemented)",
-    "144 Trigger LW_SCRIPT10 (Unimplemented)",
-    "145 Dig Spot (Scripted)",
-    "146 Dig Spot, Next (Scripted)",
-    "147 Dig Spot, Special Item (Scripted)",
-    "148 Pot, Slashable (Scripted)",
-    "149 Pot, Liftable (Scripted)",
-    "150 Pot, Slash or Lift (Scripted)",
-    "151 Rock, Lift Normal (Scripted)",
-    "152 Rock, Lift Heavy (Scripted)",
-    "153 Dropset Item (Scripted)",
-    "154 Special Item (Scripted)",
-    "155 Drop Key (Scripted)",
-    "156 Drop level-Specific Key (Scripted)",
-    "157 Drop Compass (Scripted)",
-    "158 Drop Map (Scripted)",
-    "159 Drop Map (Scripted)",
-    "160 Spawn NPC (Scripted)",
-    "161 SwitchHook Spot (Scripted)",
-    "162 mf162","163 mf163","164 mf164","165 mf165","166 mf166","167 mf167","168 mf168","169 mf169",
-    "170 mf170","171 mf171","172 mf172","173 mf173","174 mf174","175 mf175","176 mf176","177 mf177","178 mf178","179 mf179",
-    "180 mf180","181 mf181","182 mf182","183 mf183","184 mf184","185 mf185","186 mf186","187 mf187","188 mf188","189 mf189",
-    "190 mf190","191 mf191","192 mf192","193 mf193","194 mf194","195 mf195","196 mf196","197 mf197","198 mf198","199 mf199",
-    "200 mf200","201 mf201","202 mf202","203 mf203","204 mf204","205 mf205","206 mf206","207 mf207","208 mf208","209 mf209",
-    "210 mf210","211 mf211","212 mf212","213 mf213","214 mf214","215 mf215","216 mf216","217 mf217","218 mf218","219 mf219",
-    "220 mf220","221 mf221","222 mf222","223 mf223","224 mf224","225 mf225","226 mf226","227 mf227","228 mf228","229 mf229",
-    "230 mf230","231 mf231","232 mf232","233 mf233","234 mf234","235 mf235","236 mf236","237 mf237","238 mf238","239 mf239",
-    "240 mf240","241 mf241","242 mf242","243 mf243","244 mf244","245 mf245","246 mf246","247 mf247","248 mf248","249 mf249",
-    "250 mf250","251 mf251","252 mf252","253 mf253","254 mf254",
-    "255 Extended (Extended Flag Editor)"
+    "103 Raft Bounce"
 };
 
 const char *itemclass_help_string[(itype_last-20)*3] =
@@ -637,7 +568,7 @@ const char *combotype_help_string[cMAX*3] =
     "This flag is obsolete. It behaves identically to","Combo Flag 36, Trap (Vertical Constant).","",
     "Link is warped via Tile Warp A if he touches","any part of this combo, but his on-screen","position remains the same. Ground enemies can't enter.",
     "If this combo is solid, the Hookshot","can be used to cross over it.","",
-    "This combo's tile is drawn between layers","3 and 4 if it is placed on layer 0.","",
+    "This combo's tile is drawn between layers","3 and 4, even if it is placed on layer 0.","",
     "Flying enemies (Keese, Peahats, Moldorms,","Patras, Fairys, Digdogger, Manhandla, Ghinis,","Gleeok heads) can't fly over or appear on this combo.",
     "Wand magic and enemy magic that hits"," this combo is reflected 180 degrees,","and becomes 'reflected magic'.",
     "Wand magic and enemy magic that hits"," this combo is reflected 90 degrees,","and become 'reflected magic'.",
@@ -1225,6 +1156,7 @@ int onImport_Pals();
 int onImport_ZGP();
 int onImport_ZQT();
 int onImport_UnencodedQuest();
+int onExport_ZASM();
 
 int onExport_Map();
 int onExport_DMaps();
@@ -1237,8 +1169,6 @@ int onExport_Pals();
 int onExport_ZGP();
 int onExport_ZQT();
 int onExport_UnencodedQuest();
-
-int onExport_ZASM();
 
 int onGotoMap();
 int onMapCount();
@@ -1298,9 +1228,9 @@ int onSnapshot()
     }
     while(num<999 && exists(buf));
     
-    blit(screen,screen2,0,0,0,0,Backend::graphics->virtualScreenW(),Backend::graphics->virtualScreenH());
+    blit(screen,screen2,0,0,0,0,zq_screen_w,zq_screen_h);
     PALETTE RAMpal2;
-    Backend::palette->getPalette(RAMpal2);
+    get_palette(RAMpal2);
     save_bitmap(buf,screen2,RAMpal2);
     return D_O_K;
 }
@@ -1312,11 +1242,15 @@ void go()
     switch(gocnt)
     {
     case 0:
-        blit(screen,menu1,0,0,0,0,Backend::graphics->virtualScreenW(),Backend::graphics->virtualScreenH());
+        scare_mouse();
+        blit(screen,menu1,0,0,0,0,zq_screen_w,zq_screen_h);
+        unscare_mouse();
         break;
         
     case 1:
-        blit(screen,menu3,0,0,0,0, Backend::graphics->virtualScreenW(), Backend::graphics->virtualScreenH());
+        scare_mouse();
+        blit(screen,menu3,0,0,0,0,zq_screen_w,zq_screen_h);
+        unscare_mouse();
         break;
         
     default:
@@ -1331,11 +1265,15 @@ void comeback()
     switch(gocnt)
     {
     case 1:
-        blit(menu1,screen,0,0,0,0,Backend::graphics->virtualScreenW(), Backend::graphics->virtualScreenH());
+        scare_mouse();
+        blit(menu1,screen,0,0,0,0,zq_screen_w,zq_screen_h);
+        unscare_mouse();
         break;
         
     case 2:
-        blit(menu3,screen,0,0,0,0, Backend::graphics->virtualScreenW(), Backend::graphics->virtualScreenH());
+        scare_mouse();
+        blit(menu3,screen,0,0,0,0,zq_screen_w,zq_screen_h);
+        unscare_mouse();
         break;
         
     default:
@@ -1410,22 +1348,21 @@ int onAbout()
         switch(IS_BETA)
         {
         case -1:
-            sprintf(buf2,"(%s Alpha Build %d)",VerStr(ZELDA_VERSION), VERSION_BUILD);
+            sprintf(buf1,"ZQuest %s Alpha Build %d",VerStr(ZELDA_VERSION), VERSION_BUILD);
             break;
             
         case 1:
-            sprintf(buf2,"(%s Beta Build %d)",VerStr(ZELDA_VERSION), VERSION_BUILD);
+            sprintf(buf1,"ZQuest %s Beta Build %d",VerStr(ZELDA_VERSION), VERSION_BUILD);
             break;
             
         case 0:
         default:
-            sprintf(buf2,"(%s Build %d)",VerStr(ZELDA_VERSION), VERSION_BUILD);
+            sprintf(buf1,"ZQuest %s Build %d",VerStr(ZELDA_VERSION), VERSION_BUILD);
             break;
         }
         
-        sprintf(buf1,"ZQuest " ZELDA_VERSION_STR);
         sprintf(buf3,"'The Travels of Link' sequenced by Jeff Glenen.");
-        jwin_alert("About ZQuest",buf1,buf2,buf3,"OK", NULL, 13, 27, lfont);
+        jwin_alert("About ZQuest",buf1,NULL,buf3,"OK", NULL, 13, 27, lfont);
     }
     
     return D_O_K;
@@ -1523,11 +1460,11 @@ int onShowDarkness()
         {
             int light = si[0]+si[1]+si[2];
             si+=3;
-            Backend::palette->interpolatePalettes(RAMpal,black_palette,light?32:64,CSET(2)+i,CSET(2)+i, RAMpal);
+            fade_interpolate(RAMpal,black_palette,RAMpal,light?32:64,CSET(2)+i,CSET(2)+i);
         }
         
-        Backend::palette->interpolatePalettes(RAMpal,black_palette,64,CSET(3),last, RAMpal);
-        Backend::palette->setPalette(RAMpal);
+        fade_interpolate(RAMpal,black_palette,RAMpal,64,CSET(3),last);
+        set_palette(RAMpal);
         
         readkey();
         
@@ -1557,7 +1494,7 @@ int onJ()
 void setFlagColor()
 {
     RAMpal[dvc(0)]=RAMpal[vc(Flag%16)];
-    Backend::palette->setPaletteRange(RAMpal,dvc(0),dvc(0));
+    set_palette_range(RAMpal,dvc(0),dvc(0),false);
 }
 
 int onIncreaseFlag()

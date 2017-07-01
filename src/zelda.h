@@ -23,9 +23,9 @@
 #include "sfx.h"
 #include "zcmusic.h"
 #include "jwin.h"
+#include "gamedata.h"
 #include "zsys.h"
 #include "script_drawing.h"
-#include "scripting/ObjectPool.h"
 
 int isFullScreen();
 int onFullscreen();
@@ -83,6 +83,25 @@ enum
 /*********************************/
 /*********** Procedures **********/
 /*********************************/
+
+/*
+
+  // aglogo.cc
+  int  aglogo(BITMAP* frame);
+
+
+  // title.cc
+  void update_game_icons();
+
+  // zc_sys.cc
+  void color_layer(RGB *src,RGB *dest,char r,char g,char b,char pos,int from,int to);
+  void go();
+  void comeback();
+  void waitvsync(bool fast);
+  int  input_idle(bool checkmouse);
+  int  after_time();
+  void hit_close_button();
+  */
 
 bool get_debug();
 void set_debug(bool d);
@@ -150,12 +169,14 @@ bool screenIsScrolling();
 //void quit_game();
 int d_timer_proc(int msg, DIALOG *d, int c);
 
-//2.54
-void setMonochrome(bool state); //GFX are monochrome. 
-bool isMonochrome();
-
-
-
+INLINE void sfx(int index)
+{
+    sfx(index,128,false);
+}
+INLINE void sfx(int index,int pan)
+{
+    sfx(index,vbound(pan, 0, 255) ,false);
+}
 
 //INLINE void SCRFIX() { putpixel(screen,0,0,getpixel(screen,0,0)); }
 
@@ -166,6 +187,7 @@ bool isMonochrome();
 
 extern ZCMUSIC *zcmusic;
 
+extern int colordepth;
 extern int db;
 extern int detail_int[10];                                  //temporary holder for things you want to detail
 extern zinitdata  zinit;
@@ -177,7 +199,7 @@ extern int strike_hint;
 
 extern RGB_MAP rgb_table;
 extern COLOR_MAP trans_table, trans_table2;
-extern BITMAP     *framebuf, *scrollbuf, *tmp_bmp, *tmp_scr, *screen2, *fps_undo, *msgbmpbuf, *msgdisplaybuf, *pricesdisplaybuf, *real_screen, *temp_buf, *temp_buf2, *prim_bmp;
+extern BITMAP     *framebuf, *scrollbuf, *tmp_bmp, *tmp_scr, *screen2, *fps_undo, *msgbmpbuf, *msgdisplaybuf, *pricesdisplaybuf, *tb_page[3], *real_screen, *temp_buf, *temp_buf2, *prim_bmp;
 extern DATAFILE *data, *sfxdata, *fontsdata, *mididata;
 extern SAMPLE   wav_refill;
 extern FONT  *nfont, *zfont, *z3font, *z3smallfont, *deffont, *lfont, *lfont_l, *pfont, *mfont, *ztfont, *sfont, *sfont2, *sfont3, *spfont, *ssfont1, *ssfont2, *ssfont3, *ssfont4, *gblafont,
@@ -195,6 +217,8 @@ extern ZCHEATS  zcheats;
 extern byte     use_cheats;
 extern byte     use_tiles;
 extern char     palnames[MAXLEVELS][17];
+
+extern bool is_large;
 
 extern bool standalone_mode;
 extern char *standalone_quest;
@@ -239,10 +263,11 @@ extern bool screenscrolling;
 extern bool close_button_quit;
 extern int jwin_pal[jcMAX];
 extern int gui_colorset;
-extern byte frame_rest_suggest, forceExit;
+extern int fullscreen;
+extern byte disable_triplebuffer, can_triplebuffer_in_windowed_mode;
+extern byte frame_rest_suggest, forceExit, zc_vsync;
+extern byte zc_color_depth;
 extern byte use_debug_console, use_win32_proc; //windows only
-
-extern int user_midi_ids[10]; //user MIDIs that override things such as GAME_OVER. Set by Script or in ZQuest.
 
 #ifdef _SCRIPT_COUNTER
 void update_script_counter();
@@ -257,7 +282,7 @@ extern char *SAVE_FILE;
 extern int homescr,currscr,frame,currmap,dlevel,warpscr,worldscr;
 extern int newscr_clk,opendoors,currdmap,fadeclk,currgame,listpos;
 extern int lastentrance,lastentrance_dmap, prices[3],loadside, Bwpn, Awpn;
-extern int digi_volume,midi_volume,emusic_volume,currmidi,hasitem,whistleclk;
+extern int digi_volume,midi_volume,sfx_volume,emusic_volume,currmidi,hasitem,whistleclk,pan_style;
 extern bool analog_movement;
 extern int joystick_index,Akey,Bkey,Skey,Lkey,Rkey,Pkey,Exkey1,Exkey2,Exkey3,Exkey4,Abtn,Bbtn,Sbtn,Mbtn,Lbtn,Rbtn,Pbtn,Exbtn1,Exbtn2,Exbtn3,Exbtn4,Quit;
 extern int js_stick_1_x_stick, js_stick_1_x_axis, js_stick_1_x_offset;
@@ -303,8 +328,16 @@ extern mapscr tmpscr[2];
 extern mapscr tmpscr2[6];
 extern mapscr tmpscr3[6];
 extern char   sig_str[44];
+extern ffscript *ffscripts[512];
+extern ffscript *itemscripts[256];
+extern ffscript *globalscripts[NUMSCRIPTGLOBAL];
 
-extern const char *old_sfx_string[];
+extern ffscript *guyscripts[256];
+extern ffscript *wpnscripts[256];
+extern ffscript *linkscripts[3];
+extern ffscript *screenscripts[256];
+extern SAMPLE customsfxdata[WAV_COUNT];
+extern int sfxdat;
 
 #define MAX_ZCARRAY_SIZE	4096
 typedef ZCArray<long> ZScriptArray;
@@ -313,19 +346,27 @@ extern byte arrayOwner[MAX_ZCARRAY_SIZE];
 
 dword getNumGlobalArrays();
 
+extern int  resx,resy,scrx,scry;
+extern bool sbig;                                           // big screen
+extern bool sbig2;	//BIGGER SCREEN!!!!
+extern int screen_scale; //user adjustable screen size.
+
 extern bool scanlines;                                      //do scanlines if sbig==1
 extern bool toogam;
 extern bool ignoreSideview;
 
 extern int cheat;                                           // 0 = none; 1,2,3,4 = cheat level
 
-extern bool  mouse_down;                                     // used to hold the last reading of 'gui_mouse_b()' status
+extern int  mouse_down;                                     // used to hold the last reading of 'gui_mouse_b()' status
 extern int idle_count, active_count;
 extern char *qstpath;
 extern char *qstdir;
 extern gamedata *saves;
 extern gamedata *game;
-extern ObjectPool *pool;
+
+extern volatile int lastfps;
+extern volatile int framecnt;
+extern void throttleFPS();
 
 // quest file data
 extern zquestheader QHeader;

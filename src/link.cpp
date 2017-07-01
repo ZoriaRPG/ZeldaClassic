@@ -25,11 +25,12 @@
 #include "subscr.h"
 #include "zc_subscr.h"
 #include "decorations.h"
+#include "gamedata.h"
 #include "zc_custom.h"
 #include "title.h"
 #include "ffscript.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
+#include "zscriptversion.h"
 
 using std::set;
 
@@ -74,96 +75,9 @@ void LinkClass::setDrunkClock(int newdrunkclk)
     drunkclk=newdrunkclk;
 }
 
-LinkClass::LinkClass() : sprite(*pool)
+LinkClass::LinkClass() : sprite()
 {
     init();
-}
-
-
-//2.6
-
-//Stop the subscreen from falling. -Z
-
-bool LinkClass::stopSubscreenFalling(){
-	return preventsubscreenfalling;
-}
-
-void LinkClass::stopSubscreenFalling(bool v){
-	preventsubscreenfalling = v;
-}
-
-
-//Set the button items by brute force
-
-void LinkClass::setAButtonItem(int itm){
-	game->awpn = itm;
-}
-
-void LinkClass::setBButtonItem(int itm){
-	game->bwpn = itm;
-}
-
-bool LinkClass::getCanLinkFlicker(){
-	return flickerorflash; //enable or disable flicker or flash
-}
-void LinkClass::setCanLinkFlicker(bool v){
-	flickerorflash = v;
-}
-
-//Set Link;s hurt sfx
-void LinkClass::setHurtSFX(int sfx){
-	hurtsfx = sfx;
-}	
-int LinkClass::getHurtSFX() {
-	return hurtsfx;
-}
-
-
-int LinkClass::getDirectItem()
-{
-    return attackid;
-}
-
-int LinkClass::getDirectItemA()
-{
-    return attack;
-}
-
-int LinkClass::getDirectItemB()
-{
-    return attackid;
-}
-
-void LinkClass::setDirectItem(int itm)
-{
-    attackid = itm;
-}
-
-void LinkClass::setDirectItemA(int itm)
-{
-    attack = itm;
-}
-
-void LinkClass::setDirectItemB(int itm)
-{
-    attackid = itm;
-}
-
-bool  LinkClass::getDiagMove()
-{
-    return diagonalMovement;
-}
-void LinkClass::setDiagMove(bool newdiag)
-{
-    diagonalMovement=newdiag;
-}
-bool  LinkClass::getBigHitbox()
-{
-    return bigHitbox;
-}
-void LinkClass::setBigHitbox(bool newbighitbox)
-{
-    bigHitbox=newbighitbox;
 }
 
 //void LinkClass::linkstep() { lstep = lstep<(BSZ?27:11) ? lstep+1 : 0; }
@@ -196,8 +110,8 @@ void LinkClass::resetflags(bool all)
         
         if(nayruitem != -1)
         {
-            Backend::sfx->stop(itemsbuf[nayruitem].usesound);
-            Backend::sfx->stop(itemsbuf[nayruitem].usesound+1);
+            stop_sfx(itemsbuf[nayruitem].usesound);
+            stop_sfx(itemsbuf[nayruitem].usesound+1);
         }
         
         nayruitem = -1;
@@ -716,7 +630,6 @@ int LinkClass::getSpecialCave()
 
 void LinkClass::init()
 {
-    setMonochrome(false);
     hookshot_used=false;
     hookshot_frozen=false;
     dir = up;
@@ -726,7 +639,6 @@ void LinkClass::init()
     sdir = up;
     ilswim=true;
     walkable=false;
-	
     
     if(get_bit(quest_rules,qr_NOARRIVALPOINT))
     {
@@ -783,13 +695,8 @@ void LinkClass::init()
     
     for(int i=0; i<16; i++) miscellaneous[i] = 0;
     
-    bigHitbox=get_bit(quest_rules, qr_LTTPCOLLISION) != 0;
-    diagonalMovement=get_bit(quest_rules,qr_LTTPWALK) != 0;
-    
-    //2.6
-	preventsubscreenfalling = false;  //-Z
-	hurtsfx = WAV_OUCH; //Set the default sound. 
-	flickerorflash = true; //flicker or flash unless disabled externally.
+    bigHitbox=get_bit(quest_rules, qr_LTTPCOLLISION);
+    diagonalMovement=get_bit(quest_rules,qr_LTTPWALK);
 }
 
 void LinkClass::draw_under(BITMAP* dest)
@@ -899,12 +806,7 @@ void LinkClass::positionSword(weapon *w, int itemid)
     cs2 = w->o_cset;
     slashxofs=0;
     slashyofs=0;
-	
-	//Weapon Editor : Forward defence and weapon properties to the sword. 
-	//w->usedefence = itemsbuf[itemid].usedefence;
-	//w->useweapon = itemsbuf[itemid].useweapon;
-	//Not working. -Z
-	
+    
     switch(dir)
     {
     case up:
@@ -1238,11 +1140,11 @@ void LinkClass::draw(BITMAP* dest)
     
     if(!get_bit(quest_rules,qr_LINKFLICKER))
     {
-        if(superman && getCanLinkFlicker())
+        if(superman)
         {
             cs += (((~frame)>>1)&3);
         }
-        else if(hclk&&(NayrusLoveShieldClk<=0) && getCanLinkFlicker())
+        else if(hclk&&(NayrusLoveShieldClk<=0))
         {
             cs += ((hclk>>1)&3);
         }
@@ -1331,20 +1233,15 @@ attack:
                 tile+=dmap_tile_mod();
                 
                 // Stone of Agony
-		    // Stone of Agony
-		if(agony)
-		{
-		    yofs-=!(frame%zc_max(60-itemsbuf[agonyid].misc1,3));
-		}
-		    
-		//Probably what makes Link flicker, except for the QR check. What makes him flicker when that rule is off?! -Z
-		if(!(get_bit(quest_rules,qr_LINKFLICKER)&&((superman||hclk)&&(frame&1))))
-		{
-		    masked_draw(dest);
-		}
-		    
-		//Prevent flickering -Z
-		if ( !getCanLinkFlicker() ) masked_draw(dest);
+                if(agony)
+                {
+                    yofs-=!(frame%zc_max(60-itemsbuf[agonyid].misc1,3));
+                }
+                
+                if(!(get_bit(quest_rules,qr_LINKFLICKER)&&((superman||hclk)&&(frame&1))))
+                {
+                    masked_draw(dest);
+                }
             }
             
             if(attack!=wHammer)
@@ -1501,7 +1398,7 @@ attack:
             
             if(attackclk==15 && z==0 && (sideviewhammerpound() || !isSideview()))
             {
-                Backend::sfx->play(((iswater(MAPCOMBO(x+wx+8,y+wy)) || COMBOTYPE(x+wx+8,y+wy)==cSHALLOWWATER) && get_bit(quest_rules,qr_MORESOUNDS)) ? WAV_ZN1SPLASH : itemsbuf[itemid].usesound,x);
+                sfx(((iswater(MAPCOMBO(x+wx+8,y+wy)) || COMBOTYPE(x+wx+8,y+wy)==cSHALLOWWATER) && get_bit(quest_rules,qr_MORESOUNDS)) ? WAV_ZN1SPLASH : itemsbuf[itemid].usesound,pan(int(x)));
             }
             
             xofs=oxofs;
@@ -2087,7 +1984,7 @@ void LinkClass::checkstab()
             
             if(h<0 && whimsypower)
             {
-                Backend::sfx->play(itemsbuf[whimsyid].usesound,128);
+                sfx(itemsbuf[whimsyid].usesound);
             }
             
             if(h && charging>0)
@@ -2129,7 +2026,7 @@ void LinkClass::checkstab()
                             
                         if(itemsbuf[items.spr(j)->id].collect_script)
                         {
-							run_script(SCRIPT_ITEM, itemsbuf[items.spr(j)->id].collect_script, items.spr(j)->id & 0xFFF);
+                            ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[items.spr(j)->id].collect_script, items.spr(j)->id & 0xFFF);
                         }
                         
                         getitem(items.spr(j)->id);
@@ -2386,7 +2283,7 @@ void LinkClass::check_slash_block(int bx, int by)
             s->data[i] = s->secretcombo[sSTAIRS];
             s->cset[i] = s->secretcset[sSTAIRS];
             s->sflag[i] = s->secretflag[sSTAIRS];
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         else if(((flag>=mfSWORD&&flag<=mfXSWORD)||(flag==mfSTRIKE)))
         {
@@ -2408,7 +2305,7 @@ void LinkClass::check_slash_block(int bx, int by)
             s->data[i] = s->secretcombo[sSTAIRS];
             s->cset[i] = s->secretcset[sSTAIRS];
             s->sflag[i] = s->secretflag[sSTAIRS];
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         else if(((flag2>=mfSWORD&&flag2<=mfXSWORD)||(flag2==mfSTRIKE)))
         {
@@ -2465,7 +2362,7 @@ void LinkClass::check_slash_block(int bx, int by)
         if((flag==mfARMOS_ITEM||flag2==mfARMOS_ITEM) && !getmapflag())
         {
             items.add(new item((fix)bx, (fix)by,(fix)0, tmpscr->catchall, ipONETIME2 + ipBIGRANGE + ipHOLDUP, 0));
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         else if(isCuttableItemType(type))
         {
@@ -2483,7 +2380,7 @@ void LinkClass::check_slash_block(int bx, int by)
         {
             if(get_bit(quest_rules,qr_MORESOUNDS))
             {
-                Backend::sfx->play(WAV_ZN1GRASSCUT,int(bx));
+                sfx(WAV_ZN1GRASSCUT,int(bx));
             }
             
             if(isBushType(type))
@@ -2529,7 +2426,7 @@ void LinkClass::check_slash_block(int bx, int by)
         {
             if(get_bit(quest_rules,qr_MORESOUNDS))
             {
-                Backend::sfx->play(WAV_ZN1GRASSCUT,int(bx));
+                sfx(WAV_ZN1GRASSCUT,int(bx));
             }
             
             if(isBushType(type2))
@@ -2678,7 +2575,7 @@ void LinkClass::check_pound_block(int bx, int by)
             s->data[i] = s->secretcombo[sSTAIRS];
             s->cset[i] = s->secretcset[sSTAIRS];
             s->sflag[i] = s->secretflag[sSTAIRS];
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         else if((flag2 >= 16)&&(flag2 <= 31))
         {
@@ -2691,7 +2588,7 @@ void LinkClass::check_pound_block(int bx, int by)
             s->data[i] = s->secretcombo[sSTAIRS];
             s->cset[i] = s->secretcset[sSTAIRS];
             s->sflag[i] = s->secretflag[sSTAIRS];
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         else pound = true;
     }
@@ -2719,11 +2616,11 @@ void LinkClass::check_pound_block(int bx, int by)
         if((flag==mfARMOS_ITEM||flag2==mfARMOS_ITEM) && !getmapflag())
         {
             items.add(new item((fix)bx, (fix)by, (fix)0, tmpscr->catchall, ipONETIME2 + ipBIGRANGE + ipHOLDUP, 0));
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         
         if(type==cPOUND && get_bit(quest_rules,qr_MORESOUNDS))
-            Backend::sfx->play(WAV_ZN1HAMMERPOST,int(bx));
+            sfx(WAV_ZN1HAMMERPOST,int(bx));
             
         putcombo(scrollbuf,(i&15)<<4,i&0xF0,s->data[i],s->cset[i]);
     }
@@ -2733,7 +2630,7 @@ void LinkClass::check_pound_block(int bx, int by)
         set_bit(ffcgrid,current_ffcombo,1);
         
         if(type2==cPOUND && get_bit(quest_rules,qr_MORESOUNDS))
-            Backend::sfx->play(WAV_ZN1HAMMERPOST,int(bx));
+            sfx(WAV_ZN1HAMMERPOST,int(bx));
     }
     
     return;
@@ -2899,7 +2796,7 @@ int LinkClass::EwpnHit()
                 ew->ignorecombo=-1;
             }
             
-            Backend::sfx->play(itemsbuf[itemid].usesound,int(x));
+            sfx(itemsbuf[itemid].usesound,pan(int(x)));
         }
     }
     
@@ -3006,7 +2903,7 @@ int LinkClass::LwpnHit()                                    //only here to check
             lw->onhit(false, 1+reflect, dir);
             lw->ignoreLink=true;
             lw->ignorecombo=-1;
-            Backend::sfx->play(itemsbuf[itemid].usesound,int(x));
+            sfx(itemsbuf[itemid].usesound,pan(int(x)));
         }
         
     return -1;
@@ -3027,17 +2924,14 @@ void LinkClass::checkhit()
             
             if(NayrusLoveShieldClk == 0 && nayruitem != -1)
             {
-                Backend::sfx->stop(itemsbuf[nayruitem].usesound);
-                Backend::sfx->stop(itemsbuf[nayruitem].usesound+1);
+                stop_sfx(itemsbuf[nayruitem].usesound);
+                stop_sfx(itemsbuf[nayruitem].usesound+1);
                 nayruitem = -1;
             }
             else if(get_bit(quest_rules,qr_MORESOUNDS) && !(NayrusLoveShieldClk&0xF00) && nayruitem != -1)
             {
-                Backend::sfx->stop(itemsbuf[nayruitem].usesound);
-                // This should also be called once, in principle
-                // but to do so requires some significant refactoring
-                // (for instance NayrusLoveShieldClk might skip 0xF00 due to item editing/scripting)
-                Backend::sfx->loop(itemsbuf[nayruitem].usesound+1,128);
+                stop_sfx(itemsbuf[nayruitem].usesound);
+                cont_sfx(itemsbuf[nayruitem].usesound+1);
             }
         }
     }
@@ -3122,7 +3016,7 @@ void LinkClass::checkhit()
                 }
                 
                 hclk=48;
-                Backend::sfx->loop(getHurtSFX(),int(x));
+                sfx(WAV_OUCH,pan(int(x)));
                 return;
             }
         }
@@ -3265,7 +3159,7 @@ killweapon:
                 }
                 
                 hclk=48;
-                Backend::sfx->play(getHurtSFX(),int(x));
+                sfx(WAV_OUCH,pan(int(x)));
                 return;
             }
         }
@@ -3329,7 +3223,7 @@ killweapon:
             tapping = false;
         }
         
-        Backend::sfx->play(getHurtSFX(),int(x));
+        sfx(WAV_OUCH,pan(int(x)));
         return;
     }
     
@@ -3360,7 +3254,7 @@ killweapon:
             tapping = false;
         }
         
-        Backend::sfx->play(getHurtSFX(),int(x));
+        sfx(WAV_OUCH,pan(int(x)));
         return;
     }
     
@@ -3463,7 +3357,7 @@ bool LinkClass::checkdamagecombos(int dx1, int dx2, int dy1, int dy2, int layer,
                 tapping = false;
             }
             
-            Backend::sfx->play(getHurtSFX(),int(x));
+            sfx(WAV_OUCH,pan(int(x)));
             return true;
         }
         else paymagiccost(itemid); // Boots are successful
@@ -3489,7 +3383,7 @@ void LinkClass::hitlink(int hit2)
         // Stomp Boots script
         if(itemsbuf[itemid].script != 0)
         {
-			run_script(SCRIPT_ITEM, itemsbuf[itemid].script, itemid & 0xFFF);
+            ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[itemid].script, itemid & 0xFFF);
         }
         
         return;
@@ -3510,7 +3404,7 @@ void LinkClass::hitlink(int hit2)
         action=gothit;
         
     hclk=48;
-    Backend::sfx->play(getHurtSFX(),int(x));
+    sfx(WAV_OUCH,pan(int(x)));
     
     if(charging > 0 || spins > 0 || attack == wSword || attack == wHammer)
     {
@@ -3610,13 +3504,11 @@ void LinkClass::addsparkle(int wpn)
     
     if(itemtype!=itype_cbyrna && frame%4)
         return;
-    
-    int wpn2 = (itemtype==itype_cbyrna || itemtype==itype_wand) ? itemsbuf[itemid].wpn4 : itemsbuf[itemid].wpn2; 
-    //!Dimentio: let's stuff the wand in here...
-    int wpn3 = (itemtype==itype_cbyrna || itemtype==itype_wand) ? itemsbuf[itemid].wpn5 : itemsbuf[itemid].wpn3; 
-    //!Dimentio: and here...
+        
+    int wpn2 = (itemtype==itype_cbyrna) ? itemsbuf[itemid].wpn4 : itemsbuf[itemid].wpn2;
+    int wpn3 = (itemtype==itype_cbyrna) ? itemsbuf[itemid].wpn5 : itemsbuf[itemid].wpn3;
     // Either one (wpn2) or the other (wpn3). If both are present, randomise.
-	int sparkle_type = (!wpn2 ? (!wpn3 ? 0 : wpn3) : (!wpn3 ? wpn2 : (rand()&1 ? wpn2 : wpn3)));
+    int sparkle_type = (!wpn2 ? (!wpn3 ? 0 : wpn3) : (!wpn3 ? wpn2 : (rand()&1 ? wpn2 : wpn3)));
     int direction=w->dir;
     
     if(sparkle_type)
@@ -3645,7 +3537,7 @@ void LinkClass::addsparkle(int wpn)
         }
         
         // Damaging boomerang sparkle?
-        if(wpn3 && (itemtype==itype_brang || (itemtype==itype_wand && itemsbuf[itemid].misc1 == 3))) //!Dimentio: Wand exceptions...
+        if(wpn3 && itemtype==itype_brang)
         {
             // If the boomerang just bounced, flip the sparkle direction so it doesn't hit
             // whatever it just bounced off of if it's shielded from that direction.
@@ -3763,11 +3655,7 @@ bool LinkClass::animate(int)
         // Stop hovering/falling if you land on something.
         if(ON_SIDEPLATFORM && !(pull_link && dir==down) && action!=rafting)
         {
-            int id = current_item_id(itype_hoverboots);
-
-            if (id >= 0)
-                Backend::sfx->stop(itemsbuf[id].usesound);
-
+            stop_item_sfx(itype_hoverboots);
             fall = hoverclk = jumping = 0;
             y-=(int)y%8; //fix position
             
@@ -3777,11 +3665,7 @@ bool LinkClass::animate(int)
         // Stop hovering if you press down.
         else if((hoverclk || ladderx || laddery) && DrunkDown())
         {
-            int id = current_item_id(itype_hoverboots);
-
-            if (id >= 0)
-                Backend::sfx->stop(itemsbuf[id].usesound);
-
+            stop_item_sfx(itype_hoverboots);
             hoverclk = 0;
             reset_ladder();
             fall = zinit.gravity;
@@ -3827,7 +3711,7 @@ bool LinkClass::animate(int)
                 if(itemsbuf[itemid].wpn)
                     decorations.add(new dHover(x, y, dHOVER, 0));
                     
-                Backend::sfx->play(itemsbuf[itemid].usesound,int(x));
+                sfx(itemsbuf[itemid].usesound,pan(int(x)));
             }
             else if(!ladderx && !laddery)
             {
@@ -3881,7 +3765,7 @@ bool LinkClass::animate(int)
             if(fall > 0)
             {
                 if((iswater(MAPCOMBO(x,y+8)) && ladderx<=0 && laddery<=0) || COMBOTYPE(x,y+8)==cSHALLOWWATER)
-                    Backend::sfx->play(WAV_ZN1SPLASH,int(x));
+                    sfx(WAV_ZN1SPLASH,int(x));
                     
                 stomping = true;
             }
@@ -3911,7 +3795,7 @@ bool LinkClass::animate(int)
                 int itemid = current_item_id(itype_hoverboots);
                 hoverclk = itemsbuf[itemid].misc1 ? itemsbuf[itemid].misc1 : -1;
                 decorations.add(new dHover(x, y, dHOVER, 0));
-                Backend::sfx->play(itemsbuf[current_item_id(itype_hoverboots)].usesound,int(x));
+                sfx(itemsbuf[current_item_id(itype_hoverboots)].usesound,pan(int(x)));
             }
             else fall += zinit.gravity;
         }
@@ -4590,7 +4474,7 @@ bool LinkClass::animate(int)
         
         if(dtype==dWALK)
         {
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
         }
         
         action=none;
@@ -4603,7 +4487,7 @@ bool LinkClass::animate(int)
     {
         if(heart_beep)
         {
-            Backend::sfx->loop(WAV_ER,128);
+            cont_sfx(WAV_ER);
         }
         else
         {
@@ -4615,18 +4499,18 @@ bool LinkClass::animate(int)
             if(heart_beep_timer>0)
             {
                 --heart_beep_timer;
-                Backend::sfx->loop(WAV_ER,128);
+                cont_sfx(WAV_ER);
             }
             else
             {
-                Backend::sfx->stop(WAV_ER);
+                stop_sfx(WAV_ER);
             }
         }
     }
     else
     {
         heart_beep_timer=-1;
-        Backend::sfx->stop(WAV_ER);
+        stop_sfx(WAV_ER);
     }
     
     if(rSbtn())
@@ -4636,13 +4520,10 @@ bool LinkClass::animate(int)
         switch(lsave)
         {
         case 0:
-            if ( !stopSubscreenFalling() ){
-		    conveyclk=3;
-		    dosubscr(&QMisc);
-		    newscr_clk += frame - tmp_subscr_clk;
-		    break;
-		}
-		else break;
+            conveyclk=3;
+            dosubscr(&QMisc);
+            newscr_clk += frame - tmp_subscr_clk;
+            break;
             
         case 1:
             save_game((tmpscr->flags4&fSAVEROOM) != 0, 0);
@@ -4762,7 +4643,7 @@ bool LinkClass::startwpn(int itemid)
             if((ladderx || laddery) && !(_walkflag(ladderx,laddery,0)))
                 reset_ladder();
                 
-            Backend::sfx->play(itemsbuf[itemid].usesound,int(x));
+            sfx(itemsbuf[itemid].usesound,pan(int(x)));
         }
         
         ret = false;
@@ -4782,7 +4663,7 @@ bool LinkClass::startwpn(int itemid)
             if(usedid != -1)
                 getitem(usedid, true);
                 
-            Backend::sfx->play(tmpscr[currscr<128?0:1].secretsfx,128);
+            sfx(tmpscr[currscr<128?0:1].secretsfx);
             setupscreen();
             action=none;
         }
@@ -4799,14 +4680,14 @@ bool LinkClass::startwpn(int itemid)
             return false;
             
         paymagiccost(itemid);
-        Backend::sfx->play(itemsbuf[itemid].usesound,128);
+        sfx(itemsbuf[itemid].usesound);
         
         if(dir==up || dir==right)
             ++blowcnt;
         else
             --blowcnt;
             
-        while(Backend::sfx->isPlaying(itemsbuf[itemid].usesound))
+        while(sfx_allocated(itemsbuf[itemid].usesound))
         {
             advanceframe(true);
             
@@ -4890,7 +4771,7 @@ bool LinkClass::startwpn(int itemid)
         
         Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wLitBomb,itemsbuf[itemid].fam_type,
                              itemsbuf[itemid].power*DAMAGE_MULTIPLIER,dir,itemid,getUID()));
-        Backend::sfx->play(WAV_PLACE,wx);
+        sfx(WAV_PLACE,pan(wx));
     }
     break;
     
@@ -4934,244 +4815,44 @@ bool LinkClass::startwpn(int itemid)
             deselectbombs(true);
             
         Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wLitSBomb,itemsbuf[itemid].fam_type,itemsbuf[itemid].power*DAMAGE_MULTIPLIER,dir, itemid,getUID()));
-        Backend::sfx->play(WAV_PLACE,wx);
+        sfx(WAV_PLACE,pan(wx));
     }
     break;
     
     case itype_wand:
-        {
-            //!Dimentio Edit Territory
-            //int wandfireweapon1 = current_item_id(itype_wand); //I'm doing it the long way to test this, as I have no idea if doing it the shorter way will cause problems
-           // int wandfireweapon3; //Store the weapon value in here, for use later/to prevent 27 copies of the new weapon code.
-            /*
-       
-        switch(itemsbuf[wandfireweapon1].misc1) //Okay, what weapon will the wand fire?
-            {
-                case 0: wandfireweapon3 = wMagic; //Magic is default.
-                        break;
-                case 1: wandfireweapon3 = wArrow; //Arrows?
-                        break;
-                case 2: wandfireweapon3 = wFire; //Fire?
-                        break;
-                case 3: wandfireweapon3 = wWind; //Wind?
-                        break;
-                case 4: wandfireweapon3 = wRefMagic; //Reflected Magic?
-                        break;
-                case 5: wandfireweapon3 = wRefFireball; //Reflected Fireball?
-                        break;
-                case 6: wandfireweapon3 = wRefRock; //Reflected Rock?
-                        break;
-                case 7: wandfireweapon3 = wRefBeam; //Reflected Sword Beam?
-                        break;
-                case 8: wandfireweapon3 = wBrang; //Boomerang?
-                        break;
-                case 9: wandfireweapon3 = wBeam; //Sword Beam?
-                        break;
-                //Less sure about the following ones:
-                case 10: wandfireweapon3 = wLitBomb; //Bomb?
-                        break;
-                case 11: wandfireweapon3 = wLitSBomb; //SuperBomb?
-                        break;
-                case 12: wandfireweapon3 = wBomb; //Explosion?
-                        break;
-                case 13: wandfireweapon3 = wSBomb; //Super Explosion?
-                        break;
-                case 14: wandfireweapon3 = wSSparkle; //Sparkle?
-                        break;
-                case 15: wandfireweapon3 = wFSparkle; //Fire Sparkle?
-                        break;
-                case 16: wandfireweapon3 = wHookshot; //Hookshot?
-                        break;
-                case 17: wandfireweapon3 = wBait; //Woo! BaitWand!
-                //Script weapon time!
-                case 18: wandfireweapon3 = wScript1;
-                        break;
-                case 19: wandfireweapon3 = wScript2;
-                        break;
-                case 20: wandfireweapon3 = wScript3;
-                        break;
-                case 21: wandfireweapon3 = wScript4;
-                        break;
-                case 22: wandfireweapon3 = wScript5;
-                        break;
-                case 23: wandfireweapon3 = wScript6;
-                        break;
-                case 24: wandfireweapon3 = wScript7;
-                        break;
-                case 25: wandfireweapon3 = wScript8;
-                        break;
-                case 26: wandfireweapon3 = wScript9;
-                        break;
-                case 27: wandfireweapon3 = wScript10;
-                        break;    
-               
-            }
-        */
-       
-       
-       
-            if(Lwpns.idCount(itemsbuf[itemid].misc1))
-                return false;
-               
-       
-            int bookid = current_item_id(itype_book);
-            bool paybook = (bookid>-1 && checkmagiccost(bookid));
-           
-            if(!(itemsbuf[itemid].flags&ITEM_FLAG1) && !paybook)  //Can the wand shoot without the book?
-                return false;
-               
-            if(!checkmagiccost(itemid))
-                return false;
-               
-        //Why is this here? -Z
-               
-            int type = bookid != -1 ? current_item(itype_book) : itemsbuf[itemid].fam_type;
-            int pow = (bookid != -1 ? current_item_power(itype_book) : itemsbuf[itemid].power)*DAMAGE_MULTIPLIER;
-           
-            for(int i=(spins==1?up:dir); i<=(spins==1 ? right:dir); i++)
-                if(dir!=(i^1))
-                {
-            //YOu don;t need any of those case statements until you want to do somethign special with each type.
-            //Try this, for now.
-					//! ZoriaRPG is this the number of 'duplicates'?
-					for (int i2 = 0; i2 <= abs(itemsbuf[itemid].misc8); i2++) //Moving this to Other 1. 
-					{
-						bool ItemCreatedThisTime = false; //!Dimentio: just a failsafe to prevent the setting of variables if a weapon was not created.
-						switch(itemsbuf[itemid].misc1) //!Dimentio: sort out the exceptions...
-						{
-							case 254:
-							case 0:
-							{
-								if (itemsbuf[itemid].misc10 == 1) 
-									
-								//! ZoriaRPG: Go through this,and comment what each class variable is doing, and why
-								//! so that I can move them over tot he weapon editor without needing to guess. 
-								//! Make a list of all the .misc vars, and the compares (values to equal to evaluate true)
-								//! so that I can properly link this. 
-								{
-									switch(i)
-									{
-										case up:
-										case down: //!Dimentio: Okay, bit of complex math here. This is for multiple weapons that spawn side by side.
-										{
-											Lwpns.add(new weapon((fix)wx - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wy,(fix)wz,wMagic,type,pow,i, itemid,getUID()));
-											break;
-										}
-										case left:
-										case right:
-										{
-											Lwpns.add(new weapon((fix)wx,(fix)wy - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wz,wMagic,type,pow,i, itemid,getUID()));
-											break;
-										}
-									}
-								}
-								else Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wMagic,type,pow,i, itemid,getUID())); //! Just in case/backwards compatibility
-								ItemCreatedThisTime = true;
-								break;
-							}
-							case 15: 
-							{
-								if (itemsbuf[itemid].misc10 == 1) 
-								{
-									switch(i)
-									{
-										case up:
-										case down: //!Dimentio: Okay, bit of complex math here. This is for multiple weapons that spawn side by side.
-										{
-											Ewpns.add(new weapon((fix)wx - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wy,(fix)wz,ewWind,type,itemsbuf[itemid].misc2,i, itemid,getUID()));
-											break;
-										}
-										case left:
-										case right:
-										{
-											Ewpns.add(new weapon((fix)wx,(fix)wy - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wz,ewWind,type,itemsbuf[itemid].misc2,i, itemid,getUID()));
-											break;
-										}
-									}
-								}
-								else Ewpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,ewWind,type,itemsbuf[itemid].misc2,i, itemid,getUID()));
-								ItemCreatedThisTime = true;
-								break;
-							}
-							case 20:
-							case 1:
-							case 12:
-							case 19:
-							case 27:
-							case 255:
-							break;
-							default: 
-							{
-								if (itemsbuf[itemid].misc10 == 1) 
-								{
-									switch(i)
-									{
-										case up:
-										case down: //!Dimentio: Okay, bit of complex math here. This is for multiple weapons that spawn side by side.
-										{
-											Lwpns.add(new weapon((fix)wx - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wy,(fix)wz,itemsbuf[itemid].misc1,type,pow,i, itemid,itemid));
-											break;
-										}
-										case left:
-										case right:
-										{
-											Lwpns.add(new weapon((fix)wx,(fix)wy - (itemsbuf[itemid].misc8 * (itemsbuf[itemid].misc9 / 2)) + (itemsbuf[itemid].misc9 * i2),(fix)wz,itemsbuf[itemid].misc1,type,pow,i, itemid,itemid));
-											break;
-										}
-									}
-								}
-								else Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,itemsbuf[itemid].misc1,type,pow,i, itemid,itemid)); //!Dimentio: wandfireweapon3 is what weapon the wand fires. Determined just above.
-								ItemCreatedThisTime = true;
-								break;
-							}
-						}
-						weapon *w;
-						if (itemsbuf[itemid].misc1 == 15) w = (weapon*)Ewpns.spr(Ewpns.Count()-1);
-						 else w = (weapon*)Lwpns.spr(Lwpns.Count()-1);
-						 w->LOADGFX(itemsbuf[itemid].wpn3); //use Sprites[3]
-						if (itemsbuf[itemid].misc1 == 1 || itemsbuf[itemid].misc1 == 12 || itemsbuf[itemid].misc1 == 20 || itemsbuf[itemid].misc1 == 8 || 
-						 itemsbuf[itemid].misc1 == 2 || itemsbuf[itemid].misc1 == 13 || itemsbuf[itemid].misc1 == 16 || itemsbuf[itemid].misc1 == 28)
-						 {
-							switch(w->dir)
-							{
-							case down:
-								w->flip=2;
-								
-							case up:
-								w->hyofs=2;
-								w->hysz=12;
-								break;
-								
-							case left:
-								w->flip=1;
-								
-							case right: /*tile=o_tile+((frames>1)?frames:1)*/
-								w->update_weapon_frame(((w->frames>1)?w->frames:1),w->o_tile);
-								w->hxofs=2;
-								w->hxsz=12;
-								break;
-							}
-						}
-						if (itemsbuf[itemid].misc2 > 0)
-						{
-							int StepSaver = itemsbuf[itemid].misc2 / 100; //!Dimentio: Maybe this will fix the problem with Weapon Wind.
-							w->step = StepSaver; //Attributes[1]
-						}
-						else w->step = (BSZ ? 3 : 2.5);
-						
-						if (itemsbuf[itemid].misc10 != 1 && w->id != wWand) w->count2 = i2 * itemsbuf[itemid].misc9;
-					}
-				}  //!End Dimentio Edit Territory
-            paymagiccost(itemid);
-           
-            if(paybook)
-                paymagiccost(current_item_id(itype_book));
-               
-            if(bookid != -1)
-                Backend::sfx->play(itemsbuf[bookid].usesound,wx); //pan() is deprecated. -Z
-            else
-                Backend::sfx->play(itemsbuf[itemid].usesound,wx);
-        }
+    {
+        if(Lwpns.idCount(wMagic))
+            return false;
+            
+        int bookid = current_item_id(itype_book);
+        bool paybook = (bookid>-1 && checkmagiccost(bookid));
+        
+        if(!(itemsbuf[itemid].flags&ITEM_FLAG1) && !paybook)  //Can the wand shoot without the book?
+            return false;
+            
+        if(!checkmagiccost(itemid))
+            return false;
+            
+        if(Lwpns.idCount(wBeam))
+            Lwpns.del(Lwpns.idFirst(wBeam));
+            
+        int type = bookid != -1 ? current_item(itype_book) : itemsbuf[itemid].fam_type;
+        int pow = (bookid != -1 ? current_item_power(itype_book) : itemsbuf[itemid].power)*DAMAGE_MULTIPLIER;
+        
+        for(int i=(spins==1?up:dir); i<=(spins==1 ? right:dir); i++)
+            if(dir!=(i^1))
+                Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wMagic,type,pow,i, itemid,getUID()));
+                
+        paymagiccost(itemid);
+        
+        if(paybook)
+            paymagiccost(current_item_id(itype_book));
+            
+        if(bookid != -1)
+            sfx(itemsbuf[bookid].usesound,pan(wx));
+        else
+            sfx(itemsbuf[itemid].usesound,pan(wx));
+    }
     /*
     //    Fireball Wand
     Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wRefFireball,0,2*DAMAGE_MULTIPLIER,dir));
@@ -5223,7 +4904,7 @@ bool LinkClass::startwpn(int itemid)
         }
         
         Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wBeam,itemsbuf[itemid].fam_type,int(temppower),dir,itemid,getUID()));
-        Backend::sfx->play(WAV_BEAM,wx);
+        sfx(WAV_BEAM,pan(wx));
     }
     break;
     
@@ -5251,7 +4932,7 @@ bool LinkClass::startwpn(int itemid)
         Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wFire,
                              (itemsbuf[itemid].fam_type > 1), //To do with combo flags
                              itemsbuf[itemid].power*DAMAGE_MULTIPLIER,dir,itemid,getUID()));
-        Backend::sfx->play(itemsbuf[itemid].usesound,wx);
+        sfx(itemsbuf[itemid].usesound,pan(wx));
         attack=wFire;
     }
     break;
@@ -5283,7 +4964,7 @@ bool LinkClass::startwpn(int itemid)
         
         Lwpns.add(new weapon((fix)wx,(fix)wy,(fix)wz,wArrow,itemsbuf[itemid].fam_type,DAMAGE_MULTIPLIER*itemsbuf[itemid].power,dir,itemid,getUID()));
         ((weapon*)Lwpns.spr(Lwpns.Count()-1))->step*=(current_item_power(itype_bow)+1)/2;
-        Backend::sfx->play(itemsbuf[itemid].usesound,wx);
+        sfx(itemsbuf[itemid].usesound,pan(wx));
     }
     break;
     
@@ -5295,7 +4976,7 @@ bool LinkClass::startwpn(int itemid)
             return false;
             
         paymagiccost(itemid);
-        Backend::sfx->play(itemsbuf[itemid].usesound,wx);
+        sfx(itemsbuf[itemid].usesound,pan(wx));
         
         if(tmpscr->room==rGRUMBLE && !getmapflag())
         {
@@ -5308,7 +4989,7 @@ bool LinkClass::startwpn(int itemid)
             setmapflag();
             removeItemsOfFamily(game,itemsbuf,itype_bait);
             verifyBothWeapons();
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
             return false;
         }
         
@@ -5617,7 +5298,7 @@ bool LinkClass::doattack()
         if(charging==normalcharge)
         {
             paymagiccost(itemid);
-            Backend::sfx->play(WAV_ZN1CHARGE,int(x));
+            sfx(WAV_ZN1CHARGE,pan(int(x)));
         }
         else if(charging==magiccharge)
         {
@@ -5627,7 +5308,7 @@ bool LinkClass::doattack()
             {
                 paymagiccost(itemid);
                 charging++; // charging>magiccharge signifies a successful supercharge.
-                Backend::sfx->play(WAV_ZN1CHARGE2,int(x));
+                sfx(WAV_ZN1CHARGE2,pan(int(x)));
             }
         }
     }
@@ -5687,7 +5368,7 @@ bool LinkClass::doattack()
                 spins=(charging>magiccharge ? (itemsbuf[current_item_id(itype_spinscroll2)].misc1*4)-3
                        : (itemsbuf[current_item_id(itype_spinscroll)].misc1*4)+1);
                 attackclk=1;
-                Backend::sfx->play(itemsbuf[current_item_id(spins>5 ? itype_spinscroll2 : itype_spinscroll)].usesound,int(x));
+                sfx(itemsbuf[current_item_id(spins>5 ? itype_spinscroll2 : itype_spinscroll)].usesound,pan(int(x)));
             }
             /*
             else if(attack==wWand)
@@ -5700,7 +5381,7 @@ bool LinkClass::doattack()
             {
                 spins=1; //signifies the quake hammer
                 bool super = (charging>magiccharge && current_item(itype_quakescroll2));
-                Backend::sfx->play(itemsbuf[current_item_id(super ? itype_quakescroll2 : itype_quakescroll)].usesound,int(x));
+                sfx(itemsbuf[current_item_id(super ? itype_quakescroll2 : itype_quakescroll)].usesound,pan(int(x)));
                 quakeclk=(itemsbuf[current_item_id(super ? itype_quakescroll2 : itype_quakescroll)].misc1);
                 
                 // general area stun
@@ -5828,14 +5509,14 @@ void do_lens()
         {
             lensid=itemid;
             
-            if(get_bit(quest_rules,qr_MORESOUNDS)) Backend::sfx->play(itemsbuf[itemid].usesound,128);
+            if(get_bit(quest_rules,qr_MORESOUNDS)) sfx(itemsbuf[itemid].usesound);
         }
         
         paymagiccost(itemid);
         
         if(dowpn>=0 && itemsbuf[dowpn].script != 0 && !did_scriptl)
         {
-			run_script(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
+            ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
             did_scriptl=true;
         }
         
@@ -5850,7 +5531,7 @@ void do_lens()
             lensid=-1;
             lensclk = 0;
             
-            if(get_bit(quest_rules,qr_MORESOUNDS)) Backend::sfx->play(WAV_ZN1LENSOFF,128);
+            if(get_bit(quest_rules,qr_MORESOUNDS)) sfx(WAV_ZN1LENSOFF);
         }
     }
 }
@@ -6363,11 +6044,11 @@ void LinkClass::movelink()
         attack=wSword;
         attackid=directWpn>-1 ? directWpn : current_item_id(itype_sword);
         attackclk=0;
-        Backend::sfx->play(itemsbuf[directWpn>-1 ? directWpn : current_item_id(itype_sword)].usesound, int(x));
+        sfx(itemsbuf[directWpn>-1 ? directWpn : current_item_id(itype_sword)].usesound, pan(int(x)));
         
         if(dowpn>-1 && itemsbuf[dowpn].script!=0 && !did_scripta && checkmagiccost(dowpn))
         {
-			run_script(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
+            ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
             did_scripta=true;
         }
     }
@@ -6475,7 +6156,7 @@ void LinkClass::movelink()
             if(!paidmagic && attack!=wWand)
                 paymagiccost(dowpn);
                 
-			run_script(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
+            ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[dowpn].script, dowpn & 0xFFF);
             did_scriptb=true;
         }
         
@@ -6523,7 +6204,7 @@ void LinkClass::movelink()
                 spins--;
                 
                 if(spins%5==0)
-                    Backend::sfx->play(itemsbuf[current_item_id(spins >5 ? itype_spinscroll2 : itype_spinscroll)].usesound,int(x));
+                    sfx(itemsbuf[current_item_id(spins >5 ? itype_spinscroll2 : itype_spinscroll)].usesound,pan(int(x)));
                     
                 attackclk=1;
                 
@@ -8041,7 +7722,7 @@ LinkClass::WalkflagInfo LinkClass::walkflag(int wx,int wy,int cnt,byte d2)
         return ret;
     }
     
-    if(blockmoving && mblock2->hit(wx,wy,0,1,1,1))
+    if(blockmoving && mblock2.hit(wx,wy,0,1,1,1))
     {
         ret.setUnwalkable(true);
         return ret;
@@ -8489,7 +8170,7 @@ LinkClass::WalkflagInfo LinkClass::walkflag(int wx,int wy,int cnt,byte d2)
 LinkClass::WalkflagInfo LinkClass::walkflagMBlock(int wx,int wy)
 {
     WalkflagInfo ret;
-    ret.setUnwalkable(blockmoving && mblock2->hit(wx,wy,0,1,1,1));
+    ret.setUnwalkable(blockmoving && mblock2.hit(wx,wy,0,1,1,1));
     return ret;
 }
 
@@ -8715,12 +8396,12 @@ void LinkClass::checkpushblock()
             //{
             //++tmpscr->data[(by&0xF0)+(bx>>4)];
             //}
-            if(mblock2->clk<=0)
+            if(mblock2.clk<=0)
             {
-                mblock2->push((fix)bx,(fix)by,dir,f);
+                mblock2.push((fix)bx,(fix)by,dir,f);
                 
                 if(get_bit(quest_rules,qr_MORESOUNDS))
-                    Backend::sfx->play(WAV_ZN1PUSHBLOCK,(int)x);
+                    sfx(WAV_ZN1PUSHBLOCK,(int)x);
                     
                 //       break;
             }
@@ -8836,7 +8517,7 @@ void LinkClass::checklockblock()
     
     setmapflag(mLOCKBLOCK);
     remove_lockblocks((currscr>=128)?1:0);
-    Backend::sfx->play(WAV_DOOR,128);
+    sfx(WAV_DOOR);
 }
 
 void LinkClass::checkbosslockblock()
@@ -8912,7 +8593,7 @@ void LinkClass::checkbosslockblock()
     
     setmapflag(mBOSSLOCKBLOCK);
     remove_bosslockblocks((currscr>=128)?1:0);
-    Backend::sfx->play(WAV_DOOR,128);
+    sfx(WAV_DOOR);
 }
 
 void LinkClass::checkchest(int type)
@@ -9153,7 +8834,7 @@ void LinkClass::checklocked()
         }
     }
     
-    Backend::sfx->play(WAV_DOOR,128);
+    sfx(WAV_DOOR);
     markBmap(-1);
 }
 
@@ -9229,7 +8910,7 @@ void LinkClass::checkswordtap()
                     break;
                 }
                 
-        Backend::sfx->play(hollow ? WAV_ZN1TAP2 : WAV_ZN1TAP,int(x));
+        sfx(hollow ? WAV_ZN1TAP2 : WAV_ZN1TAP,pan(int(x)));
     }
     
 }
@@ -9621,7 +9302,7 @@ void LinkClass::checkspecial()
             if(!getmapflag(mITEM) && (tmpscr->hasitem != 0))
             {
                 if(hasitem==1)
-                    Backend::sfx->play(WAV_CLEARED,128);
+                    sfx(WAV_CLEARED);
                     
                 items.add(new item((fix)tmpscr->itemx,
                                    (tmpscr->flags7&fITEMFALLS && isSideview()) ? (fix)-170 : (fix)tmpscr->itemy+1,
@@ -9643,7 +9324,7 @@ void LinkClass::checkspecial()
                 if(!(tmpscr->flags5&fTEMPSECRETS)) setmapflag(mSECRET);
             }
             
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
             did_secret=true;
         }
     }
@@ -9669,7 +9350,7 @@ void LinkClass::checkspecial()
     if(loaded_enemies && tmpscr->enemyflags&efBOSS && !hasmainguy)
     {
         game->lvlitems[dlevel]|=liBOSS;
-        Backend::sfx->stop(tmpscr->bosssfx);
+        stop_sfx(tmpscr->bosssfx);
     }
     
     if(getmapflag(mCHEST))              // if special stuff done before
@@ -10316,7 +9997,7 @@ void LinkClass::checkspecial2(int *ls)
             {
                 additem(x, y, tmpscr->catchall,
                         ipONETIME2 + ipBIGRANGE + ipHOLDUP + ipNODRAW);
-                Backend::sfx->play(tmpscr->secretsfx,128);
+                sfx(tmpscr->secretsfx);
             }
             
             return;
@@ -10331,7 +10012,7 @@ void LinkClass::checkspecial2(int *ls)
                 {
                     reset_swordcharge();
                     action=rafting;
-                    Backend::sfx->play(tmpscr->secretsfx,128);
+                    sfx(tmpscr->secretsfx);
                 }
             }
             
@@ -10349,7 +10030,7 @@ void LinkClass::checkspecial2(int *ls)
             {
                 additem(x, y, tmpscr->catchall,
                         ipONETIME2 + ipBIGRANGE + ipHOLDUP + ipNODRAW);
-                Backend::sfx->play(tmpscr->secretsfx,128);
+                sfx(tmpscr->secretsfx);
             }
             
             return;
@@ -10364,7 +10045,7 @@ void LinkClass::checkspecial2(int *ls)
                 {
                     reset_swordcharge();
                     action=rafting;
-                    Backend::sfx->play(tmpscr->secretsfx,128);
+                    sfx(tmpscr->secretsfx);
                 }
             }
             
@@ -10382,7 +10063,7 @@ void LinkClass::checkspecial2(int *ls)
             {
                 additem(x, y, tmpscr->catchall,
                         ipONETIME2 + ipBIGRANGE + ipHOLDUP + ipNODRAW);
-                Backend::sfx->play(tmpscr->secretsfx,128);
+                sfx(tmpscr->secretsfx);
             }
             
             return;
@@ -10397,7 +10078,7 @@ void LinkClass::checkspecial2(int *ls)
                 {
                     reset_swordcharge();
                     action=rafting;
-                    Backend::sfx->play(tmpscr->secretsfx,128);
+                    sfx(tmpscr->secretsfx);
                 }
             }
             
@@ -10448,9 +10129,9 @@ void LinkClass::checkspecial2(int *ls)
                 music_stop();
         }
         
-        Backend::sfx->stop(WAV_ER);
+        stop_sfx(WAV_ER);
         bool opening = (tmpscr[t].tilewarptype[index]<=wtPASS && !(DMaps[currdmap].flags&dmfCAVES && tmpscr[t].tilewarptype[index]==wtCAVE)
-                        ? false : (COOLSCROLL!= 0) );
+                        ? false : COOLSCROLL);
                         
         draw_screen(tmpscr);
         advanceframe(true);
@@ -10582,11 +10263,11 @@ void kill_enemy_sfx()
     for(int i=0; i<guys.Count(); i++)
     {
         if(((enemy*)guys.spr(i))->bgsfx)
-            Backend::sfx->stop(((enemy*)guys.spr(i))->bgsfx);
+            stop_sfx(((enemy*)guys.spr(i))->bgsfx);
     }
     
     if(tmpscr->room==rGANON)
-        Backend::sfx->stop(WAV_ROAR);
+        stop_sfx(WAV_ROAR);
 }
 
 void LinkClass::setEntryPoints(int x2, int y2)
@@ -10691,7 +10372,7 @@ bool LinkClass::dowarp(int type, int index)
         if(DMaps[currdmap].flags&dmfCAVES)                                         // cave
         {
             music_stop();
-            Backend::sfx->stopAll();
+            kill_sfx();
             
             if(tmpscr->room==rWARP)
             {
@@ -10835,7 +10516,7 @@ bool LinkClass::dowarp(int type, int index)
     {
         ALLOFF();
         music_stop();
-        Backend::sfx->stopAll();
+        kill_sfx();
         blackscr(30,false);
         currdmap = wdmap;
         dlevel=DMaps[currdmap].level;
@@ -10968,14 +10649,14 @@ bool LinkClass::dowarp(int type, int index)
                 reset_pal_cycling();
                 putscr(scrollbuf,0,0,tmpscr);
                 putscrdoors(scrollbuf,0,0,tmpscr);
-                walkup(COOLSCROLL != 0);
+                walkup(COOLSCROLL);
             }
             else if((type3==cCAVE2)||(type3>=cCAVE2B && type3<=cCAVE2D) || (type2==cCAVE2)||(type2>=cCAVE2B && type2<=cCAVE2D))
             {
                 reset_pal_cycling();
                 putscr(scrollbuf,0,0,tmpscr);
                 putscrdoors(scrollbuf,0,0,tmpscr);
-                walkdown2(COOLSCROLL != 0);
+                walkdown2(COOLSCROLL);
             }
             else if(COOLSCROLL)
             {
@@ -11116,7 +10797,7 @@ bool LinkClass::dowarp(int type, int index)
                 diveclk = olddiveclk;
             }
             
-            Backend::sfx->stopAll();
+            kill_sfx();
         }
         
         if(wtype==wtIWARPZAP)
@@ -11196,14 +10877,14 @@ bool LinkClass::dowarp(int type, int index)
             reset_pal_cycling();
             putscr(scrollbuf,0,0,tmpscr);
             putscrdoors(scrollbuf,0,0,tmpscr);
-            walkup(COOLSCROLL != 0);
+            walkup(COOLSCROLL);
         }
         else if((type3==cCAVE2)||(type3>=cCAVE2B && type3<=cCAVE2D) || (type2==cCAVE2)||(type2>=cCAVE2B && type2<=cCAVE2D))
         {
             reset_pal_cycling();
             putscr(scrollbuf,0,0,tmpscr);
             putscrdoors(scrollbuf,0,0,tmpscr);
-            walkdown2(COOLSCROLL != 0);
+            walkdown2(COOLSCROLL);
         }
         else if(wtype==wtIWARPZAP)
         {
@@ -11385,7 +11066,7 @@ bool LinkClass::dowarp(int type, int index)
 
 void LinkClass::exitcave()
 {
-    Backend::sfx->stop(WAV_ER);
+    stop_sfx(WAV_ER);
     currscr=homescr;
     loadscr(0,currdmap,currscr,255,false);                                   // bogus direction
     x = tmpscr->warpreturnx[0];
@@ -11415,17 +11096,17 @@ void LinkClass::exitcave()
     loadlvlpal(DMaps[currdmap].color);
     lighting(false, true);
     music_stop();
-    Backend::sfx->stopAll();
+    kill_sfx();
     putscr(scrollbuf,0,0,tmpscr);
     putscrdoors(scrollbuf,0,0,tmpscr);
     
     if((type1==cCAVE)||(type1>=cCAVEB && type1<=cCAVED) || (type2==cCAVE)||(type2>=cCAVEB && type2<=cCAVED))
     {
-        walkup(COOLSCROLL != 0);
+        walkup(COOLSCROLL);
     }
     else if((type3==cCAVE2)||(type3>=cCAVE2B && type3<=cCAVE2D) || (type2==cCAVE2)||(type2>=cCAVE2B && type2<=cCAVE2D))
     {
-        walkdown2(COOLSCROLL != 0);
+        walkdown2(COOLSCROLL);
     }
     
     show_subscreen_life=true;
@@ -11585,12 +11266,8 @@ void LinkClass::walkdown(bool opening) //entering cave
     }
     
     hclk=0;
-    int id = current_item_id(itype_brang);
-
-    if (id>=0)
-        Backend::sfx->stop(itemsbuf[id].usesound);
-
-    Backend::sfx->play(WAV_STAIRS,int(x));
+    stop_item_sfx(itype_brang);
+    sfx(WAV_STAIRS,pan(int(x)));
     clk=0;
     //  int cmby=(int(y)&0xF0)+16;
     // Fix Link's position to the grid
@@ -11646,12 +11323,8 @@ void LinkClass::walkdown2(bool opening) //exiting cave 2
     }
     
     hclk=0;
-    int id = current_item_id(itype_brang);
-
-    if (id >= 0)
-        Backend::sfx->stop(itemsbuf[id].usesound);
-
-    Backend::sfx->play(WAV_STAIRS,int(x));
+    stop_item_sfx(itype_brang);
+    sfx(WAV_STAIRS,pan(int(x)));
     clk=0;
     //  int cmby=int(y)&0xF0;
     action=climbcovertop;
@@ -11704,12 +11377,8 @@ void LinkClass::walkup(bool opening) //exiting cave
     }
     
     hclk=0;
-    int id = current_item_id(itype_brang);
-
-    if (id >= 0)
-        Backend::sfx->stop(itemsbuf[id].usesound);
-
-    Backend::sfx->play(WAV_STAIRS,int(x));
+    stop_item_sfx(itype_brang);
+    sfx(WAV_STAIRS,pan(int(x)));
     dir=down;
     clk=0;
     //  int cmby=int(y)&0xF0;
@@ -11756,12 +11425,8 @@ void LinkClass::walkup2(bool opening) //entering cave2
     }
     
     hclk=0;
-    int id = current_item_id(itype_brang);
-
-    if (id >= 0)
-        Backend::sfx->stop(itemsbuf[id].usesound);
-
-    Backend::sfx->play(WAV_STAIRS,int(x));
+    stop_item_sfx(itype_brang);
+    sfx(WAV_STAIRS,pan(int(x)));
     dir=up;
     clk=0;
     //  int cmby=int(y)&0xF0;
@@ -11804,7 +11469,7 @@ void LinkClass::stepout() // Step out of item cellars and passageways
 {
     int sc = specialcave; // This gets erased by ALLOFF()
     ALLOFF();
-    Backend::sfx->stop(WAV_ER);
+    stop_sfx(WAV_ER);
     map_bkgsfx(false);
     kill_enemy_sfx();
     draw_screen(tmpscr,false);
@@ -12357,7 +12022,7 @@ bool LinkClass::checkmaze(mapscr *scr, bool sound)
             return false;
             
     if(sound)
-        Backend::sfx->play(scr->secretsfx,128);
+        sfx(scr->secretsfx);
         
     return true;
 }
@@ -12407,10 +12072,8 @@ int LinkClass::lookahead(int destscr, int d2)                       // Helper fo
     // but assumes currmap is correct.
     
     int s = currscr;
-	int cx = x;
+    int cx = x;
     int cy = y + 8;
-	bound(cx, 0, 240);
-	bound(cy, 0, 160);
     
     switch(d2)
     {
@@ -12538,7 +12201,7 @@ void LinkClass::run_scrolling_script(int scrolldir, int cx, int sx, int sy, bool
     }
     
     if(g_doscript)
-		run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
         
     x = storex, y = storey;
 }
@@ -12683,7 +12346,7 @@ void LinkClass::scrollscr(int scrolldir, int destscr, int destdmap)
         return;
         
     kill_enemy_sfx();
-    Backend::sfx->stop(WAV_ER);
+    stop_sfx(WAV_ER);
     screenscrolling = true;
     
     tmpscr[1] = tmpscr[0];
@@ -12750,7 +12413,7 @@ void LinkClass::scrollscr(int scrolldir, int destscr, int destdmap)
     
     if(global_wait)
     {
-		run_script(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
+        ZScriptVersion::RunScript(SCRIPT_GLOBAL, GLOBAL_SCRIPT_GAME);
         global_wait=false;
     }
     
@@ -12862,9 +12525,9 @@ void LinkClass::scrollscr(int scrolldir, int destscr, int destdmap)
     // fade() or lighting() is called.
     naturaldark = ((TheMaps[currmap*MAPSCRS+currscr].flags & fDARK) != 0);
     
-    if(newscr->oceansfx != oldscr->oceansfx)	Backend::sfx->unloop(oldscr->oceansfx);
+    if(newscr->oceansfx != oldscr->oceansfx)	adjust_sfx(oldscr->oceansfx, 128, false);
     
-    if(newscr->bosssfx != oldscr->bosssfx)	Backend::sfx->unloop(oldscr->bosssfx);
+    if(newscr->bosssfx != oldscr->bosssfx)	adjust_sfx(oldscr->bosssfx, 128, false);
     
     //Preloaded ffc scripts
     if(destdmap >= 0)
@@ -12911,8 +12574,7 @@ fade((specialcave > 0) ? (specialcave >= GUYCAVE) ? 10 : 11 : currcset, true, fa
         // Link's action should remain unchanged while scrolling,
         // but for the sake of scripts, here's an eye-watering kludge.
         action = scrolling;
-		if (!get_bit(quest_rules, qr_NOSCRIPTSDURINGSCROLL))
-			run_scrolling_script(scrolldir, cx, sx, sy, end_frames);
+        ZScriptVersion::RunScrollingScript(scrolldir, cx, sx, sy, end_frames);
         action = lastaction;
         
         if(no_move > 0)
@@ -12995,8 +12657,7 @@ fade((specialcave > 0) ? (specialcave >= GUYCAVE) ? 10 : 11 : currcset, true, fa
         {
             // And now to injure your other eye
             action = scrolling;
-			if(!get_bit(quest_rules, qr_NOSCRIPTSDURINGSCROLL))
-				run_scrolling_script(scrolldir, cx, sx, sy, end_frames);
+            ZScriptVersion::RunScrollingScript(scrolldir, cx, sx, sy, end_frames);
             action = lastaction;
             global_wait=false;
         }
@@ -13238,14 +12899,14 @@ fade((specialcave > 0) ? (specialcave >= GUYCAVE) ? 10 : 11 : currcset, true, fa
     {
         if(MAPFLAG(x,y)==mfRAFT||MAPCOMBOFLAG(x,y)==mfRAFT)
         {
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
             action=rafting;
         }
         
         // Half a tile off?
         else if((dir==left || dir==right) && (MAPFLAG(x,y+8)==mfRAFT||MAPCOMBOFLAG(x,y+8)==mfRAFT))
         {
-            Backend::sfx->play(tmpscr->secretsfx,128);
+            sfx(tmpscr->secretsfx);
             action=rafting;
         }
     }
@@ -13276,7 +12937,7 @@ fade((specialcave > 0) ? (specialcave >= GUYCAVE) ? 10 : 11 : currcset, true, fa
                 
             putdoor(scrollbuf,0,scrolldir^1,tmpscr->door[scrolldir^1]);
             opendoors=-4;
-            Backend::sfx->play(WAV_DOOR,128);
+            sfx(WAV_DOOR);
             break;
             
         default:
@@ -13300,7 +12961,7 @@ fade((specialcave > 0) ? (specialcave >= GUYCAVE) ? 10 : 11 : currcset, true, fa
     
     if(newscr->flags2&fSECRET)
     {
-        Backend::sfx->play(newscr->secretsfx,128);
+        sfx(newscr->secretsfx);
     }
     
     playLevelMusic();
@@ -14026,11 +13687,11 @@ void getitem(int id, bool nosound)
             
             if(itemid>=0 && (itemsbuf[id].family == itype_brang || itemsbuf[id].family == itype_nayruslove
                              || itemsbuf[id].family == itype_hookshot || itemsbuf[id].family == itype_cbyrna)
-                    && Backend::sfx->isPlaying(itemsbuf[itemid].usesound)
+                    && sfx_allocated(itemsbuf[itemid].usesound)
                     && itemsbuf[id].usesound != itemsbuf[itemid].usesound)
             {
-                Backend::sfx->stop(itemsbuf[itemid].usesound);
-                Backend::sfx->loop(itemsbuf[id].usesound,128);
+                stop_sfx(itemsbuf[itemid].usesound);
+                cont_sfx(itemsbuf[id].usesound);
             }
             
             game->set_item(id,true);
@@ -14100,7 +13761,7 @@ void getitem(int id, bool nosound)
     
     if(itemsbuf[id].playsound&&!nosound)
     {
-        Backend::sfx->play(itemsbuf[id].playsound,128);
+        sfx(itemsbuf[id].playsound);
     }
     
     //add lower-level items
@@ -14392,7 +14053,7 @@ void LinkClass::checkitems(int index)
         
     if(itemsbuf[id2].collect_script)
     {
-        run_script(SCRIPT_ITEM, itemsbuf[id2].collect_script, id2 & 0xFFF);
+        ZScriptVersion::RunScript(SCRIPT_ITEM, itemsbuf[id2].collect_script, id2 & 0xFFF);
     }
     
     getitem(id2);
@@ -14453,7 +14114,7 @@ void LinkClass::checkitems(int index)
         
         if(itemsbuf[id2].family!=itype_triforcepiece || !(itemsbuf[id2].flags & ITEM_GAMEDATA))
         {
-            Backend::sfx->play(tmpscr[0].holdupsfx,128);
+            sfx(tmpscr[0].holdupsfx);
         }
         
         items.del(index);
@@ -14549,8 +14210,8 @@ void LinkClass::StartRefill(int refillWhat)
     if(!refilling)
     {
         refillclk=21;
-        Backend::sfx->stop(WAV_ER);
-        Backend::sfx->loop(WAV_REFILL,128);
+        stop_sfx(WAV_ER);
+        sfx(WAV_REFILL,128,true);
         refilling=refillWhat;
         
         if(refill_why>=0) // Item index
@@ -14605,8 +14266,8 @@ bool LinkClass::refill()
             if(game->get_life()>=refill_heart_stop)
             {
                 game->set_life(refill_heart_stop);
-                Backend::sfx->stopAll();
-                Backend::sfx->play(WAV_MSG,128);
+                kill_sfx();
+                sfx(WAV_MSG);
                 refilling=REFILL_NONE;
                 return false;
             }
@@ -14619,8 +14280,8 @@ bool LinkClass::refill()
             if(game->get_magic()>=refill_magic_stop)
             {
                 game->set_magic(refill_magic_stop);
-                Backend::sfx->stopAll();
-                Backend::sfx->play(WAV_MSG,128);
+                kill_sfx();
+                sfx(WAV_MSG);
                 refilling=REFILL_NONE;
                 return false;
             }
@@ -14635,8 +14296,8 @@ bool LinkClass::refill()
             {
                 game->set_life(refill_heart_stop);
                 game->set_magic(refill_magic_stop);
-                Backend::sfx->stopAll();
-                Backend::sfx->play(WAV_MSG,128);
+                kill_sfx();
+                sfx(WAV_MSG);
                 refilling=REFILL_NONE;
                 return false;
             }
@@ -14671,7 +14332,7 @@ void LinkClass::getTriforce(int id2)
         show_subscreen_items=false;
     }
     
-    Backend::sfx->play(itemsbuf[id2].playsound,128);
+    sfx(itemsbuf[id2].playsound);
     music_stop();
     
     if(itemsbuf[id2].misc1)
@@ -14704,7 +14365,7 @@ void LinkClass::getTriforce(int id2)
             {
                 if((f&3)==0)
                 {
-                    Backend::palette->interpolatePalettes(RAMpal,flash_pal,42,0,CSET(6)-1, RAMpal);
+                    fade_interpolate(RAMpal,flash_pal,RAMpal,42,0,CSET(6)-1);
                     refreshpal=true;
                 }
                 
@@ -14990,7 +14651,7 @@ void LinkClass::gameover()
     game->set_deaths(zc_min(game->get_deaths()+1,999));
     dir=down;
     music_stop();
-    Backend::sfx->stopAll();
+    kill_sfx();
     attackclk=hclk=superman=0;
     scriptcoldet = 1;
     
@@ -15114,7 +14775,7 @@ void LinkClass::gameover()
                     
                     if(f>=139 && f<=169)//fade from red to black
                     {
-                        Backend::palette->interpolatePalettes(RAMpal,black_palette,(f-138)<<1, 224, 255, RAMpal);
+                        fade_interpolate(RAMpal,black_palette,RAMpal, (f-138)<<1, 224, 255);
                         create_rgb_table_range(&rgb_table, RAMpal, 208, 239, NULL);
                         create_zc_trans_table(&trans_table, RAMpal, 128, 128, 128);
                         memcpy(&trans_table2, &trans_table, sizeof(COLOR_MAP));
@@ -15132,7 +14793,7 @@ void LinkClass::gameover()
                 {
                     if(f==170)//make Link grayish
                     {
-                        Backend::palette->interpolatePalettes(RAMpal,black_palette,64, 224, 255, RAMpal);
+                        fade_interpolate(RAMpal,black_palette,RAMpal,64, 224, 255);
                         
                         for(int i=CSET(6); i < CSET(7); i++)
                         {
@@ -15251,15 +14912,15 @@ void LinkClass::gameover()
         switch(f)
         {
         case   0:
-            Backend::sfx->play(getHurtSFX(),int(x));
+            sfx(WAV_OUCH,pan(int(x)));
             break;
             
         case  60:
-            Backend::sfx->play(WAV_SPIRAL,128);
+            sfx(WAV_SPIRAL);
             break;
             
         case 194:
-            Backend::sfx->play(WAV_MSG,128);
+            sfx(WAV_MSG);
             break;
         }
         
@@ -15311,9 +14972,9 @@ void LinkClass::ganon_intro()
         if(f==47)
         {
             music_stop();
-            Backend::sfx->stop(WAV_ROAR);
-            Backend::sfx->play(WAV_GASP,128);
-            Backend::sfx->play(WAV_GANON,128);
+            stop_sfx(WAV_ROAR);
+            sfx(WAV_GASP);
+            sfx(WAV_GANON);
             int Id=0;
             
             for(int i=0; i<eMAXGUYS; i++)
@@ -15376,7 +15037,7 @@ void LinkClass::ganon_intro()
         
     currcset=DMaps[currdmap].color;
     dointro();
-    Backend::sfx->loop(WAV_ROAR,128);
+    cont_sfx(WAV_ROAR);
 }
 
 void LinkClass::saved_Zelda()
@@ -15416,7 +15077,7 @@ void LinkClass::reset_hookshot()
     
     if(index>=0)
     {
-        Backend::sfx->stop(itemsbuf[index].usesound);
+        stop_sfx(itemsbuf[index].usesound);
     }
     
     hs_xdist=0;

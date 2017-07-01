@@ -23,7 +23,6 @@
 #include "zelda.h"
 #include "zdefs.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 #include <queue>
 
@@ -174,7 +173,7 @@ void item::draw(BITMAP *dest)
     }
 }
 
-item::item(fix X,fix Y,fix Z,int i,int p,int c, bool isDummy) : sprite(*pool)
+item::item(fix X,fix Y,fix Z,int i,int p,int c, bool isDummy) : sprite()
 {
     x=X;
     y=Y;
@@ -233,7 +232,7 @@ item::item(fix X,fix Y,fix Z,int i,int p,int c, bool isDummy) : sprite(*pool)
         misc = ++fairy_cnt;
         
         if(addfairy(x, y, itemsbuf[id].misc3, misc))
-            Backend::sfx->play(itemsbuf[id].usesound,128);
+            sfx(itemsbuf[id].usesound);
     }
     
     /*for(int j=0;j<8;j++)

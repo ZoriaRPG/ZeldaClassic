@@ -37,14 +37,8 @@
 #include "zsys.h"
 #include "fontsdat.h"
 #include "zdefs.h"
+#include "zqscale.h"
 #include "zc_malloc.h"
-#include "backend/AllBackends.h"
-
-// MSVC fix
-#if _MSC_VER >= 1900
-FILE _iob[] = { *stdin, *stdout, *stderr };
-extern "C" FILE * __cdecl __iob_func(void) { return _iob; }
-#endif
 
 //Yeah, not really zquest.
 //Just here for scaling purposes.
@@ -53,20 +47,14 @@ bool is_zquest()
     return true;
 }
 
-bool is_large()
-{
-	return false;
-}
-
-int virtualScreenScale()
-{
-	return 1;
-}
-
-
+int tempmode=GFX_AUTODETECT_FULLSCREEN;
 int palbmpx=0;
 int palbmpy=0;
+bool is_large=false;
 int joystick_index=0;
+
+volatile int myvsync=0;
+BITMAP *hw_screen;
 
 char *VerStr(int version)
 {
@@ -75,6 +63,9 @@ char *VerStr(int version)
     return ver_str;
 }
 
+int scale_arg;
+int zq_scale;
+byte disable_direct_updating=0;
 char temppath[2048];
 bool close_button_quit=false;
 void hit_close_button()
@@ -92,15 +83,21 @@ int scrx=0;
 int scry=0;
 DATAFILE *fontsdata=NULL;
 char   fontsdat_sig[52];
+int zq_screen_w=320;
+int zq_screen_h=240;
 
 void go()
 {
+    scare_mouse();
     blit(screen,tmp_scr,scrx,scry,0,0,screen->w,screen->h);
+    unscare_mouse();
 }
 
 void comeback()
 {
+    scare_mouse();
     blit(tmp_scr,screen,0,0,scrx,scry,screen->w,screen->h);
+    unscare_mouse();
 }
 
 
@@ -842,7 +839,7 @@ void load_pal(char *path)
 {
     if(!path)
     {
-        Backend::palette->getPalette(pal[0]);
+        get_palette(pal[0]);
         
         for(int i=0; i<16; i++)
         {
@@ -1006,7 +1003,7 @@ int onROMTypes()
     types_dlg[0].dp2 = lfont;
     types_dlg[2].dp = buf;
     
-    int ret = popup_zqdialog(types_dlg, 0);
+    int ret = popup_dialog(types_dlg, 0);
     
     if(ret==3)
         strcpy(rom_ext,buf);
@@ -1291,10 +1288,10 @@ int onSaveAs()
 
 int onPreview()
 {
-    BITMAP *bmp;
+    BITMAP *bmp,*buf;
     int  px=0,py=0;
     double scale=1.0;
-    bool done=false;
+    bool done=false, refresh=true;
     
     if(selcnt==0)
     {
@@ -1311,20 +1308,37 @@ int onPreview()
         return D_O_K;
     }
     
+    // use double buffering if possible
+    buf = create_bitmap_ex(8, 320,240);
+    
+    scare_mouse();
+    
     while(!done)
     {
-        // use double buffering if possible
-        clear_to_color(screen,black);
-        stretch_blit(bmp,screen,0,0,bmp->w,bmp->h,
-                        int(320+(px-bmp->w)*scale)/2,int(240+(py-bmp->h)*scale)/2,
-                        int(bmp->w*scale),int(bmp->h*scale));
+        if(refresh)
+        {
+            // use double buffering if possible
+            BITMAP *b = (buf!=NULL) ? buf : screen;
+            
+            if(buf==NULL)
+                vsync();
+                
+            clear_to_color(b,black);
+            stretch_blit(bmp,b,0,0,bmp->w,bmp->h,
+                         int(320+(px-bmp->w)*scale)/2,int(240+(py-bmp->h)*scale)/2,
+                         int(bmp->w*scale),int(bmp->h*scale));
                          
-        //text_mode(black);
-        textprintf_ex(screen,font,0,232,white,-1,"%dx%d %.0f%%",bmp->w,bmp->h,scale*100);
-                        
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
-                        
+            //text_mode(black);
+            textprintf_ex(b,font,0,232,white,-1,"%dx%d %.0f%%",bmp->w,bmp->h,scale*100);
+            
+            if(buf)
+            {
+                vsync();
+                blit(buf,screen,0,0,0,0,320,240);
+            }
+            
+            refresh=false;
+        }
         
         int speed = 5;
         
@@ -1334,25 +1348,30 @@ int onPreview()
         if(key[KEY_UP])
         {
             py+=speed;
+            refresh=true;
         }
         
         if(key[KEY_DOWN])
         {
             py-=speed;
+            refresh=true;
         }
         
         if(key[KEY_LEFT])
         {
             px+=speed;
+            refresh=true;
         }
         
         if(key[KEY_RIGHT])
         {
             px-=speed;
+            refresh=true;
         }
         
-        if(keypressed())
+        if(keypressed() && !refresh)
         {
+            refresh=true;
             
             switch(readkey()>>8)
             {
@@ -1404,15 +1423,17 @@ int onPreview()
                 break;
                 
             default:
-				break;
+                refresh=false;
             }
         }
     } // while(!done)
     
     destroy_bitmap(bmp);
+    destroy_bitmap(buf);
     rectfill(screen,0,0,319,15,black);
-	redraw = FULL;
-	return D_REDRAW;
+    unscare_mouse();
+    redraw_screen(FULL);
+    return D_REDRAW;
 }
 
 
@@ -1630,7 +1651,7 @@ void setup_colors()
 {
     static BITMAP *mouse = NULL;
     
-    Backend::palette->setPalette(pal[currpal]);
+    set_palette(pal[currpal]);
     get_bw(pal[currpal]);
     gui_bg_color = black;
     gui_fg_color = white;
@@ -1693,10 +1714,10 @@ void setup_colors()
                 putpixel(mouse,x,y,c);
             }
             
-		Backend::mouse->setCursorSprite(mouse);
+        set_mouse_sprite(mouse);
     }
     
-	Backend::mouse->setCursorVisibility(true);
+    show_mouse(screen);
 }
 
 
@@ -1705,6 +1726,7 @@ void redraw_screen(int type)
     int bx = ((ofs/128)/bp)*16;
     calc_saveh();
     
+    scare_mouse();
     clear_to_color(scr_buf, ltgray);
     
     //rom contents
@@ -1759,7 +1781,9 @@ void redraw_screen(int type)
     //cset indicator
     rectfill(scr_buf,226+88-14,76-74+(cset*3)+16,229+88-14-1,79-74+(cset*3)-1+16,white);
     
-    blit(scr_buf, screen, 0, 16, 0, 16, Backend::graphics->virtualScreenW(), Backend::graphics->virtualScreenH()-16);	
+    blit(scr_buf, screen, 0, 16, 0, 16, zq_screen_w, zq_screen_h-16);
+    unscare_mouse();
+    
     redraw=0;
 }
 
@@ -1805,22 +1829,75 @@ int main(int argc, char **argv)
     memset(temppath, 0, 2048);
     
     gui_mouse_focus = 0;
-
-	Backend::initializeBackend();
-	std::vector<std::pair<int, int> > mode;
-
-	Backend::graphics->readConfigurationOptions("romview");
-
-	//only "small" mode in Romview
-	mode.push_back(std::pair<int, int>(320, 240));
-	Backend::graphics->registerVirtualModes(mode);    	
-
+    
+    set_color_depth(8);
     set_close_button_callback((void (*)()) hit_close_button);
     
-    if(!Backend::graphics->initialize())
+#ifndef ALLEGRO_DOS
+    zq_scale = get_config_int("romview","scale",1);
+    scale_arg = used_switch(argc,argv,"-scale");
+    scale_arg = false; // What!?
+    
+#ifdef _WIN32
+    // This seems to fix some problems on Windows 7
+    disable_direct_updating = (byte) get_config_int("graphics","disable_direct_updating",1);
+#endif
+    
+    if(scale_arg && (argc>(scale_arg+1)))
+    {
+        scale_arg = atoi(argv[scale_arg+1]);
+        
+        if(scale_arg == 0)
+        {
+            scale_arg = 1;
+        }
+        
+        zq_scale=scale_arg;
+    }
+    else
+    {
+        scale_arg = zq_scale;
+    }
+    
+    // Ho hum...Romview has some problems so just disable scaling altogether...for now. -Gleeok
+    //zqwin_set_scale(scale_arg);
+    zqwin_set_scale(0,false);
+#endif
+    
+    if(used_switch(argc,argv,"-fullscreen"))
+    {
+        tempmode = GFX_AUTODETECT_FULLSCREEN;
+    }
+    else if(used_switch(argc,argv,"-windowed"))
+    {
+        tempmode=GFX_AUTODETECT_WINDOWED;
+    }
+    
+    if(tempmode==GFX_AUTODETECT_FULLSCREEN)
+    {
+#ifdef ALLEGRO_MACOSX
+        scale_arg=2;
+#else
+        
+        if(scale_arg>2)
+        {
+            scale_arg=1;
+        }
+        
+#endif
+        zqwin_set_scale(scale_arg);
+    }
+    
+    /* No -fullscreen while debugging */
+#if defined _MSC_VER && defined _DEBUG
+    tempmode=GFX_AUTODETECT_WINDOWED;
+#endif
+    
+    if(set_gfx_mode(tempmode,320,240,0,0) != 0)
     {
         allegro_exit();
         byebye();
+        printf("Error setting video mode: %s\n", allegro_error);
         return 2;
     }
     
@@ -1938,46 +2015,42 @@ int main(int argc, char **argv)
             
             // wait for mouse button release
             // and eat key presses in the mean time
-			while (Backend::mouse->anyButtonClicked())
-			{
-				Backend::graphics->waitTick();
-				Backend::graphics->showBackBuffer();
-				clear_keybuf();
-			}
+            while(gui_mouse_b())
+                clear_keybuf();
         }
         
         if(mouse_in_rect(2,26,142,208))
         {
             //rom contents
-            if(Backend::mouse->leftButtonClicked() && fsize)
+            if((gui_mouse_b()&1) && fsize)
             {
                 locked=true;
                 int bx = ((ofs/128)/bp)*16;
-                int di = ((Backend::mouse->getVirtualScreenY()-26)/8)*16;
+                int di = ((gui_mouse_y()-26)/8)*16;
                 
                 if(sel[bx+di]==0 || !single)
                     set_sel_row(bx+di,16*cset+1);
                     
                 if(single)
                 {
-                    int x = zc_min(Backend::mouse->getVirtualScreenX()/8,15);
+                    int x = zc_min(gui_mouse_x()/8,15);
                     sel[bx+di+x] = 16*cset+1;
                 }
                 
                 redraw=PARTIAL;
                 calc_selcnt();
             }
-            else if(Backend::mouse->rightButtonClicked())
+            else if(gui_mouse_b()&2)
             {
                 int bx = ((ofs/128)/bp)*16;
-                int di = ((Backend::mouse->getVirtualScreenY()-26)/8)*16;
+                int di = ((gui_mouse_y()-26)/8)*16;
                 set_sel_row(bx+di,0);
                 redraw=PARTIAL;
                 calc_selcnt();
             }
-            else if(Backend::mouse->getWheelPosition() != 0)
+            else if(gui_mouse_z())
             {
-                if(Backend::mouse->getWheelPosition()>0)
+                if(mouse_z>0)
                 {
                     switch(((key[KEY_ZC_LCONTROL]||key[KEY_ZC_RCONTROL])?2:0)+((key[KEY_LSHIFT]||key[KEY_RSHIFT])?1:0))
                     {
@@ -2022,39 +2095,45 @@ int main(int argc, char **argv)
                     }
                 }
                 
-				Backend::mouse->setWheelPosition(0);
+                position_mouse_z(0);
             }
         }
         else if(mouse_in_rect(246,18,59,48))
         {
             //palette
-            if(Backend::mouse->leftButtonClicked())
+            if(gui_mouse_b()&1)
             {
-				while (Backend::mouse->leftButtonClicked())
+                while(gui_mouse_b()&1)
                 {
-                    int new_cset = zc_min(zc_max(0, (Backend::mouse->getVirtualScreenY()-18)/3),15);
+                    int new_cset = zc_min(zc_max(0, (gui_mouse_y()-18)/3),15);
                     
                     if(cset != new_cset)
                     {
                         cset = new_cset;
+                        scare_mouse();
                         redraw_screen(FULL);
+                        unscare_mouse();
                     }
                 }
             }
-            else if(Backend::mouse->getWheelPosition() != 0)
+            else if(gui_mouse_z())
             {
-                if(Backend::mouse->getWheelPosition()>0)
+                if(mouse_z>0)
                 {
+                    scare_mouse();
                     cset=(cset+15)%16;
                     redraw_screen(FULL);
+                    unscare_mouse();
                 }
                 else
                 {
+                    scare_mouse();
                     cset=(cset+1)%16;
                     redraw_screen(FULL);
+                    unscare_mouse();
                 }
                 
-				Backend::mouse->setWheelPosition(0);
+                position_mouse_z(0);
             }
         }
         else if(mouse_in_rect(148,76,168,160))
@@ -2062,21 +2141,23 @@ int main(int argc, char **argv)
             // palette source image
             if(palbmp)
             {
-                if(Backend::mouse->leftButtonClicked())
+                if(gui_mouse_b()&1)
                 {
-                    int sx=palbmpx+ Backend::mouse->getVirtualScreenX();
-                    int sy=palbmpy+ Backend::mouse->getVirtualScreenY();
+                    int sx=palbmpx+gui_mouse_x();
+                    int sy=palbmpy+gui_mouse_y();
                     
-                    while(Backend::mouse->leftButtonClicked())
+                    while(gui_mouse_b()&1)
                     {
-                        int newpalbmpx = zc_min(zc_max(0,sx- Backend::mouse->getVirtualScreenX()),zc_max(palbmp->w-168,0));
-                        int newpalbmpy = zc_min(zc_max(0,sy- Backend::mouse->getVirtualScreenY()),zc_max(palbmp->h-160,0));
+                        int newpalbmpx = zc_min(zc_max(0,sx-gui_mouse_x()),zc_max(palbmp->w-168,0));
+                        int newpalbmpy = zc_min(zc_max(0,sy-gui_mouse_y()),zc_max(palbmp->h-160,0));
                         
                         if(palbmpx != newpalbmpx || palbmpy != newpalbmpy)
                         {
                             palbmpx = newpalbmpx;
                             palbmpy = newpalbmpy;
+                            scare_mouse();
                             redraw_screen(FULL);
+                            unscare_mouse();
                         }
                     }
                 }
@@ -2092,16 +2173,10 @@ int main(int argc, char **argv)
                 break;
             }
         }
-
-		Backend::graphics->waitTick();
-		Backend::graphics->showBackBuffer();
     } // while(update_dialog(player))
     
-	Backend::graphics->writeConfigurationOptions("romview");
-
     shutdown_dialog(player);
-
-	Backend::shutdownBackend();
+    
     zc_free(rombuf);
     zc_free(sel);
     destroy_bitmap(tmp_scr);
@@ -2259,33 +2334,11 @@ int d_timer_proc(int msg, DIALOG *d, int c)
     return D_O_K;
 }
 
-extern int fs_edit_proc(int msg, DIALOG *d, int c);
-extern int fs_elist_proc(int msg, DIALOG *d, int c);
-extern int fs_flist_proc(int msg, DIALOG *d, int c);
-extern int fs_dlist_proc(int msg, DIALOG *d, int c);
-
-DIALOG *resizeDialog(DIALOG *d, float )
+void large_dialog(DIALOG *d)
 {
-	int len = 0;
-	while (d[len].proc != NULL)
-		len++;
-	len++;
-
-	DIALOG *newd = new DIALOG[len];
-	memcpy(newd, d, len * sizeof(DIALOG));
-
-	for (int i = 0; i < len; i++)
-	{
-		if ((newd[i].proc == fs_edit_proc
-			|| newd[i].proc == fs_elist_proc
-			|| newd[i].proc == fs_flist_proc
-			|| newd[i].proc == fs_dlist_proc
-			)
-			&& newd[i].dp3 == d)
-			newd[i].dp3 = newd;
-	}
-
-	return newd;
+    d=d;
 }
 
 /* That's all folks */
+
+

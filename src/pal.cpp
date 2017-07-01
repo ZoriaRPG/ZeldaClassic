@@ -20,9 +20,8 @@
 #include "zsys.h"
 #include "pal.h"
 #include "subscr.h"
-#include "backend/AllBackends.h"
 
-extern LinkClass *Link;
+extern LinkClass Link;
 
 int CSET_SIZE = 16;                                         // this is only changed to 4 in the NES title screen
 int CSET_SHFT = 4;                                          // log2 of CSET_SIZE
@@ -91,8 +90,6 @@ void loadfullpal()
   {
   byte *si = colordata + */
 
-extern PALETTE tempgreypal;
-
 void loadlvlpal(int level)
 {
     byte *si = colordata + CSET(level*pdLEVEL+poLEVEL)*3;
@@ -100,21 +97,17 @@ void loadlvlpal(int level)
     for(int i=0; i<16*3; i++)
     {
         RAMpal[CSET(2)+i] = _RGB(si);
-	    tempgreypal[CSET(2)+i] = _RGB(si); //preserve monochrome
         si+=3;
     }
     
     for(int i=0; i<16; i++)
     {
         RAMpal[CSET(9)+i] = _RGB(si);
-	    tempgreypal[CSET(9)+i] = _RGB(si); //preserve monochrome
         si+=3;
     }
     
-    if(!get_bit(quest_rules,qr_NOLEVEL3FIX) && level==3) {
+    if(!get_bit(quest_rules,qr_NOLEVEL3FIX) && level==3)
         RAMpal[CSET(6)+2] = NESpal(0x37);
-	tempgreypal[CSET(6)+2] = NESpal(0x37);
-    }
         
     create_rgb_table(&rgb_table, RAMpal, NULL);
     create_zc_trans_table(&trans_table, RAMpal, 128, 128, 128);
@@ -126,20 +119,6 @@ void loadlvlpal(int level)
         trans_table2.data[q][q] = q;
     }
     
-    //! We need to store the new palette into the monochrome scratch palette. 
-    //memcpy(tempgreypal, RAMpal, PAL_SIZE*sizeof(RGB));
-    //! Doing this is bad, because we are also copying over the sprite palettes.
-    
-    
-    
-    if ( isMonochrome () ) {
-	//memcpy(tempgreypal, RAMpal, PAL_SIZE*sizeof(RGB));
-	    
-	//Refresh the monochrome palette to avoid gfx glitches from loading the lpal.  
-	setMonochrome(false);
-	setMonochrome(true);
-    }
-    
     refreshpal=true;
 }
 
@@ -149,15 +128,12 @@ void loadpalset(int cset,int dataset)
     
     for(int i=0; i<16; i++,j+=3)
     {
-	    if ( isMonochrome() ) tempgreypal[CSET(2)+i] = _RGB(&colordata[j]); //Use monochrome sprites and Link pal... 
-		else 
-			RAMpal[CSET(cset)+i] = _RGB(&colordata[j]); 
+        RAMpal[CSET(cset)+i] = _RGB(&colordata[j]);
     }
     
-    if(cset==6 && !get_bit(quest_rules,qr_NOLEVEL3FIX) && DMaps[currdmap].color==3){
-
-	    RAMpal[CSET(6)+2] = NESpal(0x37);
-    }
+    if(cset==6 && !get_bit(quest_rules,qr_NOLEVEL3FIX) && DMaps[currdmap].color==3)
+        RAMpal[CSET(6)+2] = NESpal(0x37);
+        
     refreshpal=true;
 }
 
@@ -167,7 +143,7 @@ void ringcolor(bool forceDefault)
     
     if(!forceDefault && itemid>-1)
     {
-         loadpalset(6,itemsbuf[itemid].misc1 ? pSprite(zc_min(29,itemsbuf[itemid].misc1)):6);
+        loadpalset(6,itemsbuf[itemid].misc1 ? pSprite(zc_min(29,itemsbuf[itemid].misc1)):6);
     }
     else
     {
@@ -209,10 +185,10 @@ void interpolatedfade()
     {
         int light = si[0]+si[1]+si[2];
         si+=3;
-        Backend::palette->interpolatePalettes(RAMpal,black_palette,light?lpos:dpos,CSET(2)+i,CSET(2)+i, RAMpal);
+        fade_interpolate(RAMpal,black_palette,RAMpal,light?lpos:dpos,CSET(2)+i,CSET(2)+i);
     }
     
-    Backend::palette->interpolatePalettes(RAMpal,black_palette,dpos,CSET(3),last, RAMpal);
+    fade_interpolate(RAMpal,black_palette,RAMpal,dpos,CSET(3),last);
     refreshpal=true;
 }
 
@@ -241,10 +217,10 @@ void fade(int level,bool blackall,bool fromblack)
             {
                 int light = si[0]+si[1]+si[2];
                 si+=3;
-                Backend::palette->interpolatePalettes(RAMpal,black_palette,light?lpos:dpos,CSET(2)+j,CSET(2)+j, RAMpal);
+                fade_interpolate(RAMpal,black_palette,RAMpal,light?lpos:dpos,CSET(2)+j,CSET(2)+j);
             }
             
-            Backend::palette->interpolatePalettes(RAMpal,black_palette,dpos,CSET(3),last, RAMpal);
+            fade_interpolate(RAMpal,black_palette,RAMpal,dpos,CSET(3),last);
             refreshpal=true;
         }
         else
@@ -309,7 +285,7 @@ void lighting(bool existslight, bool setnaturaldark)
     
     if(darkroom != newstate)
     {
-fade((Link->getSpecialCave()>0) ? (Link->getSpecialCave()>=GUYCAVE) ? 10 : 11 : DMaps[currdmap].color, false, darkroom);
+fade((Link.getSpecialCave()>0) ? (Link.getSpecialCave()>=GUYCAVE) ? 10 : 11 : DMaps[currdmap].color, false, darkroom);
         darkroom = newstate;
     }
     
@@ -324,7 +300,7 @@ void lightingInstant()
     
     if(darkroom != newstate)
     {
-int level = (Link->getSpecialCave()>0) ? (Link->getSpecialCave()>=GUYCAVE) ? 10 : 11 : DMaps[currdmap].color;
+int level = (Link.getSpecialCave()>0) ? (Link.getSpecialCave()>=GUYCAVE) ? 10 : 11 : DMaps[currdmap].color;
 
         if(darkroom) // Old room dark, new room lit
         {
@@ -352,10 +328,10 @@ int level = (Link->getSpecialCave()>0) ? (Link->getSpecialCave()>=GUYCAVE) ? 10 
                 {
                     light = si[0]+si[1]+si[2];
                     si+=3;
-                    Backend::palette->interpolatePalettes(RAMpal,black_palette,light?32:64,CSET(2)+j,CSET(2)+j, RAMpal);
+                    fade_interpolate(RAMpal,black_palette,RAMpal,light?32:64,CSET(2)+j,CSET(2)+j);
                 }
                 
-                Backend::palette->interpolatePalettes(RAMpal,black_palette,64,CSET(3),last, RAMpal);
+                fade_interpolate(RAMpal,black_palette,RAMpal,64,CSET(3),last);
             }
             else // No interpolated fading
                 loadfadepal(level*pdLEVEL+poFADE3);
@@ -411,7 +387,7 @@ void dryuplake()
         {
             if(hiddenstair(0,true))
             {
-                Backend::sfx->play(tmpscr->secretsfx,128);
+                sfx(tmpscr->secretsfx);
             }
         }
     }
@@ -474,7 +450,7 @@ void cycle_palette()
     if(!get_bit(quest_rules,qr_FADE) || darkroom)
         return;
         
-    int level = (Link->getSpecialCave()==0) ? DMaps[currdmap].color : (Link->getSpecialCave()<GUYCAVE ? 11 : 10);
+    int level = (Link.getSpecialCave()==0) ? DMaps[currdmap].color : (Link.getSpecialCave()<GUYCAVE ? 11 : 10);
     
     for(int i=0; i<3; i++)
     {

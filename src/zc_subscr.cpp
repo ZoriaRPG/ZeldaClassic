@@ -20,10 +20,10 @@
 #include "subscr.h"
 #include "zc_subscr.h"
 #include "link.h"
+#include "gamedata.h"
 #include "guys.h"
-#include "backend/AllBackends.h"
 
-extern LinkClass   *Link;
+extern LinkClass   Link;
 extern int directItem;
 extern int directItemA;
 extern int directItemB;
@@ -58,16 +58,16 @@ void dosubscr(miscQdata *misc)
     bool showtime = game->get_timevalid() && !game->get_cheat() && get_bit(quest_rules,qr_TIME);
     load_Sitems(misc);
     
-    Backend::sfx->pause(WAV_BRANG);
+    pause_sfx(WAV_BRANG);
     
     if(current_item_id(itype_brang)>=0)
-        Backend::sfx->pause(itemsbuf[current_item_id(itype_brang)].usesound);
+        pause_sfx(itemsbuf[current_item_id(itype_brang)].usesound);
         
     if(current_item_id(itype_hookshot)>=0)
-        Backend::sfx->pause(itemsbuf[current_item_id(itype_hookshot)].usesound);
+        pause_sfx(itemsbuf[current_item_id(itype_hookshot)].usesound);
         
-    Backend::sfx->unloop(WAV_ER);
-    Backend::sfx->unloop(WAV_MSG);
+    adjust_sfx(WAV_ER,128,false);
+    adjust_sfx(WAV_MSG,128,false);
     
     set_clip_rect(scrollbuf, 0, 0, scrollbuf->w, scrollbuf->h);
     set_clip_rect(framebuf, 0, 0, framebuf->w, framebuf->h);
@@ -92,7 +92,7 @@ void dosubscr(miscQdata *misc)
     for(int y=176-2; y>=6; y-=3)
     {
         do_dcounters();
-        Link->refill();
+        Link.refill();
         //fill in the screen with black to prevent the hall of mirrors effect
         rectfill(framebuf, 0, 0, 255, 223, 0);
         
@@ -143,7 +143,7 @@ void dosubscr(miscQdata *misc)
                 }
                 
                 Bwpn = Bweapon(Bpos);
-                Backend::sfx->play(WAV_PLACE,128);
+                sfx(WAV_PLACE);
                 
                 game->bwpn = Bpos;
                 directItemB = directItem;
@@ -158,7 +158,7 @@ void dosubscr(miscQdata *misc)
                 }
                 
                 Awpn = Bweapon(Bpos);
-                Backend::sfx->play(WAV_PLACE,128);
+                sfx(WAV_PLACE);
                 game->awpn = Bpos;
                 directItemA = directItem;
             }
@@ -171,10 +171,10 @@ void dosubscr(miscQdata *misc)
         }
         
         if(pos!=Bpos)
-            Backend::sfx->play(WAV_CHIME,128);
+            sfx(WAV_CHIME);
             
         do_dcounters();
-        Link->refill();
+        Link.refill();
         
         //put_passive_subscr(framebuf,misc,0,174-miny,showtime,true);
         //blit(scrollbuf,framebuf,0,6,0,6-miny,256,168);
@@ -217,7 +217,7 @@ void dosubscr(miscQdata *misc)
     for(int y=6; y<=174; y+=3)
     {
         do_dcounters();
-        Link->refill();
+        Link.refill();
         //fill in the screen with black to prevent the hall of mirrors effect
         rectfill(framebuf, 0, 0, 255, 223, 0);
         
@@ -248,7 +248,7 @@ void dosubscr(miscQdata *misc)
         memcpy(RAMpal, temppal, PAL_SIZE*sizeof(RGB));
     }
     
-    Backend::sfx->resume(WAV_BRANG);
+    resume_sfx(WAV_BRANG);
 }
 
 void markBmap(int dir, int sc)

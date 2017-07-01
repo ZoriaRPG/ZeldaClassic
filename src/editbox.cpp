@@ -32,7 +32,6 @@
 #include <stdio.h>
 
 #include "EditboxNew.h"
-#include "backend/AllBackends.h"
 
 //#ifndef _MSC_VER
 #define zc_max(a,b)  ((a)>(b)?(a):(b))
@@ -274,7 +273,7 @@ int d_editbox_proc(int msg, DIALOG *d, int c)
     
     case MSG_CLICK:
     {
-        bool redraw = model->getView()->mouseClick(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY());
+        bool redraw = model->getView()->mouseClick(gui_mouse_x(), gui_mouse_y());
         
         if(model->getCursor().isVisible())
             model->getCursor().invertVisibility();
@@ -284,16 +283,18 @@ int d_editbox_proc(int msg, DIALOG *d, int c)
             object_message(d, MSG_DRAW, 0);
         }
         
-        while(Backend::mouse->anyButtonClicked())
+        while(gui_mouse_b())
         {
         
-            if(model->getView()->mouseDrag(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY()))
+            if(model->getView()->mouseDrag(gui_mouse_x(), gui_mouse_y()))
             {
+                scare_mouse();
                 object_message(d, MSG_DRAW, 0);
+                unscare_mouse();
             }
         }
         
-        model->getView()->mouseRelease(Backend::mouse->getVirtualScreenX(), Backend::mouse->getVirtualScreenY());
+        model->getView()->mouseRelease(gui_mouse_x(), gui_mouse_y());
         
         if(!model->getCursor().isVisible())
             model->getCursor().invertVisibility();

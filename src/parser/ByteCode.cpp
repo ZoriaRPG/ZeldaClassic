@@ -2,8 +2,8 @@
 #include "../precompiled.h" //always first
 
 #include "ByteCode.h"
-#include "CompileError.h"
 #include "DataStructs.h"
+#include "ParseError.h"
 #include "../zsyssimple.h"
 #include <assert.h>
 #include <iostream>
@@ -51,8 +51,6 @@ string VarArgument::toString()
         
     case FX:
         return "X";
-    case FFCID:
-	return "FFCID";
         
     case FY:
         return "Y";
@@ -245,33 +243,7 @@ string VarArgument::toString()
         
     case INPUTMOUSEB:
         return "INPUTMOUSEB";
-    
-    case BUTTONPRESS: return "BUTTONPRESS";
-    case BUTTONINPUT: return "BUTTONINPUT";
-    case BUTTONHELD: return "BUTTONHELD";
-    case KEYPRESS: return "KEYPRESS";
-    case READKEY: return "READKEY";
-    case JOYPADPRESS: return "JOYPADPRESS";
-    
-     case LINKINVFRAME:
-	return "LINKINVFRAME";
-    case LINKCANFLICKER:
-	return "LINKCANFLICKER";
-    case LINKHURTSFX:
-	return "LINKHURTSFX";
-    
-    case LINKEATEN: return "LINKEATEN";
-    
-    case LINKITEMB: return "LINKITEMB";
-
-    case LINKITEMA: return "LINKITEMA";
-    case SETITEMSLOT: return "SETITEMSLOT";
-    case GAMESETB: return "GAMESETB";
-    case GAMESETA: return "GAMESETA";
-    case LINKUSINGITEM: return "LINKUSINGITEM";
-    case LINKUSINGITEMA: return "LINKUSINGITEMA";
-    case LINKUSINGITEMB: return "LINKUSINGITEMB";
-    
+        
     case SDD:
         return "SDD";
         
@@ -338,7 +310,6 @@ string VarArgument::toString()
     case ITEMFRAMES:
         return "ITEMFRAMES";
         
-    //This DOES NOT DO what ZScript.txt claims that it does, and needs to be fixed. -Z
     case ITEMFRAME:
         return "ITEMFRAME";
         
@@ -428,7 +399,6 @@ string VarArgument::toString()
         
     case CURDMAP:
         return "CURDMAP";
-    case GAMEMAXMAPS: return "GAMEMAXMAPS";
         
     case CURLEVEL:
         return "CURLEVEL";
@@ -438,14 +408,6 @@ string VarArgument::toString()
         
     case GAMECHEAT:
         return "GAMECHEAT";
-    
-    case ZELDAVERSION:
-	return "ZELDAVERSION";
-    case ZELDABUILD:
-	return "ZELDABUILD";
-    case ZELDABETA:
-	return "ZELDABETA";
-    
         
     case GAMETIME:
         return "GAMETIME";
@@ -506,9 +468,6 @@ string VarArgument::toString()
         
     case DMAPLEVELD:
         return "DMAPLEVELD";
-    
-    case DMAPLEVELPAL:
-	return "DMAPLEVELPAL";
         
     case DMAPCOMPASSD:
         return "DMAPCOMPASSD";
@@ -534,8 +493,6 @@ string VarArgument::toString()
     case GAMECLICKFREEZE:
         return "GAMECLICKFREEZE";
         
-    case NOACTIVESUBSC: return "NOACTIVESUBSC"; //Disable active subscreen.
-    
     case FFFLAGSD:
         return "FFFLAGSD";
         
@@ -564,8 +521,6 @@ string VarArgument::toString()
         return "FFDD";*/
     case LINKITEMD:
         return "LINKITEMD";
-    
-    case DISABLEDITEM: return "DISABLEDITEM";
         
     case REFNPC:
         return "REFNPC";
@@ -647,7 +602,6 @@ string VarArgument::toString()
         
     case NPCDEFENSED:
         return "NPCDEFENSED";
-    case NPCSCRDEFENSED: return "NPCSCRDEFENSED";
         
     case NPCMISCD:
         return "NPCMISCD";
@@ -666,17 +620,6 @@ string VarArgument::toString()
         
     case NPCHUNGER:
         return "NPCHUNGER";
-    
-    
-    case NPCINVINC:
-        return "NPCINVINC";
-    case NPCSUPERMAN:
-        return "NPCSUPERMAN";
-    case NPCHASITEM:
-        return "NPCHASITEM";
-    case NPCRINGLEAD:
-        return "NPCRINGLEAD";
-        
         
     case SCRDOORD:
         return "SCRDOORD";
@@ -1058,111 +1001,7 @@ string VarArgument::toString()
         
     case UNDERCSET:
         return "UNDERCSET";
-    
-    //2.6
-    case CREATELWPNDX: return "CREATELWPNDX";
-    
-    //2.54 -Z
-/* 2.54 Implemented
-    */
-    
-    
-//itemclass / itemdata
-
-    //case IDATAFRAME: return "IDATAFRAME";
-    case ITEMCLASSID: return "IDATAID";
-    case IDATALTM: return "IDATALTM";
-    case IDATAPSCRIPT: return "IDATAPSCRIPT";
-    case IDATASCRIPT: return "IDATASCRIPT";
-    case IDATAMAGCOST: return "IDATAMAGCOST";
-    case IDATAMINHEARTS: return "IDATAMINHEARTS";
-    case IDATATILE: return "IDATATILE";
-    case IDATAMISC: return "IDATAMISC";    
-    case IDATACSET: return "IDATACSET";
-    case IDATAFRAMES: return "IDATAFRAMES";
-    case IDATAASPEED: return "IDATAASPEED";
-    case IDATADELAY: return "IDATADELAY"; 
-    case IDATACOMBINE: return "IDATACOMBINE";
-    case IDATADOWNGRADE: return "IDATADOWNGRADE";
-    case IDATAKEEPOLD: return "IDATAKEEPOLD";
-    case IDATARUPEECOST: return "IDATARUPEECOST";
-    case IDATAEDIBLE: return "IDATAEDIBLE";
-    case IDATAFLAGUNUSED: return "IDATAFLAGUNUSED";
-    case IDATAGAINLOWER: return "IDATAGAINLOWER";
-    
-    //idata arrays
-    case IDATAATTRIB: return "IDATAATTRIB";
-    case IDATAFLAGS: return "IDATAFLAGS";
-    case IDATASPRITE: return "IDATASPRITE";
         
-    case IDATAUSEWPN: return "IDATAUSEWPN";
-    case IDATAUSEDEF: return "IDATAUSEDEF";
-    case IDATAWRANGE: return "IDATAWRANGE";
-    case IDATAUSEMVT: return "IDATAUSEMVT";
-    case IDATADURATION: return "IDATADURATION";
-    case IDATADUPLICATES: return "IDATADUPLICATES";
-    case IDATADRAWLAYER: return "IDATADRAWLAYER";
-    case IDATACOLLECTFLAGS: return "IDATACOLLECTFLAGS";
-    case IDATAWEAPONSCRIPT: return "IDATAWEAPONSCRIPT";
-    case IDATAMISCD: return "IDATAMISCD";
-    case IDATAWEAPHXOFS: return "IDATAWEAPHXOFS";
-    case IDATAWEAPHYOFS: return "IDATAWEAPHYOFS";
-    case IDATAWEAPHYSZ: return "IDATAWEAPHYSZ";
-    case IDATAWEAPHXSZ: return "IDATAWEAPHXSZ";
-    case IDATAWEAPHZSZ: return "IDATAWEAPHZSZ";
-    case IDATAWEAPXOFS: return "IDATAWEAPXOFS";
-    case IDATAWEAPYOFS: return "IDATAWEAPYOFS";
-    case IDATAWEAPZOFS: return "IDATAWEAPZOFS";
-    case IDATAWPNINITD: return "IDATAWPNINITD";
-    
-    case NPCWEAPSPRITE: return "NPCWEAPSPRITE";
-    
-    //Debug->
-    
-    case DEBUGREFFFC: return "DEBUGREFFFC";
-    case DEBUGREFITEM: return "DEBUGREFITEM";
-    case DEBUGREFNPC: return "DEBUGREFNPC";
-    case DEBUGREFITEMDATA: return "DEBUGREFITEMDATA";
-    case DEBUGREFLWEAPON: return "DEBUGREFLWEAPON";
-    case DEBUGREFEWEAPON: return "DEBUGREFEWEAPON";
-    case DEBUGSP: return "DEBUGSP";
-    case DEBUGGDR: return "DEBUGGDR";
-    
-    case LWPNRANGE: return "LWPNRANGE";
-    
-    case SETSCREENDOOR: return "SETSCREENDOOR";
-    case SETSCREENENEMY: return "SETSCREENENEMY";
-    case SETSCREENWIDTH: return "SETSCREENWIDTH";
-    case SETSCREENHEIGHT: return "SETSCREENHEIGHT";
-    case SETSCREENVIEWX: return "SETSCREENVIEWX";
-    case SETSCREENVIEWY: return "SETSCREENVIEWY";
-    case SETSCREENGUY: return "SETSCREENGUY";
-    case SETSCREENSTRING: return "SETSCREENSTRING";
-    case SETSCREENROOM: return "SETSCREENROOM";
-    case SETSCREENENTX: return "SETSCREENENTX";
-    case SETSCREENENTY: return "SETSCREENENTY";
-    case SETSCREENITEM: return "SETSCREENITEM";
-    case SETSCREENUNDCMB: return "SETSCREENUNDCMB";
-    case SETSCREENUNDCST: return "SETSCREENUNDCST";
-    case SETSCREENCATCH: return "SETSCREENCATCH";
-    case SETSCREENLAYOP: return "SETSCREENLAYOP";
-    case SETSCREENSECCMB: return "SETSCREENSECCMB";
-    case SETSCREENSECCST: return "SETSCREENSECCST";
-    case SETSCREENSECFLG: return "SETSCREENSECFLG";
-    case SETSCREENLAYMAP: return "SETSCREENLAYMAP";
-    case SETSCREENLAYSCR: return "SETSCREENLAYSCR";
-    case SETSCREENPATH: return "SETSCREENPATH";
-    case SETSCREENWARPRX: return "SETSCREENWARPRX";
-    case SETSCREENWARPRY: return "SETSCREENWARPRY";
-    
-    case GAMENUMMESSAGES: return "GAMENUMMESSAGES";
-    case GAMESUBSCHEIGHT: return "GAMESUBSCHEIGHT";
-    case GAMEPLAYFIELDOFS: return "GAMEPLAYFIELDOFS";
-    case PASSSUBOFS: return "PASSSUBOFS";
-    
-    case LINKBIGHITBOX: return "LINKBIGHITBOX";
-    case LINKDIAG: return "LINKDIAG";
-    
     default:
     {
         sprintf(temp, "d%d", ID);
@@ -1285,7 +1124,6 @@ string OWaitdraw::toString()
     return "WAITDRAW";
 }
 
-//I would like to add a Jump instruction tot he parser, which would be 'GOTOLABEL' -Z
 string OGotoImmediate::toString()
 {
     return "GOTO " + getArgument()->toString();
@@ -1445,37 +1283,6 @@ string OArraySize::toString()
 {
     return "ARRAYSIZE " + getArgument()->toString();
 }
-
-
-string OArraySizeF::toString()
-{
-    return "ARRAYSIZEF " + getArgument()->toString();
-}
-string OArraySizeN::toString()
-{
-    return "ARRAYSIZEN " + getArgument()->toString();
-}
-string OArraySizeE::toString()
-{
-    return "ARRAYSIZEE " + getArgument()->toString();
-}
-string OArraySizeL::toString()
-{
-    return "ARRAYSIZEL " + getArgument()->toString();
-}
-string OArraySizeB::toString()
-{
-    return "ARRAYSIZEB " + getArgument()->toString();
-}
-string OArraySizeI::toString()
-{
-    return "ARRAYSIZEI " + getArgument()->toString();
-}
-string OArraySizeID::toString()
-{
-    return "ARRAYSIZEID " + getArgument()->toString();
-}
-
 
 string OCalcSplineRegister::toString()
 {
@@ -1663,39 +1470,6 @@ string OGetDMapMusicTrack::toString()
     return "GETMUSICTRACK " + getArgument()->toString();
 }
 
-// Audio->
-string OEndSoundRegister::toString()
-{
-    return "ENDSOUNDR " + getArgument()->toString();
-}
-
-
-string OContinueSFX::toString()
-{
-    return "CONTINUESFX " + getArgument()->toString();
-}
-
-string OPauseSoundRegister::toString()
-{
-    return "PAUSESOUNDR " + getArgument()->toString();
-}
-
-string OPauseMusic::toString()
-{
-    return "PAUSEMUSIC";
-}
-string OResumeMusic::toString()
-{
-    return "RESUMEMUSIC";
-}
-
-string OResumeSoundRegister::toString()
-{
-    return "RESUMESOUNDR " + getArgument()->toString();
-}
-
-//END Audio
-
 string OSetDMapEnhancedMusic::toString()
 {
     return "SETDMAPENHMUSIC";
@@ -1726,22 +1500,6 @@ string OGetDMapIntro::toString()
     return "GETDMAPINTRO " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
 }
 
-
-string OSetDMapName::toString()
-{
-    return "SETDMAPNAME " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
-}
-
-string OSetDMapTitle::toString()
-{
-    return "SETDMAPTITLE " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
-}
-
-string OSetDMapIntro::toString()
-{
-    return "SETDMAPINTRO " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
-}
-
 string OGetItemName::toString()
 {
     return "ITEMNAME " + getArgument()->toString();
@@ -1755,12 +1513,6 @@ string OGetNPCName::toString()
 string OGetMessage::toString()
 {
     return "GETMESSAGE " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
-}
-
-
-string OSetMessage::toString()
-{
-    return "SETMESSAGE " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
 }
 
 string OClearSpritesRegister::toString()
@@ -1841,11 +1593,6 @@ string ODrawStringRegister::toString()
 string ODrawBitmapRegister::toString()
 {
     return "DRAWBITMAP";
-}
-
-string ODrawBitmapExRegister::toString()
-{
-    return "BITMAPEXR";
 }
 
 string OSetRenderTargetRegister::toString()
@@ -2104,191 +1851,33 @@ string OGetFFCScript::toString()
     return "GETFFCSCRIPT " + getArgument()->toString();
 }
 
-//2.54
-
-string OGreyscaleOn::toString()
-{
-    return "GREYSCALEON";
-}
-
-string OGreyscaleOff::toString()
-{
-    return "GREYSCALEOFF";
-}
-
-string OZapIn::toString()
-{
-    return "ZAPIN";
-}
-
-string OZapOut::toString()
-{
-    return "ZAPOUT";
-}
-
-//These need to be unary opcodes that accept bool linkvisible. 
-string OWavyIn::toString()
-{
-    return "WAVYIN";
-}
-
-string OWavyOut::toString()
-{
-    return "WAVYOUT";
-}
-
-string OOpenWipe::toString()
-{
-    return "OPENWIPE";
-}
-
-//Game->GetItemScript(int ptr[])
-string OGetItemScript::toString()
-{
-    return "GETITEMSCRIPT " + getArgument()->toString();
-}
-
-
-string OGetLWeaponPointer::toString()
-{
-    return "LWPNARRPTR " + getArgument()->toString();
-}
-
-string OSetLWeaponPointer::toString()
-{
-    return "LWPNARRPTR2 " + getArgument()->toString();
-}
-
-string OGetEWeaponPointer::toString()
-{
-    return "EWPNARRPTR " + getArgument()->toString();
-}
-
-string OSetEWeaponPointer::toString()
-{
-    return "EWPNARRPTR2 " + getArgument()->toString();
-}
-
-string OGetItemPointer::toString()
-{
-    return "ITEMARRPTR " + getArgument()->toString();
-}
-
-string OSetItemPointer::toString()
-{
-    return "ITEMARRPTR2 " + getArgument()->toString();
-}
-
-string OGetItemDataPointer::toString()
-{
-    return "IDATAARRPTR " + getArgument()->toString();
-}
-
-string OSetItemDataPointer::toString()
-{
-    return "IDATAARRPTR2 " + getArgument()->toString();
-}
-
-string OGetFFCPointer::toString()
-{
-    return "FFCARRPTR " + getArgument()->toString();
-}
-
-string OSetFFCPointer::toString()
-{
-    return "FFCARRPTR2 " + getArgument()->toString();
-}
-
-string OGetBoolPointer::toString()
-{
-    return "BOOLARRPTR " + getArgument()->toString();
-}
-
-string OSetBoolPointer::toString()
-{
-    return "BOOLARRPTR2 " + getArgument()->toString();
-}
-
-string OGetNPCPointer::toString()
-{
-    return "NPCARRPTR " + getArgument()->toString();
-}
-
-string OSetNPCPointer::toString()
-{
-    return "NPCARRPTR2 " + getArgument()->toString();
-}
-
-
-string OGetScreenDoor::toString()
-{
-    return "GETSCREENDOOR " + getArgument()->toString();
-}
-
-string OGetScreenEnemy::toString()
-{
-    return "GETSCREENENEMY " + getArgument()->toString();
-}
-
-
-string OGetScreenLayerOpacity::toString()
-{
-    return "GETSCREENLAYOP " + getArgument()->toString();
-}
-
-string OGetScreenSecretCombo::toString()
-{
-    return "GETSCREENSECCMB " + getArgument()->toString();
-}
-
-string OGetScreenSecretCSet::toString()
-{
-    return "GETSCREENSECCST " + getArgument()->toString();
-}
-
-string OGetScreenSecretFlag::toString()
-{
-    return "GETSCREENSECFLG " + getArgument()->toString();
-}
-
-string OGetScreenLayerMap::toString()
-{
-    return "GETSCREENLAYMAP " + getArgument()->toString();
-}
-
-string OGetScreenLayerScreen::toString()
-{
-    return "GETSCREENLAYSCR " + getArgument()->toString();
-}
-
-string OGetScreenPath::toString()
-{
-    return "GETSCREENPATH " + getArgument()->toString();
-}
-
-string OGetScreenWarpReturnX::toString()
-{
-    return "GETSCREENWARPRX " + getArgument()->toString();
-}
-
-string OGetScreenWarpReturnY::toString()
-{
-    return "GETSCREENWARPRY " + getArgument()->toString();
-}
-
-string OTriggerSecretRegister::toString()
-{
-    return "TRIGGERSECRETR " + getArgument()->toString();
-}
-
-string OPolygonRegister::toString()
-{
-    return "POLYGONR";
-}
-
-string OChangeFFCScriptRegister::toString()
-{
-    return "CHANGEFFSCRIPTR " + getArgument()->toString();
-}
 //////////////////////////////////////////////////////////////////////////////////////
 
+int LinkTable::functionToLabel(int fid)
+{
+    map<int,int>::iterator it = funcLabels.find(fid);
+    
+    if(it != funcLabels.end())
+        return (*it).second;
+        
+    int newid = ScriptParser::getUniqueLabelID();
+    funcLabels[fid]=newid;
+    return newid;
+}
+
+int LinkTable::getGlobalID(int vid)
+{
+    map<int, int>::iterator it = globalIDs.find(vid);
+    
+    if(it == globalIDs.end())
+        return -1;
+        
+    return it->second;
+}
+
+int LinkTable::addGlobalVar(int vid)
+{
+    int newid = ScriptParser::getUniqueGlobalID();
+    globalIDs[vid]=newid;
+    return newid;
+}

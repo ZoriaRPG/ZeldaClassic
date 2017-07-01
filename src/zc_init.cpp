@@ -26,6 +26,7 @@
 #include "zq_init.h"
 #include "zsys.h"
 #include "zquest.h"
+#include "gamedata.h"
 #include "link.h"
 #include "zc_init.h"
 

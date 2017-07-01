@@ -28,16 +28,19 @@ using std::string;
 #include "zc_sys.h"
 #include "jwin.h"
 #include "mem_debug.h"
-#include "backend/AllBackends.h"
 
 #ifdef _MSC_VER
 #define stricmp _stricmp
 #endif
 
+//#ifdef _ZQUEST_SCALE_
+extern volatile int myvsync;
+extern int zqwin_scale;
+extern BITMAP *hw_screen;
+//#endif
+
 extern bool is_zquest();
 bool zconsole = false;
-
-int virtualScreenScale();
 
 char *time_str_long(dword time)
 {
@@ -148,7 +151,6 @@ void temp_name(char temporaryname[])
     }
 }
 
-
 int bound(int &x,int low,int high)
 {
     if(x<low) x=low;
@@ -184,7 +186,7 @@ const char *snapshotformatlist(int index, int *list_size)
 //Allegro's make_relative_filename doesn't handle uppercase/lowercase too well for drive letters
 char *zc_make_relative_filename(char *dest, const char *path, const char *filename, int size)
 {
-#ifdef ALLEGRO_UNIX
+#ifdef ALLEGRO_LINUX
     return make_relative_filename(dest, path, filename, size);
 #elif defined(ALLEGRO_MACOSX)
     return make_relative_filename(dest, path, filename, size);
@@ -408,9 +410,9 @@ int anim_3_4(int clk, int speed)
 static int seed = 0;
 //#define MASK 0x91B2A2D1
 //static int seed = 7351962;
-static unsigned int enc_mask[ENC_METHOD_MAX]= {0x4C358938,0x91B2A2D1,0x4A7C1B87,0xF93941E6,0xFD095E94};
-static unsigned int pvalue[ENC_METHOD_MAX]= {0x62E9,0x7D14,0x1A82,0x02BB,0xE09C};
-static unsigned int qvalue[ENC_METHOD_MAX]= {0x3619,0xA26B,0xF03C,0x7B12,0x4E8F};
+static int enc_mask[ENC_METHOD_MAX]= {0x4C358938,0x91B2A2D1,0x4A7C1B87,0xF93941E6,0xFD095E94};
+static int pvalue[ENC_METHOD_MAX]= {0x62E9,0x7D14,0x1A82,0x02BB,0xE09C};
+static int qvalue[ENC_METHOD_MAX]= {0x3619,0xA26B,0xF03C,0x7B12,0x4E8F};
 
 static int rand_007(int method)
 {
@@ -956,7 +958,7 @@ int onSnapshot2()
     while(num<999 && exists(buf));
     
     PALETTE temppal;
-    Backend::palette->getPalette(temppal);
+    get_palette(temppal);
     BITMAP *tempbmp=create_bitmap_ex(8,screen->w, screen->h);
     blit(screen,tempbmp,0,0,0,0,screen->w,screen->h);
     save_bitmap(buf,screen,temppal);
@@ -966,8 +968,14 @@ int onSnapshot2()
 
 void set_default_box_size()
 {
-    int screen_w= Backend::graphics->virtualScreenW();
-    int screen_h= Backend::graphics->virtualScreenH();
+    int screen_w=SCREEN_W;
+    int screen_h=SCREEN_H;
+    
+    if(zqwin_scale>1)
+    {
+        screen_w/=zqwin_scale;
+        screen_h/=zqwin_scale;
+    }
     
     box_w=MIN(512, screen_w-16);
     box_h=MIN(256, (screen_h-64)&0xFFF0);
@@ -999,6 +1007,7 @@ void box_start(int style, const char *title, FONT *title_font, FONT *message_fon
     memset(box_log_msg, 0, 480);
     box_msg_pos=0;
     box_store_pos=0;
+    scare_mouse();
     
     jwin_draw_win(screen, box_l, box_t, box_r-box_l, box_b-box_t, FR_WIN);
     
@@ -1009,6 +1018,8 @@ void box_start(int style, const char *title, FONT *title_font, FONT *message_fon
         zc_swap(font,box_title_font);
         box_titlebar_height=18;
     }
+    
+    unscare_mouse();
     
     box_store_x = box_x = box_y = 0;
     box_active = true;
@@ -1028,6 +1039,7 @@ void box_out(const char *msg)
     
     if(box_active)
     {
+        scare_mouse();
         //do primitive text wrapping
         unsigned int i;
         
@@ -1045,6 +1057,7 @@ void box_out(const char *msg)
         set_clip_rect(screen, box_l+8, box_t+1, box_r-8, box_b-1);
         textout_ex(screen, box_message_font, temp.substr(0,i).c_str(), box_l+8+box_x, box_t+(box_y+1)*box_message_height, gui_fg_color, gui_bg_color);
         set_clip_rect(screen, 0, 0, SCREEN_W-1, SCREEN_H-1);
+        unscare_mouse();
         remainder = temp.substr(i,temp.size()-i);
     }
     
@@ -1064,9 +1077,26 @@ void box_out(const char *msg)
         box_out(remainder.c_str());
         box_log = oldlog;
     }
-
-	Backend::graphics->waitTick();
-	Backend::graphics->showBackBuffer();
+    
+    //	#ifdef _ZQUEST_SCALE_
+    if(is_zquest())
+    {
+        //if(myvsync)
+        {
+            if(zqwin_scale > 1)
+            {
+                stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+            }
+            else
+            {
+                blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+            }
+            
+            myvsync=0;
+        }
+    }
+    
+    //	#endif
 }
 
 /* remembers the current x position */
@@ -1101,8 +1131,10 @@ void box_eol()
         
         if((box_y+2)*box_message_height >= box_h)
         {
+            scare_mouse();
             blit(screen, screen, box_l+8, box_t+(box_message_height*2), box_l+8, box_t+(box_message_height), box_w-16, box_y*box_message_height);
             rectfill(screen, box_l+8, box_t+box_y*box_message_height, box_l+box_w-8, box_t+(box_y+1)*box_message_height, gui_bg_color);
+            unscare_mouse();
             box_y--;
         }
     }
@@ -1115,9 +1147,26 @@ void box_eol()
         al_trace("\n");
         memset(box_log_msg, 0, 480);
     }
-
-	Backend::graphics->waitTick();
-	Backend::graphics->showBackBuffer();
+    
+    //	#ifdef _ZQUEST_SCALE_
+    if(is_zquest())
+    {
+        //if(myvsync)
+        {
+            if(zqwin_scale > 1)
+            {
+                stretch_blit(screen, hw_screen, 0, 0, screen->w, screen->h, 0, 0, hw_screen->w, hw_screen->h);
+            }
+            else
+            {
+                blit(screen, hw_screen, 0, 0, 0, 0, screen->w, screen->h);
+            }
+            
+            myvsync=0;
+        }
+    }
+    
+    //	#endif
 }
 
 /* ends output of a progress message */
@@ -1132,24 +1181,21 @@ void box_end(bool pause)
             
             do
             {
-				Backend::graphics->waitTick();
-				Backend::graphics->showBackBuffer();
+                //        poll_mouse();
             }
-            while(Backend::mouse->anyButtonClicked());
+            while(gui_mouse_b());
             
             do
             {
-				Backend::graphics->waitTick();
-				Backend::graphics->showBackBuffer();
+                //        poll_mouse();
             }
-            while((!keypressed()) && (!Backend::mouse->anyButtonClicked()));
+            while((!keypressed()) && (!gui_mouse_b()));
             
             do
             {
-				Backend::graphics->waitTick();
-				Backend::graphics->showBackBuffer();
+                //        poll_mouse();
             }
-            while(Backend::mouse->anyButtonClicked());
+            while(gui_mouse_b());
             
             clear_keybuf();
         }
@@ -1168,26 +1214,21 @@ void box_pause()
         
         do
         {
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
+            //        poll_mouse();
         }
-        while(Backend::mouse->anyButtonClicked());
+        while(gui_mouse_b());
         
         do
         {
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
             //        poll_mouse();
         }
-        while((!keypressed()) && (!Backend::mouse->anyButtonClicked()));
+        while((!keypressed()) && (!gui_mouse_b()));
         
         do
         {
-			Backend::graphics->waitTick();
-			Backend::graphics->showBackBuffer();
             //        poll_mouse();
         }
-        while(Backend::mouse->anyButtonClicked());
+        while(gui_mouse_b());
         
         clear_keybuf();
         box_load_x();
@@ -1209,7 +1250,7 @@ void dclick_check(void)
 {
     if(dclick_status==DCLICK_NOT)
     {
-        if(Backend::mouse->anyButtonClicked())
+        if(gui_mouse_b())
         {
             dclick_status = DCLICK_START;           // let's go!
             dclick_time = 0;
@@ -1218,7 +1259,7 @@ void dclick_check(void)
     }
     else if(dclick_status==DCLICK_START)                 // first click...
     {
-        if(!Backend::mouse->anyButtonClicked())
+        if(!gui_mouse_b())
         {
             dclick_status = DCLICK_RELEASE;           // aah! released first
             dclick_time = 0;
@@ -1227,7 +1268,7 @@ void dclick_check(void)
     }
     else if(dclick_status==DCLICK_RELEASE)          // wait for second click
     {
-        if(Backend::mouse->anyButtonClicked())
+        if(gui_mouse_b())
         {
             dclick_status = DCLICK_AGAIN;             // yes! the second click
             dclick_time = 0;
@@ -1925,6 +1966,35 @@ void textprintf_shadowed_right_x_ex(BITMAP *bmp, const FONT *f, int x, int y, in
     
     textout_shadowed_x_ex(bmp, f, buf, x-text_length(f, buf), y, color, shadow, bg);
 }
+/*
+  void dclick_check(void)
+  {
+  if (dclick_status==DCLICK_START) {              // first click...
+  if (!gui_mouse_b()) {
+  dclick_status = DCLICK_RELEASE;           // aah! released first
+  dclick_time = 0;
+  return;
+  }
+  }
+  else if (dclick_status==DCLICK_RELEASE) {       // wait for second click
+  if (gui_mouse_b()) {
+  dclick_status = DCLICK_AGAIN;             // yes! the second click
+  dclick_time = 0;
+  return;
+  }
+  }
+  else
+  {
+  return;
+  }
+
+  // timeout?
+  if (dclick_time++ > 10)
+  {
+  dclick_status = DCLICK_NOT;
+  }
+  }
+  */
 
 
 extern int d_alltriggerbutton_proc(int msg,DIALOG *d,int c);

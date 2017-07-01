@@ -13,7 +13,7 @@
 
 #include "zdefs.h"
 #include "subscr.h"
-#include "scripting/ZASMdefs.h"
+#include "zscriptversion.h"
 
 // define these in main code
 //extern bool init_tiles(bool validate);
@@ -123,7 +123,7 @@ int readdmaps(PACKFILE *f, zquestheader *Header, word version, word build, word 
 int readmisccolors(PACKFILE *f, zquestheader *Header, miscQdata *Misc, bool keepdata);
 int readgameicons(PACKFILE *f, zquestheader *Header, miscQdata *Misc, bool keepdata);
 int readmisc(PACKFILE *f, zquestheader *Header, miscQdata *Misc, bool keepdata);
-int readitems(PACKFILE *f, word version, word build, zquestheader *Header, bool keepdata, bool zgpmode=false);
+int readitems(PACKFILE *f, word version, word build, bool keepdata, bool zgpmode=false);
 int readweapons(PACKFILE *f, zquestheader *Header, bool keepdata);
 int readguys(PACKFILE *f, zquestheader *Header, bool keepdata);
 int readmapscreen(PACKFILE *f, zquestheader *Header, mapscr *temp_mapscr, zcmap *temp_map, word version);
@@ -137,8 +137,8 @@ int readcheatcodes(PACKFILE *f, zquestheader *Header, bool keepdata);
 int readinitdata(PACKFILE *f, zquestheader *Header, bool keepdata);
 int readsubscreens(PACKFILE *f, zquestheader *Header, bool keepdata);
 int read_one_subscreen(PACKFILE *f, zquestheader *Header, bool keepdata, int i, word s_version, word s_cversion);
-int readscripts(PACKFILE *f, zquestheader *Header, bool keepdata);
-int read_one_script(PACKFILE *f, zquestheader *Header, int i, word s_version, word s_cversion, int type, ZAsmScript &script);
+int readffscript(PACKFILE *f, zquestheader *Header, bool keepdata);
+int read_one_ffscript(PACKFILE *f, zquestheader *Header, bool keepdata, int i, word s_version, word s_cversion, ffscript **script);
 int readsfx(PACKFILE *f, zquestheader *Header, bool keepdata);
 int readitemdropsets(PACKFILE *f, word version, word build, bool keepdata);
 int readfavorites(PACKFILE *f, int, word, bool keepdata);
@@ -182,6 +182,7 @@ extern void delete_combo_aliases();
 void reset_subscreen(subscreen_group *tempss);
 void reset_subscreens();
 int setupsubscreens();
+void setupsfx();
 void reset_itembuf(itemdata *item, int id);
 void reset_itemname(int id);
 void reset_weaponname(int i);

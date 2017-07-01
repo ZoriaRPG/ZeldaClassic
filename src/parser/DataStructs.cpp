@@ -1,406 +1,13 @@
 
 #include "../precompiled.h" //always first
 
-#include "../zsyssimple.h"
-#include "CompileError.h"
 #include "DataStructs.h"
-#include "GlobalSymbols.h"
-#include "Scope.h"
-#include "Types.h"
-#include "ZScript.h"
+#include "../zsyssimple.h"
 #include <assert.h>
 #include <iostream>
 
 using std::cout;
 using std::endl;
-using namespace ZScript;
-
-////////////////////////////////////////////////////////////////
-// FunctionSignature
-
-FunctionSignature::FunctionSignature(string const& name_, vector<ZVarType const*> const& paramTypes)
-	: paramTypes(paramTypes)
-{
-	name.push_back(name_);
-}
-
-FunctionSignature::FunctionSignature(vector<string> const& name, vector<ZVarType const*> const& paramTypes)
-	: name(name), paramTypes(paramTypes)
-{}
-
-int FunctionSignature::compare(FunctionSignature const& other) const
-{
-	int c = name.size() - other.name.size();
-	if (c) return c;
-	for (int i = 0; i < (int)name.size(); ++i)
-	{
-		c = name[i].compare(other.name[i]);
-		if (c) return c;
-	}
-	c = paramTypes.size() - other.paramTypes.size();
-	if (c) return c;
-	for (int i = 0; i < (int)paramTypes.size(); ++i)
-	{
-		c = paramTypes[i]->compare(*other.paramTypes[i]);
-		if (c) return c;
-	}
-	return 0;
-}
-
-////////////////////////////////////////////////////////////////
-// FunctionTypeIds
-
-FunctionTypeIds::FunctionTypeIds(ZVarTypeId returnTypeId, vector<ZVarTypeId> const& paramTypeIds)
-	: returnTypeId(returnTypeId), paramTypeIds(paramTypeIds)
-{}
-
-int FunctionTypeIds::compare(FunctionTypeIds const& other) const
-{
-	int c = returnTypeId - other.returnTypeId;
-	if (c) return c;
-	c = paramTypeIds.size() - other.paramTypeIds.size();
-	if (c) return c;
-	for (int i = 0; i < (int)paramTypeIds.size(); ++i)
-	{
-		c = paramTypeIds[i] - other.paramTypeIds[i];
-		if (c) return c;
-	}
-	return 0;
-}
-
-FunctionTypeIds const FunctionTypeIds::null;
-
-////////////////////////////////////////////////////////////////
-// SymbolTable
-
-SymbolTable::SymbolTable()
-{
-	// Assign builtin types.
-	for (ZVarTypeId id = ZVARTYPEID_START; id < ZVARTYPEID_END; ++id)
-		assignTypeId(*ZVarType::get(id));
-
-	// Assign builtin classes.
-	for (int id = ZVARTYPEID_CLASS_START; id < ZVARTYPEID_CLASS_END; ++id)
-	{
-		ZVarTypeClass& type = *(ZVarTypeClass*)ZVarType::get(id);
-		assert(type.getClassId() == classes.size());
-		classes.push_back(new ZClass(*this, type.getClassName(), type.getClassId()));
-	}
-}
-
-SymbolTable::~SymbolTable()
-{
-	for (vector<ZVarType*>::iterator it = types.begin(); it != types.end(); ++it)
-		delete *it;
-	for (vector<ZClass*>::iterator it = classes.begin(); it != classes.end(); ++it)
-		delete *it;
-}
-
-// Nodes
-
-int SymbolTable::getNodeId(AST* node) const
-{
-	map<AST*, int>::const_iterator it = nodeIds.find(node);
-	if (it == nodeIds.end()) return -1;
-	return it->second;
-}
-
-void SymbolTable::putNodeId(AST* node, int id)
-{
-    nodeIds[node] = id;
-}
-
-vector<int> SymbolTable::getPossibleNodeFuncIds(AST* node) const
-{
-	map<AST*, vector<int>>::const_iterator it = possibleNodeFuncIds.find(node);
-	if (it == possibleNodeFuncIds.end()) return vector<int>();
-	return it->second;
-}
-
-void SymbolTable::putPossibleNodeFuncIds(AST* node, vector<int> possibleFuncIds)
-{
-	possibleNodeFuncIds[node] = possibleFuncIds;
-}
-
-// Types
-
-ZVarType* SymbolTable::getType(ZVarTypeId typeId) const
-{
-	if (typeId < 0 || typeId > (int)types.size()) return NULL;
-	return types[typeId];
-}
-
-ZVarType* SymbolTable::getType(AST* node) const
-{
-    return getType(getNodeId(node));
-}
-
-ZVarTypeId SymbolTable::getTypeId(ZVarType const& type) const
-{
-	map<ZVarType*, ZVarTypeId, ZVarType::PointerLess>::const_iterator it = typeIds.find((ZVarType*)&type);
-	if (it == typeIds.end()) return -1;
-	return it->second;
-}
-
-ZVarTypeId SymbolTable::assignTypeId(ZVarType const& type)
-{
-	if (!type.isResolved())
-	{
-		CompileError::UnresolvedType.print(NULL, type.getName());
-		return -1;
-	}
-
-	map<ZVarType*, ZVarTypeId, ZVarType::PointerLess>::const_iterator it = typeIds.find((ZVarType*)&type);
-	if (it != typeIds.end()) return -1;
-	ZVarTypeId id = types.size();
-	ZVarType* storedType = type.clone();
-	types.push_back(storedType);
-	typeIds[storedType] = id;
-	return id;
-}
-
-ZVarTypeId SymbolTable::getOrAssignTypeId(ZVarType const& type)
-{
-	if (!type.isResolved())
-	{
-		CompileError::UnresolvedType.print(NULL, type.getName());
-		return -1;
-	}
-
-	map<ZVarType*, ZVarTypeId, ZVarType::PointerLess>::const_iterator it = typeIds.find((ZVarType*)&type);
-	if (it != typeIds.end()) return it->second;
-	ZVarTypeId id = types.size();
-	ZVarType* storedType = type.clone();
-	types.push_back(storedType);
-	typeIds[storedType] = id;
-	return id;
-}
-
-ZVarType const* SymbolTable::getCanonicalType(ZVarType const& type)
-{
-	int id = getOrAssignTypeId(type);
-	return (ZVarType const*)types[id];
-}
-
-// Classes
-
-ZClass* SymbolTable::getClass(int classId) const
-{
-	if (classId < 0 || classId > (int)classes.size()) return NULL;
-	return classes[classId];
-}
-
-ZClass* SymbolTable::createClass(string const& name)
-{
-	ZClass* klass = new ZClass(*this, name, classes.size());
-	classes.push_back(klass);
-	return klass;
-}
-
-// Variables
-
-ZVarTypeId SymbolTable::getVarTypeId(int varId) const
-{
-    map<int, ZVarTypeId>::const_iterator it = varTypes.find(varId);
-
-    if (it == varTypes.end())
-    {
-        box_out("Internal Error: Can't find the variable type!");
-        box_eol();
-        return -1;
-    }
-
-    return it->second;
-}
-
-ZVarTypeId SymbolTable::getVarTypeId(AST* obj) const
-{
-    map<AST*, int>::const_iterator it = nodeIds.find(obj);
-
-    if (it == nodeIds.end())
-    {
-        box_out("Internal Error: Can't find the AST ID!");
-        box_eol();
-        return -1;
-    }
-
-    return getVarTypeId(it->second);
-}
-
-ZVarType* SymbolTable::getVarType(int varId) const
-{
-	ZVarTypeId id = getVarTypeId(varId);
-	if (id == -1) return NULL;
-	return getType(id);
-}
-
-ZVarType* SymbolTable::getVarType(AST* node) const
-{
-	ZVarTypeId id = getVarTypeId(node);
-	if (id == -1) return NULL;
-	return getType(id);
-}
-
-void SymbolTable::putVarTypeId(int varId, ZVarTypeId typeId)
-{
-	varTypes[varId] = typeId;
-}
-
-void SymbolTable::putVarType(int varId, ZVarType const& type)
-{
-	varTypes[varId] = getOrAssignTypeId(type);
-}
-
-// Inlined Constants
-
-void SymbolTable::inlineConstant(int varId, long value)
-{
-	if (varId == -1) return; 
-	
-	map<int, long>::const_iterator it = inlinedConstants.find(varId);
-	if (it != inlinedConstants.end())
-	{
-		box_out("Internal Error: Constant already inlined.");
-		box_eol();
-		return;
-	}
-
-	inlinedConstants[varId] = value;
-}
-
-void SymbolTable::inlineConstant(AST* node, long value)
-{
-	int varId = getNodeId(node);
-	if (varId == -1)
-	{
-		box_out("Internal Error (inlineConstant): Node does not have id.");
-		box_eol();
-		return;
-	}
-
-	inlineConstant(varId, value);
-}
-
-bool SymbolTable::isInlinedConstant(int varId) const
-{
-	return inlinedConstants.find(varId) != inlinedConstants.end();
-}
-
-bool SymbolTable::isInlinedConstant(AST* node) const
-{
-	int varId = getNodeId(node);
-	if (varId == -1)
-	{
-		box_out("Internal Error (isInlinedConstant): Node does not have id.");
-		box_eol();
-		return false;
-	}
-
-	return isInlinedConstant(varId);
-}
-
-long SymbolTable::getInlinedValue(int varId) const
-{
-	map<int, long>::const_iterator it = inlinedConstants.find(varId);
-	if (it == inlinedConstants.end()) return 0L;
-	return it->second;
-}
-
-long SymbolTable::getInlinedValue(AST* node) const
-{
-	return getInlinedValue(getNodeId(node));
-}
-
-// Functions
-
-ZVarTypeId SymbolTable::getFuncReturnTypeId(int funcId) const
-{
-	map<int, FunctionTypeIds>::const_iterator it = funcTypes.find(funcId);
-	if (it == funcTypes.end()) return -1;
-	return it->second.returnTypeId;
-}
-
-ZVarTypeId SymbolTable::getFuncReturnTypeId(AST* node) const
-{
-    return getFuncReturnTypeId(getNodeId(node));
-}
-
-vector<ZVarTypeId> SymbolTable::getFuncParamTypeIds(int funcId) const
-{
-	map<int, FunctionTypeIds>::const_iterator it = funcTypes.find(funcId);
-	if (it == funcTypes.end()) return vector<ZVarTypeId>();
-	return it->second.paramTypeIds;
-}
-
-void SymbolTable::putFuncTypeIds(int funcId, ZVarTypeId returnTypeId, vector<ZVarTypeId> const& paramTypeIds)
-{
-	funcTypes[funcId] = FunctionTypeIds(returnTypeId, paramTypeIds);
-}
-
-void SymbolTable::putFuncTypes(int funcId, ZVarType const* returnType, vector<ZVarType const*> const& paramTypes)
-{
-	ZVarTypeId returnTypeId = getOrAssignTypeId(*returnType);
-	vector<ZVarTypeId> paramTypeIds;
-	for (vector<ZVarType const*>::const_iterator it = paramTypes.begin(); it != paramTypes.end(); ++it)
-		paramTypeIds.push_back(getOrAssignTypeId(**it));
-	funcTypes[funcId] = FunctionTypeIds(returnTypeId, paramTypeIds);
-}
-
-//
-
-void SymbolTable::printDiagnostics()
-{
-    cout << (unsigned int)varTypes.size() << " variable symbols" << endl;
-    cout << (unsigned int)funcTypes.size() << " function symbols" << endl;
-}
-
-////////////////////////////////////////////////////////////////
-// FunctionData
-
-FunctionData::FunctionData(Program& program)
-	: program(program), globalLiterals(program.globalScope.getLocalLiterals())
-{}
-
-////////////////////////////////////////////////////////////////
-// IntermediateData
-
-IntermediateData::IntermediateData(FunctionData const& functionData)
-	: program(functionData.program)
-{}
-
-////////////////////////////////////////////////////////////////
-// LinkTable
-
-int LinkTable::functionToLabel(int fid)
-{
-    map<int,int>::iterator it = funcLabels.find(fid);
-
-    if (it != funcLabels.end())
-        return (*it).second;
-
-    int newid = ScriptParser::getUniqueLabelID();
-    funcLabels[fid] = newid;
-    return newid;
-}
-
-int LinkTable::getGlobalID(int vid)
-{
-    map<int, int>::iterator it = globalIDs.find(vid);
-
-    if (it == globalIDs.end())
-        return -1;
-
-    return it->second;
-}
-
-int LinkTable::addGlobalVar(int vid)
-{
-    int newid = ScriptParser::getUniqueGlobalID();
-    globalIDs[vid] = newid;
-    return newid;
-}
-
-////////////////////////////////////////////////////////////////
 
 int StackFrame::getOffset(int vid)
 {
@@ -416,4 +23,223 @@ int StackFrame::getOffset(int vid)
     return stackoffset[vid];
 }
 
+int SymbolTable::getVarType(AST *obj)
+{
+    map<AST *, int>::iterator it = astToID.find(obj);
+    
+    if(it == astToID.end())
+    {
+        box_out("Internal Error: Can't find the AST ID!");
+        box_eol();
+        return -1;
+    }
+    
+    return getVarType(it->second);
+}
+
+int SymbolTable::getVarType(int varID)
+{
+    map<int, int>::iterator it = varTypes.find(varID);
+    
+    if(it == varTypes.end())
+    {
+        box_out("Internal Error: Can't find the variable type!");
+        box_eol();
+        return -1;
+    }
+    
+    return it->second;
+}
+
+bool SymbolTable::isConstant(string name)
+{
+    return constants->find(name) != constants->end();
+}
+
+long SymbolTable::getConstantVal(string name)
+{
+    return (*constants)[name];
+}
+
+int VariableSymbols::addVariable(string name, int type)
+{
+
+    map<string, pair<int, int> >::iterator it = symbols.find(name);
+    
+    if(it != symbols.end())
+        return -1;
+        
+    int id = ScriptParser::getUniqueVarID();
+    symbols[name] = pair<int, int>(type, id);
+    return id;
+}
+
+bool VariableSymbols::containsVariable(string name)
+{
+    return (symbols.find(name) != symbols.end());
+}
+
+int VariableSymbols::getID(string name)
+{
+    map<string, pair<int, int> >::iterator it = symbols.find(name);
+    assert(it != symbols.end());
+    return it->second.second;
+}
+
+int FunctionSymbols::addFunction(string name, int rettype, vector<int> paramtype)
+{
+    map<pair<string, vector<int> >, pair<int, int> >::iterator it = symbols.find(pair<string, vector<int> >(name, paramtype));
+    
+    if(it != symbols.end())
+        return -1;
+        
+    int id = ScriptParser::getUniqueFuncID();
+    symbols[pair<string, vector<int> >(name, paramtype)] = pair<int, int>(rettype, id);
+    map<string, vector<int> >::iterator it2 = ambiguous.find(name);
+    
+    if(it2 == ambiguous.end())
+    {
+        vector<int> newv;
+        newv.push_back(id);
+        ambiguous[name] = newv;
+    }
+    else
+    {
+        (*it2).second.push_back(id);
+    }
+    
+    return id;
+}
+
+bool FunctionSymbols::containsFunction(string name, vector<int> &params)
+{
+    return symbols.find(pair<string, vector<int> >(name,params)) != symbols.end();
+}
+
+int FunctionSymbols::getID(string name, vector<int> &params)
+{
+    map<pair<string, vector<int> >, pair<int, int> >::iterator it = symbols.find(pair<string, vector<int> >(name, params));
+    assert(it != symbols.end());
+    return it->second.second;
+}
+
+vector<int> FunctionSymbols::getFuncIDs(string name)
+{
+    map<string, vector<int> >::iterator it = ambiguous.find(name);
+    
+    if(it == ambiguous.end())
+        return vector<int>();
+        
+    return it->second;
+}
+
+bool Scope::addNamedChild(string name, Scope *child)
+{
+    map<string, Scope *>::iterator it = namedChildren.find(name);
+    
+    if(it != namedChildren.end())
+        return false;
+        
+    namedChildren[name]=child;
+    return true;
+}
+
+Scope::~Scope()
+{
+    map<string, Scope *>::iterator it;
+    
+    for(it = namedChildren.begin(); it != namedChildren.end(); it++)
+    {
+        delete it->second;
+    }
+    
+    namedChildren.clear();
+}
+
+int Scope::getVarInScope(string nspace, string name)
+{
+    if(nspace == "" && getVarSymbols().containsVariable(name))
+        return getVarSymbols().getID(name);
+        
+    map<string, Scope *>::iterator it = namedChildren.find(nspace);
+    
+    if(it != namedChildren.end())
+    {
+        int id = (*it).second->getVarInScope("", name);
+        
+        if(id != -1)
+            return id;
+    }
+    
+    if(parent == NULL)
+        return -1;
+        
+    return parent->getVarInScope(nspace, name);
+}
+
+vector<int> Scope::getFuncsInScope(string nspace, string name)
+{
+    vector<int> rval;
+    
+    if(nspace == "")
+    {
+        vector<int> thisscope = getFuncSymbols().getFuncIDs(name);
+        
+        for(vector<int>::iterator it = thisscope.begin(); it != thisscope.end(); it++)
+        {
+            rval.push_back(*it);
+        }
+    }
+    
+    map<string, Scope *>::iterator it = namedChildren.find(nspace);
+    
+    if(it != namedChildren.end())
+    {
+        vector<int> childscope = (*it).second->getFuncsInScope("", name);
+        
+        for(vector<int>::iterator it2 = childscope.begin(); it2 != childscope.end(); it2++)
+        {
+            rval.push_back(*it2);
+        }
+    }
+    
+    if(parent != NULL)
+    {
+        vector<int> abovescope = parent->getFuncsInScope(nspace,name);
+        
+        for(vector<int>::iterator it2 = abovescope.begin(); it2 != abovescope.end(); it2++)
+        {
+            rval.push_back(*it2);
+        }
+    }
+    
+    return rval;
+}
+
+Scope *Scope::getNamedChild(string name)
+{
+    return namedChildren[name];
+}
+
+void SymbolTable::putFunc(int ID, int type)
+{
+    funcTypes[ID]=type;
+}
+
+void SymbolTable::putAST(AST *obj, int ID)
+{
+    astToID[obj]=ID;
+}
+
+int SymbolTable::getFuncType(AST *obj)
+{
+    return getFuncType(astToID[obj]);
+}
+
+void SymbolTable::printDiagnostics()
+{
+    cout << (unsigned int)varTypes.size() << " variable symbols" << endl;
+    cout << (unsigned int)funcTypes.size() << " function symbols" << endl;
+    cout << (unsigned int)funcParams.size() << " function declarations (should = function symbols)" << endl;
+}
 
