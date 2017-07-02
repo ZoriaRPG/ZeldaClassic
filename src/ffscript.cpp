@@ -11157,7 +11157,7 @@ void FFScript::do_loadbitmap()
         ArrayH::getString(arrayptr, filename_str, 256);
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
-	BITMAP *bitty = load_bmp(filename_char, RAMpal);
+	BITMAP *bitty = load_bitmap(filename_char, RAMpal);
 	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
         set_register(sarg2, ret ? 10000 : 0);
 	if ( ret ) blit(bitty, destBitmap, 0, 0, 0, 0, 512, 512);
@@ -11176,5 +11176,5 @@ void FFScript::do_savebitmap()
         filename_char[255]='\0';
 	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
         set_register(sarg2, ret ? 10000 : 0); 
-	if ( ret ) save_bmp(filename_char, bitty, RAMpal);
+	if ( ret ) save_bitmap(filename_char, bitty, RAMpal);
 }
