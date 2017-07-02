@@ -106,6 +106,53 @@ const int radsperdeg = 572958;
 #define POP_ARGS(num_args, t) \
 	for(int _i(0); _i < num_args; ++_i) \
 		code.push_back(new OPopRegister(new VarArgument(t)))
+		
+#define FUNCTION_TWO_INPUTS_RETURN(flabel, zasmid){ \
+{ \
+	int id = memberids[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(INDEX2)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        code.push_back(new OPopRegister(new VarArgument(INDEX))); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+        code.push_back(new OSetRegister(new VarArgument(EXP1), new VarArgument(zasmid))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+
+#define FUNCTION_NO_RETURN(flabel, zasmid, numargs) \
+{ \
+        int id = memberids[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(EXP2)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        POP_ARGS(numargs, INDEX); \
+        code.push_back(new OSetRegister(new VarArgument(zasmid), new VarArgument(EXP2))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label] = code; \
+} \
+
+#define FUNCTION_RETURN(flabel, zasmid, numargs){ \
+{ \
+        int id = memberids[flabel]; \
+        int label = lt.functionToLabel(id); \
+        vector<Opcode *> code; \
+        Opcode *first = new OPopRegister(new VarArgument(SFTEMP)); \
+        first->setLabel(label); \
+        code.push_back(first); \
+        POP_ARGS(numargs, EXP2); \
+        code.push_back(new OPopRegister(new VarArgument(NUL))); \
+	code.push_back(new OSetRegister(new VarArgument(SETLINKTILE), new VarArgument(SFTEMP))); \
+        code.push_back(new OPopRegister(new VarArgument(EXP2))); \
+        code.push_back(new OGotoRegister(new VarArgument(EXP2))); \
+        rval[label]=code; \
+} \
 
 LibrarySymbols* LibrarySymbols::getTypeInstance(ZVarTypeId typeId)
 {
