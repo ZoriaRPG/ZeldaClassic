@@ -11138,7 +11138,7 @@ void FFScript::setSpriteDataType(){SET_SPRITEDATA_TYPE_INT(type,ZS_CHAR);}
 
 //LoadBitmap
 
-//Uses the same format as do_set_dmap_enh_music
+//Uses the same format as PLAYENHMUSIC
 /*
  case PLAYENHMUSIC:
              do_enh_music(false);
@@ -11148,8 +11148,8 @@ void FFScript::setSpriteDataType(){SET_SPRITEDATA_TYPE_INT(type,ZS_CHAR);}
 //LoadBitmap(filename[], blit_to_bitmap_id)
 void FFScript::do_loadbitmap()
 {
-	long arrayptr = SH::get_arg(sarg1, v) / 10000;
-	long bitmap_id = (SH::get_arg(sarg2, v) / 10000)-1;
+	long arrayptr = get_register(sarg1) / 10000;
+	long bitmap_id = (get_register(sarg2) / 10000)-1;
 	BITMAP *destBitmap = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
 	string filename_str;
         char filename_char[256];
@@ -11157,20 +11157,24 @@ void FFScript::do_loadbitmap()
         ArrayH::getString(arrayptr, filename_str, 256);
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
-	BITMAP bitty = load_bmp(filename_char, RGB);
-	blit(bitty, destBitmap, sx, sy, 0, 0, dw, dh);
+	BITMAP *bitty = load_bmp(filename_char, RAMpal);
+	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
+        set_register(sarg2, ret ? 10000 : 0);
+	if ( ret ) blit(bitty, destBitmap, 0, 0, 0, 0, 512, 512);
 }
 
 void FFScript::do_savebitmap()
 {
-	long arrayptr = SH::get_arg(sarg1, v) / 10000;
-	long bitmap_id = (SH::get_arg(sarg2, v) / 10000)-1;
-	BITMAP bitty = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
+	long arrayptr = get_register(sarg1) / 10000;
+	long bitmap_id = (get_register(sarg2) / 10000)-1;
+	BITMAP *bitty = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
 	string filename_str;
         char filename_char[256];
         bool ret;
         ArrayH::getString(arrayptr, filename_str, 256);
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
-	save_bmp(filename_char, bitty, RGB);
+	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
+        set_register(sarg2, ret ? 10000 : 0); 
+	if ( ret ) save_bmp(filename_char, bitty, RAMpal);
 }
