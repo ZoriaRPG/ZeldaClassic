@@ -31,6 +31,7 @@
 #include "pal.h"
 #include "zdefs.h"
 #include "zq_class.h"
+#include "rendertarget.h" //Needed for LoadBitmap
 
 #ifdef _FFDEBUG
 #include "ffdebug.h"
@@ -9990,20 +9991,24 @@ int run_script(const byte type, const word script, const byte i)
 	//SpriteData
 	
 	//case	GETSPRITEDATASTRING: 
-	case	GETSPRITEDATATILE: FFScript::getSpriteDataTile();
-	case	GETSPRITEDATAMISC: FFScript::getSpriteDataCSets();
-	case	GETSPRITEDATACGETS: FFScript::getSpriteDataCSets();
-	case	GETSPRITEDATAFRAMES: FFScript::getSpriteDataFrames();
-	case	GETSPRITEDATASPEED: FFScript::getSpriteDataSpeed();
-	case	GETSPRITEDATATYPE: FFScript::getSpriteDataType();
+	case	GETSPRITEDATATILE: FFScript::getSpriteDataTile(); break;
+	case	GETSPRITEDATAMISC: FFScript::getSpriteDataCSets(); break;
+	case	GETSPRITEDATACGETS: FFScript::getSpriteDataCSets(); break;
+	case	GETSPRITEDATAFRAMES: FFScript::getSpriteDataFrames(); break;
+	case	GETSPRITEDATASPEED: FFScript::getSpriteDataSpeed(); break;
+	case	GETSPRITEDATATYPE: FFScript::getSpriteDataType(); break;
 
 	//case	SETSPRITEDATASTRING:
-	case	SETSPRITEDATATILE: FFScript::setSpriteDataTile();
-	case	SETSPRITEDATAMISC: FFScript::setSpriteDataMisc();
-	case	SETSPRITEDATACSETS: FFScript::setSpriteDataCSets();
-	case	SETSPRITEDATAFRAMES: FFScript::setSpriteDataFrames();
-	case	SETSPRITEDATASPEED: FFScript::setSpriteDataSpeed();
-	case	SETSPRITEDATATYPE: FFScript::setSpriteDataType();
+	case	SETSPRITEDATATILE: FFScript::setSpriteDataTile(); break;
+	case	SETSPRITEDATAMISC: FFScript::setSpriteDataMisc(); break;
+	case	SETSPRITEDATACSETS: FFScript::setSpriteDataCSets(); break;
+	case	SETSPRITEDATAFRAMES: FFScript::setSpriteDataFrames(); break;
+	case	SETSPRITEDATASPEED: FFScript::setSpriteDataSpeed(); break;
+	case	SETSPRITEDATATYPE: FFScript::setSpriteDataType(); break;
+	
+	//LoadBitmap
+	case LOADBITMAP: FFScript::do_loadbitmap(); break;
+	case SAVEBITMAP: FFScript::do_savebitmap(); break;
 	
         default:
             Z_scripterrlog("Invalid ZASM command %ld reached\n", scommand);
@@ -11130,3 +11135,42 @@ void FFScript::setSpriteDataFrames(){SET_SPRITEDATA_TYPE_INT(frames,ZS_CHAR);}
 void FFScript::setSpriteDataSpeed(){SET_SPRITEDATA_TYPE_INT(speed,ZS_CHAR);}
 void FFScript::setSpriteDataType(){SET_SPRITEDATA_TYPE_INT(type,ZS_CHAR);}
 //void FFScript::setSpriteDataString();
+
+//LoadBitmap
+
+//Uses the same format as do_set_dmap_enh_music
+/*
+ case PLAYENHMUSIC:
+             do_enh_music(false);
+            break;
+*/
+
+//LoadBitmap(filename[], blit_to_bitmap_id)
+void FFScript::do_loadbitmap()
+{
+	long arrayptr = SH::get_arg(sarg1, v) / 10000;
+	long bitmap_id = (SH::get_arg(sarg2, v) / 10000)-1;
+	BITMAP *destBitmap = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
+	string filename_str;
+        char filename_char[256];
+        bool ret;
+        ArrayH::getString(arrayptr, filename_str, 256);
+        strncpy(filename_char, filename_str.c_str(), 255);
+        filename_char[255]='\0';
+	BITMAP bitty = load_bmp(filename_char, RGB);
+	blit(bitty, destBitmap, sx, sy, 0, 0, dw, dh);
+}
+
+void FFScript::do_savebitmap()
+{
+	long arrayptr = SH::get_arg(sarg1, v) / 10000;
+	long bitmap_id = (SH::get_arg(sarg2, v) / 10000)-1;
+	BITMAP bitty = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
+	string filename_str;
+        char filename_char[256];
+        bool ret;
+        ArrayH::getString(arrayptr, filename_str, 256);
+        strncpy(filename_char, filename_str.c_str(), 255);
+        filename_char[255]='\0';
+	save_bmp(filename_char, bitty, RGB);
+}

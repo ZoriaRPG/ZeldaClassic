@@ -5130,9 +5130,11 @@ TextPtrSymbols TextPtrSymbols::singleton = TextPtrSymbols();
 static AccessorTable TextTable[] =
 {
     //name,                     rettype,                        setorget,     var,              numindex,      params
-	//All of these return a function label error when used:
-	{ "getTest",               ZVARTYPEID_FLOAT,         GETTER,       DEBUGREFFFC,            1,      {  ZVARTYPEID_TEXT,         -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
-	
+	//Load and Save Bitmaps
+	{ "LoadBitmap",      ZVARTYPEID_BOOL,          FUNCTION,     0,                    1,      {  ZVARTYPEID_GRAPHICS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,    -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+	{ "SaveBitmap",      ZVARTYPEID_BOOL,          FUNCTION,     0,                    1,      {  ZVARTYPEID_GRAPHICS,          ZVARTYPEID_FLOAT,         ZVARTYPEID_FLOAT,    -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } },
+    
+ 
     { "",                      -1,                               -1,           -1,                   -1,      { -1,                               -1,                               -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1,                           -1                           } }
 };
 
@@ -5146,7 +5148,41 @@ map<int, vector<Opcode *> > TextPtrSymbols::addSymbolsCode(LinkTable &lt)
 {
     map<int, vector<Opcode *> > rval;
     int id=-1;
-	
+	//void LoadBitmap(gfx, int[], int)
+    {
+        int id = functions["LoadBitmap"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OLoadBitmap(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
+    
+    //void SaveBitmap(gfx, int[], int)
+    {
+        int id = functions["SaveBitmap"];
+        int label = lt.functionToLabel(id);
+        vector<Opcode *> code;
+        //pop off the params
+        Opcode *first = new OPopRegister(new VarArgument(EXP1));
+        first->setLabel(label);
+        code.push_back(first);
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        //pop pointer, and ignore it
+        code.push_back(new OPopRegister(new VarArgument(NUL)));
+        code.push_back(new OSaveBitmap(new VarArgument(EXP2), new VarArgument(EXP1)));
+        code.push_back(new OPopRegister(new VarArgument(EXP2)));
+        code.push_back(new OGotoRegister(new VarArgument(EXP2)));
+        rval[label] = code;
+    }
 
     return rval;
 }

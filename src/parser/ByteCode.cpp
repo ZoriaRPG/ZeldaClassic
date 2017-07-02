@@ -3335,5 +3335,16 @@ string OSSetDataType::toString()
     return "SETSPRITEDATATYPE " + getFirstArgument()->toString() + "," +  getSecondArgument()->toString();
 }
 
+//Load and Save Bitmaps
+
+string OLoadBitmap::toString()
+{
+    return "LOADBITMAP " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
+}
+string OSaveBitmap::toString()
+{
+    return "SAVEBITMAP " + getFirstArgument()->toString() + "," + getSecondArgument()->toString();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 

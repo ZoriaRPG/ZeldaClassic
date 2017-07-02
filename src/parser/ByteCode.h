@@ -5813,5 +5813,31 @@ public:
     }
 };
 
+//Load and Save bitmaps
+
+
+class OLoadBitmap : public BinaryOpcode
+{
+public:
+    OLoadBitmap(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OLoadBitmap(a->clone(), b->clone());
+    }
+};
+
+class OSaveBitmap : public BinaryOpcode
+{
+public:
+    OSaveBitmap(Argument *A, Argument *B) : BinaryOpcode(A,B) {}
+    string toString();
+    Opcode *clone()
+    {
+        return new OSaveBitmap(a->clone(), b->clone());
+    }
+};
+
+
 #endif
 

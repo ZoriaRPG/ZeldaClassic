@@ -413,6 +413,8 @@ static void setLinkBigHitbox(bool v);
 	static void setSpriteDataType();
 	static void setSpriteDataString();
 
+	static void do_loadbitmap();
+	static void do_savebitmap();
 
 #define INVALIDARRAY localRAM[0]  //localRAM[0] is never used
 
