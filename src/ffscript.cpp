@@ -11158,23 +11158,39 @@ void FFScript::do_loadbitmap()
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
 	BITMAP *bitty = load_bitmap(filename_char, RAMpal);
-	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
+	if (!bitty)  
+	{
+		Z_scripterrlog("Could not load bitmap file: %s\n", filename_char);
+		destroy_bitmap(bitty);
+		ret = false;
+		
+	}
+	else ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
         set_register(sarg2, ret ? 10000 : 0);
 	if ( ret ) blit(bitty, destBitmap, 0, 0, 0, 0, 512, 512);
+	destroy_bitmap(bitty);
 }
 
 void FFScript::do_savebitmap()
 {
 	long arrayptr = get_register(sarg1) / 10000;
 	long bitmap_id = (get_register(sarg2) / 10000)-1;
-	BITMAP *bitty = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
 	string filename_str;
         char filename_char[256];
         bool ret;
         ArrayH::getString(arrayptr, filename_str, 256);
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
-	ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
+	BITMAP *bitty = zscriptDrawingRenderTarget->GetBitmapPtr(bitmap_id);
+	if ( !bitty ) 
+	{
+		Z_scripterrlog("The bitmap pointer %d supplied to SaveBitmap() is invalid.\n", bitmap_id);
+		ret = false;
+		destroy_bitmap(bitty);
+	}
+	
+	else ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
         set_register(sarg2, ret ? 10000 : 0); 
 	if ( ret ) save_bitmap(filename_char, bitty, RAMpal);
+	//destroy_bitmap(bitty);
 }
