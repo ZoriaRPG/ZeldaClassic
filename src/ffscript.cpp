@@ -11177,7 +11177,7 @@ void FFScript::do_savebitmap()
 	long bitmap_id = (get_register(sarg2) / 10000)-1;
 	string filename_str;
         char filename_char[256];
-        bool ret;
+        bool ret; int ret2 = 0; //first ret, bad bmp pointer, ret2 failure to write. 
         ArrayH::getString(arrayptr, filename_str, 256);
         strncpy(filename_char, filename_str.c_str(), 255);
         filename_char[255]='\0';
@@ -11191,6 +11191,8 @@ void FFScript::do_savebitmap()
 	
 	else ret=true; //this needs to be set false on error. -Z : ret=try_zcmusic(filename_char, track, -1000);
         set_register(sarg2, ret ? 10000 : 0); 
-	if ( ret ) save_bitmap(filename_char, bitty, RAMpal);
-	//destroy_bitmap(bitty);
+	if ( ret ) ret2 = save_bitmap(filename_char, bitty, RAMpal);
+	if ( ret2 == 0 ) Z_scripterrlog("Failed to write bitmap filename: %s\n", filename_char);
+	set_register(sarg2, ret2*10000);
+	//destroy_bitmap(bitty); //Do we destroy this one?
 }
