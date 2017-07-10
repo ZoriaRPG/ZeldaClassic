@@ -2518,6 +2518,7 @@ int playMusic()
         
         if(ismidi)
         {
+            packfile_password("");
             if((song=load_midi(midipath))!=NULL)
             {
                 if(play_midi(song,true)==0)
@@ -13288,7 +13289,9 @@ void edit_tune(int i)
                 {
                     destroy_midi((MIDI*)data);
                 }
-                
+
+                packfile_password("");
+
                 if((data=load_midi(temppath))==NULL)
                 {
                     jwin_alert("Error","Error loading tune:",temppath,NULL,"Dang",NULL,13,27,lfont);
