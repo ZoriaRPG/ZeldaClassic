@@ -107,15 +107,17 @@
 #define ZELDADAT_BUILD        17                            //build of zelda.dat
 #define SFXDAT_VERSION        0x0211                        //version of sfx.dat
 #define SFXDAT_BUILD          15                            //build of sfx.dat
-#define FONTSDAT_VERSION      0x0211                        //version of fonts.dat
-#define FONTSDAT_BUILD        18                            //build of fonts.dat
-#define QSTDAT_VERSION        0x0211                        //version of qst.dat
-#define QSTDAT_BUILD          18                            //build of qst.dat
+#define FONTSDAT_VERSION      0x0253                        //version of fonts.dat
+#define FONTSDAT_BUILD        30                            //build of fonts.dat
+#define QSTDAT_VERSION        0x0253                        //version of qst.dat
+#define QSTDAT_BUILD          30                            //build of qst.dat
 #define ZQUESTDAT_VERSION     0x0211                        //version of zquest.dat
 #define ZQUESTDAT_BUILD       18                            //build of zquest.dat
 
 enum {ENC_METHOD_192B104=0, ENC_METHOD_192B105, ENC_METHOD_192B185, ENC_METHOD_211B9, ENC_METHOD_211B18, ENC_METHOD_MAX};
 
+//Whi is this still here? Neither we, nor allegro, support DOS now. -Z
+//If anything, we should return an error if Allegro is configured for DOS. -Z
 #ifdef ALLEGRO_DOS
 //already defined in DOS
 /*
@@ -132,6 +134,7 @@ enum {ENC_METHOD_192B104=0, ENC_METHOD_192B105, ENC_METHOD_192B185, ENC_METHOD_2
 #define HP_PER_HEART          16
 #define DAMAGE_MULTIPLIER     2
 
+#define MOREFONTS_VERSION 1 //Fonts for 2.54 are v1
 
 #define ZC_ID(a,b,c,d)  (((a)<<24) | ((b)<<16) | ((c)<<8) | (d))
 
@@ -1767,6 +1770,56 @@ enum
     font_gboraclepfont,
     font_dsphantomfont,
     font_dsphantompfont,
+    //New 2.54 fonts
+    #ifdef MOREFONTS_VERSION
+	   //New fonts for 2.54+
+		 font_atari800font,   
+		 font_acornfont,   
+		 font_adosfont,   
+		 font_baseallegrofont,   
+		 font_apple2font,   
+		 font_apple280colfont,   
+		 font_apple2gsfont, 
+		 font_aquariusfont,   
+		 font_atari400font,   
+		 font_c64font,   
+		 font_c64hiresfont,   
+		 font_cgafont,   
+		 font_cocofont,
+		 font_coco2font, 
+		 font_coupefon, 
+		 font_cpcfon, 
+		 font_fantasyfon, 
+		 font_fdskanafon, 
+		 font_fdslikefon, 
+		 font_fdsromanfon, 
+		 font_finalffont, 
+		 font_futharkfont, 
+		 font_gaiafont, 
+		 font_hirafont, 
+		 font_jpfont, 
+		 font_kongfont, 
+		 font_manafont, 
+		 font_mlfont, 
+		 font_motfont, 
+		 font_msxmode0font, 
+		 font_msxmode1font, 
+		 font_petfont, 
+		 font_pstartfont, 
+		 font_saturnfont, 
+		 font_scififont, 
+		 font_sherwoodfont, 
+		 font_sinqlfont, 
+		 font_spectrumfont, 
+		 font_speclgfont, 
+		 font_ti99font, 
+		 font_trsfont, 
+		 font_z2font, 
+		 font_zxfont,
+		 font_lisafont,
+	#endif
+    
+    
     font_max
 };
 

@@ -10,6 +10,7 @@
 #define SCRIPT_DRAWING_COMMAND_VARIABLES 20
 
 
+
 // For Quad and Triangle. *allegro Bug-Fix* -Gleeok
 class SmallBitmapTextureCache
 {
